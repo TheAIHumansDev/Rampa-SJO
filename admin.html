@@ -1723,33 +1723,41 @@ async function runAI(mode) {
       output.innerHTML = '<div style="color:var(--red-bright);font-size:13px;"><strong>🔑 API Key no configurada</strong><br><br>Haz clic en <strong>"🔑 API Key"</strong> en la barra superior para ingresar tu clave de Anthropic.<br><br>Obtén tu key en: <a href="https://console.anthropic.com/keys" target="_blank" style="color:var(--accent);">console.anthropic.com/keys</a></div>';
       return;
     }
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userMessage }]
-      })
-    });
+    // Call through local proxy (proxy.js must be running: node proxy.js)
+    const PROXY_URL = localStorage.getItem('ramp_ops_proxy_url') || 'http://localhost:3131';
 
-    const data = await response.json();
-
-    // Surface API errors clearly instead of silently returning 'Sin respuesta'
-    if (!response.ok) {
-      const errMsg = data?.error?.message || JSON.stringify(data);
-      const hint = response.status === 401
-        ? '<br><br>⚠️ <strong>401 Unauthorized</strong>: La API Key es inválida o incorrecta. Haz clic en <strong>"🔑 API Key"</strong> y verifica que copiaste la key completa desde <a href="https://console.anthropic.com/keys" target="_blank" style="color:var(--accent);">console.anthropic.com/keys</a>.'
-        : response.status === 529
-        ? '<br><br>El servidor de Anthropic está sobrecargado. Intenta en unos segundos.'
-        : '';
-      output.innerHTML = '<div style="color:var(--red-bright);font-size:13px;"><strong>Error ' + response.status + '</strong>: ' + errMsg + hint + '</div>';
+    let data;
+    try {
+      const response = await fetch(PROXY_URL + '/api/claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey,
+          system: systemPrompt,
+          message: userMessage
+        })
+      });
+      data = await response.json();
+      if (!response.ok) {
+        const errMsg = data?.error || data?.message || JSON.stringify(data);
+        output.innerHTML = '<div style="color:var(--red-bright);font-size:13px;"><strong>Error ' + response.status + '</strong>: ' + errMsg + '</div>';
+        return;
+      }
+    } catch (fetchErr) {
+      output.innerHTML = `<div style="color:var(--red-bright);font-size:13px;">
+        <strong>⚠️ No se puede conectar al proxy local</strong><br><br>
+        Para usar el análisis IA necesitas correr el proxy local una sola vez:<br><br>
+        <div style="background:var(--surface3);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12px;margin:8px 0;">
+          <span style="color:var(--green)">1.</span> Instala Node.js si no lo tienes: <a href="https://nodejs.org" target="_blank" style="color:var(--accent)">nodejs.org</a><br>
+          <span style="color:var(--green)">2.</span> Descarga <strong>proxy.js</strong> (botón abajo)<br>
+          <span style="color:var(--green)">3.</span> Abre una terminal en esa carpeta y corre:<br>
+          &nbsp;&nbsp;&nbsp;<span style="color:var(--yellow)">node proxy.js</span><br>
+          <span style="color:var(--green)">4.</span> Recarga esta página y vuelve a intentarlo
+        </div>
+        <button onclick="downloadProxy()" style="margin-top:8px;padding:8px 16px;background:linear-gradient(135deg,#553c9a,#7c3aed);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">
+          📥 Descargar proxy.js
+        </button>
+      </div>`;
       return;
     }
 
@@ -1885,6 +1893,95 @@ document.addEventListener('DOMContentLoaded', function() {
   // Init key indicator
   updateKeyIndicator();
 });
+
+
+// ═══════════════════════════════════════════════════════
+// PROXY DOWNLOAD HELPER
+// ═══════════════════════════════════════════════════════
+function downloadProxy() {
+  const code = `// proxy.js — Micro-proxy para Ramp Ops Dashboard
+// Corre con: node proxy.js
+// Requiere Node.js 18+ (no necesita instalar nada más)
+
+const http = require('http');
+const https = require('https');
+
+const PORT = 3131;
+
+const server = http.createServer((req, res) => {
+  // CORS headers — permite que el dashboard en el browser llame a este proxy
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+
+  if (req.method === 'POST' && req.url === '/api/claude') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      let parsed;
+      try { parsed = JSON.parse(body); } catch(e) { res.writeHead(400); res.end(JSON.stringify({error:'Bad JSON'})); return; }
+
+      const { apiKey, system, message } = parsed;
+      if (!apiKey) { res.writeHead(400); res.end(JSON.stringify({error:'Missing apiKey'})); return; }
+
+      const payload = JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        system: system || '',
+        messages: [{ role: 'user', content: message }]
+      });
+
+      const options = {
+        hostname: 'api.anthropic.com',
+        path: '/v1/messages',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Length': Buffer.byteLength(payload)
+        }
+      };
+
+      const proxyReq = https.request(options, proxyRes => {
+        let data = '';
+        proxyRes.on('data', chunk => data += chunk);
+        proxyRes.on('end', () => {
+          res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
+          res.end(data);
+        });
+      });
+
+      proxyReq.on('error', err => {
+        res.writeHead(502); res.end(JSON.stringify({error: err.message}));
+      });
+
+      proxyReq.write(payload);
+      proxyReq.end();
+    });
+    return;
+  }
+
+  res.writeHead(404); res.end(JSON.stringify({error:'Not found'}));
+});
+
+server.listen(PORT, () => {
+  console.log('\n✅ Ramp Ops AI Proxy corriendo en http://localhost:' + PORT);
+  console.log('   La key de Anthropic viaja de forma segura desde tu browser a este proxy.');
+  console.log('   Presiona Ctrl+C para detener.\n');
+});
+`;
+
+  const blob = new Blob([code], { type: 'text/javascript' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'proxy.js';
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 </script>
 </body>
