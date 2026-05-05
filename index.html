@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Report Ops App | Aero Servicio</title>
+
+    <!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Report Ops App | Aero Servicio">
+<meta property="og:description" content="Reporte en un click!">
+<meta property="og:url" content="https://app.aerojethandlinggroup.com">
+<meta property="og:site_name" content="Aero Servicio">
+<meta property="og:image" content="https://i.ibb.co/9kSZbKS0/Open-Graph-Images-1.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Operations Reporting">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #0a0e27 0%, #1a1f3a 50%, #2a2f4a 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Airport runway scene - repositioned to bottom */
+        .airport-scene {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50vh;
+            perspective: 600px;
+            perspective-origin: 50% 0%;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        /* 3D Runway with perspective - positioned at bottom */
+        .runway-3d {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) rotateX(65deg);
+            transform-style: preserve-3d;
+            width: 250px;
+            height: 600px;
+        }
+
+        /* Main runway surface - corrected gradient */
+        .runway-surface {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, 
+                rgba(75, 85, 99, 0.3) 0%,
+                #4b5563 30%,
+                #374151 70%,
+                #2d3748 100%
+            );
+            border-left: 4px solid rgba(255, 255, 255, 0.4);
+            border-right: 4px solid rgba(255, 255, 255, 0.4);
+        }
+
+        /* Center line dashes - corrected direction */
+        .center-line {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 100%;
+            background: repeating-linear-gradient(
+                to bottom,
+                rgba(255, 255, 255, 0.9) 0px,
+                rgba(255, 255, 255, 0.9) 60px,
+                transparent 60px,
+                transparent 100px
+            );
+        }
+
+        /* Runway edge lights */
+        .runway-lights {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .light {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #3b82f6;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #3b82f6, 0 0 30px rgba(59, 130, 246, 0.5);
+            animation: lightPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes lightPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.8); }
+        }
+
+        /* Position lights along runway */
+        .light:nth-child(odd) { left: 15px; }
+        .light:nth-child(even) { right: 15px; }
+
+        /* Landing airplane */
+        .airplane-landing {
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 30px;
+            animation: approachLanding 15s ease-in-out infinite;
+            filter: drop-shadow(0 8px 25px rgba(59, 130, 246, 0.7));
+            z-index: 10;
+        }
+
+        @keyframes approachLanding {
+            0% {
+                top: -20%;
+                left: 50%;
+                transform: translateX(-50%) scale(0.3);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            50% {
+                top: 20%;
+                left: 50%;
+                transform: translateX(-50%) scale(1);
+            }
+            75% {
+                top: 50%;
+                left: 50%;
+                transform: translateX(-50%) scale(2);
+            }
+            90% {
+                top: 75%;
+                left: 50%;
+                transform: translateX(-50%) scale(3.5);
+            }
+            100% {
+                top: 95%;
+                left: 50%;
+                transform: translateX(-50%) scale(5);
+                opacity: 0;
+            }
+        }
+
+        /* Stars in sky */
+        .star {
+            position: fixed;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 4s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* Horizon glow */
+        .horizon-glow {
+            position: fixed;
+            bottom: 30vh;
+            left: 0;
+            width: 100%;
+            height: 20vh;
+            background: linear-gradient(to top, 
+                rgba(59, 130, 246, 0.1) 0%,
+                transparent 100%
+            );
+            z-index: 0;
+        }
+
+        /* Content */
+        .content {
+            position: relative;
+            z-index: 20;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 1.2s ease;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .company-name {
+            font-size: 16px;
+            color: #64748b;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+
+        .app-title {
+            font-size: 72px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            letter-spacing: -2px;
+            line-height: 1.1;
+        }
+
+        .app-subtitle {
+            font-size: 22px;
+            color: #94a3b8;
+            font-weight: 300;
+            letter-spacing: 2px;
+            margin-bottom: 80px;
+        }
+
+        .apps-container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            animation: fadeInUp 1.2s ease 0.3s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .app-button {
+            padding: 25px 40px;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            color: #fff;
+            transition: all 0.4s ease;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            min-width: 200px;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .app-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        .app-button:hover::before {
+            opacity: 1;
+        }
+
+        .app-button.turnaround {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3));
+            border: 2px solid rgba(59, 130, 246, 0.5);
+            box-shadow: 0 15px 40px rgba(59, 130, 246, 0.3);
+        }
+
+        .app-button.wheelchair {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(168, 85, 247, 0.3));
+            border: 2px solid rgba(236, 72, 153, 0.5);
+            box-shadow: 0 15px 40px rgba(236, 72, 153, 0.3);
+        }
+
+        .app-button.transport {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.3));
+            border: 2px solid rgba(16, 185, 129, 0.5);
+            box-shadow: 0 15px 40px rgba(16, 185, 129, 0.3);
+        }
+
+        .app-button:hover {
+            transform: translateY(-8px);
+        }
+
+        .app-button.turnaround:hover {
+            box-shadow: 0 25px 60px rgba(59, 130, 246, 0.6);
+            border-color: #3b82f6;
+        }
+
+        .app-button.wheelchair:hover {
+            box-shadow: 0 25px 60px rgba(236, 72, 153, 0.6);
+            border-color: #ec4899;
+        }
+
+        .app-button.transport:hover {
+            box-shadow: 0 25px 60px rgba(16, 185, 129, 0.6);
+            border-color: #10b981;
+        }
+
+        .app-icon {
+            font-size: 42px;
+        }
+
+        .app-name {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .app-status {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        @media (max-width: 768px) {
+            .app-title {
+                font-size: 42px;
+            }
+
+            .app-subtitle {
+                font-size: 16px;
+                margin-bottom: 50px;
+            }
+
+            .apps-container {
+                flex-direction: column;
+                gap: 20px;
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .app-button {
+                width: 100%;
+            }
+        }
+    </style>
+
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1PYNBFGPML"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-1PYNBFGPML');
+</script>
+
+</head>
+<body>
+    <!-- Horizon glow -->
+    <div class="horizon-glow"></div>
+
+    <!-- Stars -->
+    <div id="stars"></div>
+
+    <!-- Airport runway scene -->
+    <div class="airport-scene">
+        <div class="runway-3d">
+            <div class="runway-surface">
+                <div class="center-line"></div>
+                <div class="runway-lights" id="runwayLights"></div>
+            </div>
+        </div>
+        
+        <!-- Single landing airplane -->
+        <div class="airplane-landing">✈️</div>
+    </div>
+
+    <div class="content">
+        <div class="logo-container">
+            <div class="company-name">Aero Servicio</div>
+            <h1 class="app-title">Report<br>Ops</h1>
+            <p class="app-subtitle">Reporte en un click!</p>
+        </div>
+
+        <div class="apps-container">
+            <a href="login-P10.html" class="app-button turnaround">
+                <div class="app-icon">✈️</div>
+                <div class="app-name">Turnaround Check</div>
+                <div class="app-status">Operativo</div>
+            </a>
+
+            <a href="LT.html" class="app-button wheelchair">
+                <div class="app-icon">♿</div>
+                <div class="app-name">Sillas de Ruedas</div>
+                <div class="app-status">Operativo</div>
+            </a>
+
+        </div>
+    </div>
+
+    <script>
+        // Create stars
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 80; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 40 + '%';
+            star.style.animationDelay = Math.random() * 4 + 's';
+            starsContainer.appendChild(star);
+        }
+
+        // Create runway lights (both sides)
+        const lightsContainer = document.getElementById('runwayLights');
+        for (let i = 0; i < 25; i++) {
+            const light = document.createElement('div');
+            light.className = 'light';
+            light.style.top = (i * 48) + 'px';
+            light.style.animationDelay = (i * 0.08) + 's';
+            lightsContainer.appendChild(light);
+        }
+    </script>
+</body>
+</html>
