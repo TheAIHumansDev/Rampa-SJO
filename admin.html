@@ -1725,17 +1725,35 @@ async function runAI(mode) {
     }
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
         system: systemPrompt,
-        messages: [{ role:'user', content: userMessage }]
+        messages: [{ role: 'user', content: userMessage }]
       })
     });
 
     const data = await response.json();
-    const text = data.content?.find(b=>b.type==='text')?.text || 'Sin respuesta.';
+
+    // Surface API errors clearly instead of silently returning 'Sin respuesta'
+    if (!response.ok) {
+      const errMsg = data?.error?.message || JSON.stringify(data);
+      const hint = response.status === 401
+        ? '<br><br>⚠️ <strong>401 Unauthorized</strong>: La API Key es inválida o incorrecta. Haz clic en <strong>"🔑 API Key"</strong> y verifica que copiaste la key completa desde <a href="https://console.anthropic.com/keys" target="_blank" style="color:var(--accent);">console.anthropic.com/keys</a>.'
+        : response.status === 529
+        ? '<br><br>El servidor de Anthropic está sobrecargado. Intenta en unos segundos.'
+        : '';
+      output.innerHTML = '<div style="color:var(--red-bright);font-size:13px;"><strong>Error ' + response.status + '</strong>: ' + errMsg + hint + '</div>';
+      return;
+    }
+
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n') || 'Sin respuesta del modelo.';
     
     // Render with basic formatting
     const formatted = text
