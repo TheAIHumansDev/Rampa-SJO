@@ -4,7 +4,80 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ramp Ops Intelligence — AeroJet Handling</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+// ═══════════════════════════════════════════════════════
+// API KEY MANAGEMENT
+// ═══════════════════════════════════════════════════════
+const API_KEY_STORAGE = 'ramp_ops_claude_api_key';
+
+function getApiKey() {
+  return localStorage.getItem(API_KEY_STORAGE) || '';
+}
+
+function updateKeyIndicator() {
+  const key = getApiKey();
+  const ind = document.getElementById('apiKeyIndicator');
+  const status = document.getElementById('apiKeyStatus');
+  if (key) {
+    ind.className = 'api-key-indicator set';
+    ind.textContent = '🔑 API Key ✓';
+    if (status) {
+      status.className = 'modal-key-status set';
+      status.textContent = '✅ API Key configurada — sk-ant-....' + key.slice(-6);
+    }
+    document.getElementById('apiKeyInput').value = key;
+  } else {
+    ind.className = 'api-key-indicator unset';
+    ind.textContent = '🔑 API Key';
+    if (status) {
+      status.className = 'modal-key-status unset';
+      status.textContent = '⚠️ Sin API Key configurada — el análisis IA no funcionará';
+    }
+    document.getElementById('apiKeyInput').value = '';
+  }
+}
+
+function openKeyModal() {
+  document.getElementById('apiKeyModal').classList.remove('hidden');
+  updateKeyIndicator();
+  setTimeout(() => document.getElementById('apiKeyInput').focus(), 100);
+}
+
+function closeKeyModal() {
+  document.getElementById('apiKeyModal').classList.add('hidden');
+}
+
+function saveApiKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val) { alert('Por favor ingresa una API Key válida.'); return; }
+  if (!val.startsWith('sk-ant-')) {
+    if (!confirm('La key no parece ser una key de Anthropic (debería empezar con sk-ant-). ¿Guardar de todas formas?')) return;
+  }
+  localStorage.setItem(API_KEY_STORAGE, val);
+  updateKeyIndicator();
+  closeKeyModal();
+}
+
+function clearApiKey() {
+  if (!confirm('¿Eliminar la API Key guardada?')) return;
+  localStorage.removeItem(API_KEY_STORAGE);
+  updateKeyIndicator();
+}
+
+// Close modal on overlay click
+document.getElementById('apiKeyModal').addEventListener('click', function(e) {
+  if (e.target === this) closeKeyModal();
+});
+
+// Enter key saves
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeKeyModal();
+});
+
+// Init indicator on load
+updateKeyIndicator();
+
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -835,6 +908,94 @@ tr.alert-row td { background:rgba(245,101,101,0.04); }
   .sla-section { flex-direction:column; }
   .filter-bar { top: auto; position: relative; padding: 12px 16px; }
 }
+
+/* ═══════════════ API KEY MODAL ═══════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(4,8,16,0.85);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  animation: fadein 0.2s ease;
+}
+@keyframes fadein { from{opacity:0} to{opacity:1} }
+.modal-overlay.hidden { display: none; }
+
+.modal-box {
+  background: var(--surface);
+  border: 1px solid rgba(159,122,234,0.35);
+  border-radius: 18px;
+  width: 100%; max-width: 480px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(124,58,237,0.1);
+  overflow: hidden;
+  animation: slideup 0.25s ease;
+}
+@keyframes slideup { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+.modal-header {
+  padding: 22px 24px 18px;
+  background: linear-gradient(135deg, rgba(85,60,154,0.25), rgba(124,58,237,0.12));
+  border-bottom: 1px solid rgba(159,122,234,0.2);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.modal-close {
+  width: 28px; height: 28px; border-radius: 7px;
+  background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+  color: var(--text-muted); font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.modal-close:hover { background: rgba(245,101,101,0.15); color: var(--red-bright); }
+
+.modal-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+
+.modal-field label {
+  display: block; font-size: 11px; font-weight: 700;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+.modal-field input {
+  width: 100%; padding: 10px 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 9px; color: var(--text); font-size: 13px;
+  font-family: var(--mono); letter-spacing: 0.5px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.modal-field input:focus { outline: none; border-color: rgba(159,122,234,0.5); box-shadow: 0 0 0 3px rgba(124,58,237,0.1); }
+
+.modal-note {
+  font-size: 11px; color: var(--text-dim); line-height: 1.6;
+  padding: 10px 12px;
+  background: rgba(99,179,237,0.05);
+  border: 1px solid rgba(99,179,237,0.1);
+  border-radius: 7px;
+}
+.modal-note strong { color: var(--accent); }
+
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; }
+
+.modal-key-status {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; padding: 8px 12px;
+  border-radius: 7px; border: 1px solid;
+}
+.modal-key-status.set { background: rgba(72,187,120,0.08); border-color: rgba(72,187,120,0.25); color: var(--green); }
+.modal-key-status.unset { background: rgba(245,101,101,0.08); border-color: rgba(245,101,101,0.25); color: var(--red-bright); }
+
+/* Key indicator in topbar */
+.api-key-indicator {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px; border: 1px solid;
+  font-size: 11px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s;
+}
+.api-key-indicator.set { background: rgba(72,187,120,0.08); border-color: rgba(72,187,120,0.2); color: var(--green); }
+.api-key-indicator.unset { background: rgba(245,101,101,0.08); border-color: rgba(245,101,101,0.2); color: var(--red-bright); animation: glow 2s infinite; }
+@keyframes glow { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 10px rgba(245,101,101,0.2)} }
+.api-key-indicator:hover { filter: brightness(1.2); }
+
 </style>
 </head>
 <body>
@@ -860,6 +1021,7 @@ tr.alert-row td { background:rgba(245,101,101,0.04); }
       <button class="sheet-tab" onclick="switchSheet('ALL')">Todo</button>
     </div>
 
+    <div id="apiKeyIndicator" class="api-key-indicator unset" onclick="openKeyModal()">🔑 API Key</div>
     <button class="btn-ai" onclick="openAIAnalysis()">🤖 Análisis IA</button>
     <button class="btn-secondary" onclick="exportCSV()">📥 Export</button>
   </div>
@@ -1665,9 +1827,15 @@ async function runAI(mode) {
   const userMessage = `Datos operacionales de rampa (hoja: ${currentSheet}):\n${JSON.stringify(dataSummary, null, 2)}`;
 
   try {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      output.innerHTML = '<div style="color:var(--red-bright);font-size:13px;"><strong>🔑 API Key no configurada</strong><br><br>Haz clic en el botón <strong>"🔑 API Key"</strong> en la barra superior para ingresar tu clave de Anthropic.<br><br>Obtenla en: <a href="https://console.anthropic.com/keys" target="_blank" style="color:var(--accent);">console.anthropic.com/keys</a></div>';
+      return;
+    }
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
@@ -1848,5 +2016,34 @@ function switchSheet(sheet) {
 // Init
 renderDashboard();
 </script>
+
+<!-- API KEY MODAL -->
+<div id="apiKeyModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">🔑 Configurar API Key de Claude</div>
+      <button class="modal-close" onclick="closeKeyModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="apiKeyStatus" class="modal-key-status unset">⚠️ Sin API Key configurada — el análisis IA no funcionará</div>
+
+      <div class="modal-field">
+        <label>Tu API Key de Anthropic (Claude)</label>
+        <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
+      </div>
+
+      <div class="modal-note">
+        <strong>🔒 Seguridad:</strong> La key se guarda únicamente en el <strong>almacenamiento local de tu navegador</strong> (localStorage) y nunca se envía a ningún servidor externo excepto a la API de Anthropic directamente.<br><br>
+        <strong>📍 Obtén tu key en:</strong> <a href="https://console.anthropic.com/keys" target="_blank" style="color:var(--accent);">console.anthropic.com/keys</a>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-clear-filters" onclick="clearApiKey()">🗑️ Borrar key</button>
+        <button class="btn-apply" onclick="saveApiKey()">💾 Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
