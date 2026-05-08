@@ -647,11 +647,11 @@
                 document.getElementById('userRole').textContent = inspectionUser.role;
             } catch (error) {
                 alert('Sesión inválida. Por favor inicie sesión nuevamente.');
-                window.location.href = 'L07.html';
+                window.location.href = 'login-P10.html';
             }
         } else {
             alert('Por favor inicie sesión primero.');
-            window.location.href = 'L07.html';
+            window.location.href = 'login-P10.html';
         }
 
         const BRIEFING_TOPICS = [
@@ -1445,7 +1445,7 @@
 
         function logout() {
             if (confirm('¿Está seguro de que desea cerrar sesión?')) {
-                stopCamera(); multiStopCamera(); sessionStorage.removeItem('user'); window.location.href = 'L07.html';
+                stopCamera(); multiStopCamera(); sessionStorage.removeItem('user'); window.location.href = 'login-P10.html';
             }
         }
 
