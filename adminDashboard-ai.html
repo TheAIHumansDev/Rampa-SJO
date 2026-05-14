@@ -1,0 +1,2664 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — Turnaround Check</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --blue: #3b82f6;
+            --purple: #8b5cf6;
+            --green: #10b981;
+            --yellow: #f59e0b;
+            --red: #ef4444;
+            --orange: #f97316;
+            --cyan: #06b6d4;
+            --bg: #050816;
+            --surface: rgba(15, 23, 42, 0.85);
+            --surface2: rgba(20, 30, 58, 0.7);
+            --border: rgba(59, 130, 246, 0.2);
+            --border2: rgba(59, 130, 246, 0.12);
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --alert-critical: #ef4444;
+            --alert-warn: #f59e0b;
+            --alert-info: #3b82f6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Syne', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: var(--text);
+        }
+
+        #canvas-container {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; z-index: 1;
+            pointer-events: none;
+        }
+
+        .app {
+            position: relative; z-index: 2;
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        /* ══ HEADER ══ */
+        .header {
+            border-bottom: 1px solid var(--border);
+            background: rgba(5, 8, 22, 0.8);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            position: sticky; top: 0; z-index: 50;
+            margin: 0 -16px;
+            padding: 14px 16px 12px;
+        }
+
+        .header-top {
+            display: flex; align-items: center;
+            justify-content: space-between; gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .header-brand { display: flex; align-items: center; gap: 10px; }
+
+        .logo-icon {
+            width: 38px; height: 38px;
+            background: linear-gradient(135deg, var(--red), var(--orange));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+            box-shadow: 0 4px 16px rgba(239,68,68,0.35);
+        }
+
+        .logo-text {
+            font-size: 17px; font-weight: 800;
+            background: linear-gradient(135deg, var(--red) 0%, var(--orange) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            line-height: 1.1;
+        }
+        .logo-sub {
+            font-size: 9px; color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 2px; text-transform: uppercase;
+        }
+
+        .admin-badge {
+            padding: 3px 10px;
+            background: rgba(239,68,68,0.12);
+            border: 1px solid rgba(239,68,68,0.35);
+            border-radius: 20px;
+            font-size: 10px; font-weight: 700;
+            color: #fca5a5;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 1px;
+        }
+
+        .header-right { display: flex; align-items: center; gap: 8px; }
+
+        .live-badge {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 10px; font-weight: 600;
+            color: var(--green); font-family: 'JetBrains Mono', monospace;
+        }
+        .live-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--green);
+            animation: pulse-live 1.5s ease-in-out infinite;
+            box-shadow: 0 0 8px var(--green);
+        }
+        @keyframes pulse-live {
+            0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 8px var(--green); }
+            50% { opacity: 0.5; transform: scale(0.7); box-shadow: 0 0 3px var(--green); }
+        }
+
+        .btn-logout {
+            padding: 6px 14px;
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 8px; color: #fca5a5;
+            font-size: 11px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+            font-family: 'Syne', sans-serif;
+        }
+        .btn-logout:hover { background: rgba(239,68,68,0.2); }
+
+        /* ══ FILTER BAR ══ */
+        .filter-bar {
+            display: flex; align-items: center;
+            gap: 8px; flex-wrap: wrap;
+        }
+
+        /* ── Filter row 2 (new filters) ── */
+        .filter-bar-2 {
+            display: flex; align-items: center;
+            gap: 8px; flex-wrap: wrap;
+            margin-top: 9px;
+            padding-top: 9px;
+            border-top: 1px solid var(--border2);
+        }
+
+        .filter-label {
+            font-size: 10px; font-weight: 700;
+            color: var(--muted); font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase; letter-spacing: 2px;
+            margin-right: 2px; flex-shrink: 0;
+        }
+
+        .date-pills { display: flex; gap: 5px; flex-wrap: wrap; }
+
+        .date-pill {
+            padding: 5px 13px;
+            background: rgba(30,41,59,0.5);
+            border: 1px solid var(--border2);
+            border-radius: 20px; font-size: 11px; font-weight: 600;
+            cursor: pointer; transition: all 0.18s; color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+        }
+        .date-pill.active {
+            background: rgba(59,130,246,0.15);
+            border-color: var(--blue); color: var(--blue);
+        }
+        .date-pill:hover:not(.active) { border-color: rgba(59,130,246,0.3); color: var(--text); }
+
+        .date-input {
+            padding: 5px 12px;
+            background: rgba(30,41,59,0.5);
+            border: 1px solid var(--border2);
+            border-radius: 20px; font-size: 11px;
+            color: var(--text); outline: none;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .date-input:focus { border-color: var(--blue); }
+        .date-input::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
+
+        /* ── Generic select style (shared by all dropdowns) ── */
+        .filter-select {
+            padding: 5px 28px 5px 12px;
+            background: rgba(30,41,59,0.5);
+            border: 1px solid var(--border2);
+            border-radius: 20px; font-size: 11px;
+            color: var(--text); outline: none;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer; transition: border-color 0.2s;
+            -webkit-appearance: none; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            max-width: 180px;
+        }
+        .filter-select:focus { border-color: var(--blue); }
+        .filter-select option { background: #0f172a; }
+
+        /* Active state for selects (when a non-"all" value is chosen) */
+        .filter-select.has-value {
+            border-color: var(--cyan);
+            color: var(--cyan);
+            background-color: rgba(6,182,212,0.08);
+        }
+
+        /* Reset-filters button */
+        .btn-reset-filters {
+            padding: 5px 12px;
+            background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.25);
+            border-radius: 20px; font-size: 10px; font-weight: 700;
+            color: #fca5a5; cursor: pointer; transition: all 0.18s;
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap; letter-spacing: 0.5px;
+            display: none; /* shown by JS when any secondary filter is active */
+        }
+        .btn-reset-filters:hover { background: rgba(239,68,68,0.15); }
+        .btn-reset-filters.visible { display: inline-flex; align-items: center; gap: 4px; }
+
+        /* Active filter chips (visual count badge) */
+        .active-filters-bar {
+            display: none;
+            align-items: center; gap: 6px; flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .active-filters-bar.visible { display: flex; }
+        .af-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 10px 3px 8px;
+            background: rgba(6,182,212,0.1);
+            border: 1px solid rgba(6,182,212,0.3);
+            border-radius: 20px; font-size: 10px; font-weight: 600;
+            color: var(--cyan); font-family: 'JetBrains Mono', monospace;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .af-chip:hover { background: rgba(6,182,212,0.2); }
+        .af-chip-x { opacity: 0.7; font-size: 11px; line-height: 1; }
+
+        .refresh-btn {
+            width: 30px; height: 30px; flex-shrink: 0;
+            background: rgba(59,130,246,0.1);
+            border: 1px solid var(--border);
+            border-radius: 8px; color: var(--blue);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s; font-size: 16px;
+        }
+        .refresh-btn:hover { background: rgba(59,130,246,0.2); }
+        .refresh-btn.spinning { animation: spin 0.7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ══ MAIN TABS ══ */
+        .main { padding: 16px 0; flex: 1; }
+
+        .tabs {
+            display: flex; gap: 4px;
+            margin-bottom: 20px;
+            background: rgba(15,23,42,0.5);
+            border: 1px solid var(--border);
+            border-radius: 14px; padding: 4px;
+        }
+
+        .tab-btn {
+            flex: 1; padding: 10px 16px;
+            background: transparent;
+            border: none; border-radius: 10px;
+            color: var(--muted); font-size: 13px; font-weight: 700;
+            cursor: pointer; transition: all 0.22s;
+            font-family: 'Syne', sans-serif;
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+        }
+        .tab-btn.active {
+            background: rgba(59,130,246,0.15);
+            color: var(--text);
+            box-shadow: inset 0 0 0 1px var(--border);
+        }
+        .tab-btn:hover:not(.active) { color: var(--text); background: rgba(30,41,59,0.4); }
+
+        .tab-badge {
+            padding: 2px 8px; border-radius: 10px;
+            font-size: 10px; font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .tab-badge.alert { background: rgba(239,68,68,0.2); color: var(--red); }
+        .tab-badge.normal { background: rgba(59,130,246,0.15); color: var(--blue); }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ══ KPI ROW ══ */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px; margin-bottom: 20px;
+        }
+
+        .kpi-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px; padding: 14px 16px;
+            backdrop-filter: blur(12px);
+            position: relative; overflow: hidden;
+        }
+        .kpi-card::before {
+            content: ''; position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+        }
+        .kpi-card.blue::before { background: linear-gradient(90deg, var(--blue), var(--purple)); }
+        .kpi-card.green::before { background: linear-gradient(90deg, var(--green), #059669); }
+        .kpi-card.yellow::before { background: linear-gradient(90deg, var(--yellow), var(--orange)); }
+        .kpi-card.red::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+        .kpi-card.cyan::before { background: linear-gradient(90deg, var(--cyan), var(--blue)); }
+
+        .kpi-label {
+            font-size: 9px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 2px;
+            color: var(--muted); font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 6px;
+        }
+        .kpi-value {
+            font-size: 30px; font-weight: 800; line-height: 1;
+            margin-bottom: 3px;
+        }
+        .kpi-value.blue { background: linear-gradient(135deg, var(--blue), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .kpi-value.green { background: linear-gradient(135deg, var(--green), #059669); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .kpi-value.yellow { background: linear-gradient(135deg, var(--yellow), var(--orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .kpi-value.red { background: linear-gradient(135deg, var(--red), var(--orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .kpi-value.cyan { background: linear-gradient(135deg, var(--cyan), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .kpi-sub { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+        /* ══ TOOLBAR ══ */
+        .toolbar {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .toolbar-title {
+            font-size: 15px; font-weight: 800;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .count-tag {
+            padding: 2px 8px; border-radius: 8px;
+            font-size: 10px; font-weight: 700;
+            background: rgba(59,130,246,0.15); color: var(--blue);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ══ REPORT TABLE ══ */
+        .report-table-wrap {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px; overflow: hidden;
+            backdrop-filter: blur(12px);
+        }
+
+        .rt-head {
+            display: grid;
+            grid-template-columns: 2fr 1.2fr 1fr 0.8fr 0.8fr 0.8fr 1fr 0.8fr;
+            gap: 0;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(20,30,58,0.5);
+        }
+        .rt-head-cell {
+            font-size: 9px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1.5px;
+            color: var(--muted); font-family: 'JetBrains Mono', monospace;
+        }
+
+        .rt-body { max-height: 480px; overflow-y: auto; }
+        .rt-body::-webkit-scrollbar { width: 4px; }
+        .rt-body::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 4px; }
+        .rt-body::-webkit-scrollbar-track { background: transparent; }
+
+        .rt-row {
+            display: grid;
+            grid-template-columns: 2fr 1.2fr 1fr 0.8fr 0.8fr 0.8fr 1fr 0.8fr;
+            gap: 0;
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(30,41,59,0.6);
+            transition: background 0.15s;
+            cursor: pointer;
+            animation: rowIn 0.3s ease both;
+        }
+        @keyframes rowIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+        .rt-row:hover { background: rgba(59,130,246,0.05); }
+        .rt-row:last-child { border-bottom: none; }
+
+        .rt-cell {
+            font-size: 12px;
+            display: flex; align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .rt-cell.flight { font-weight: 700; font-family: 'Syne', sans-serif; font-size: 13px; }
+
+        .user-pill {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: var(--ipill-bg, rgba(59,130,246,0.08));
+            border: 1px solid var(--ipill-border, rgba(59,130,246,0.2));
+            border-radius: 20px; padding: 2px 8px 2px 4px;
+            transition: background 0.2s;
+        }
+        .user-avatar {
+            width: 18px; height: 18px; border-radius: 50%;
+            background: var(--iavatar-bg, linear-gradient(135deg, #3b82f6, #8b5cf6));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 8px; font-weight: 700; color: #fff; flex-shrink: 0;
+            box-shadow: 0 0 6px var(--iavatar-glow, rgba(59,130,246,0.4));
+        }
+        .user-name-text {
+            font-size: 11px; font-weight: 600; font-family: 'Syne', sans-serif;
+            color: var(--ipill-text, #e2e8f0);
+        }
+
+        /* ── Inspector legend strip ── */
+        .inspector-legend {
+            display: flex; flex-wrap: wrap; gap: 6px;
+            margin-bottom: 12px;
+        }
+        .legend-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px 4px 5px;
+            border-radius: 20px; cursor: pointer;
+            font-size: 11px; font-weight: 600;
+            font-family: 'Syne', sans-serif;
+            border: 1px solid transparent;
+            transition: all 0.18s; opacity: 0.75;
+        }
+        .legend-chip:hover { opacity: 1; transform: translateY(-1px); }
+        .legend-chip.active { opacity: 1; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        .legend-chip.dimmed { opacity: 0.3; }
+        .legend-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+        }
+
+        .status-dot-wrap { display: flex; align-items: center; gap: 5px; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .dot-done { background: var(--green); box-shadow: 0 0 5px var(--green); }
+        .dot-pending { background: var(--yellow); box-shadow: 0 0 5px var(--yellow); animation: blink 2s ease-in-out infinite; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        .pct-bar-wrap { display: flex; align-items: center; gap: 6px; min-width: 0; }
+        .pct-bar-bg {
+            flex: 1; height: 4px; border-radius: 4px;
+            background: rgba(30,41,59,0.6); overflow: hidden;
+            min-width: 30px;
+        }
+        .pct-bar-fill {
+            height: 100%; border-radius: 4px;
+            background: linear-gradient(90deg, var(--blue), var(--purple));
+        }
+        .pct-bar-fill.done { background: linear-gradient(90deg, var(--green), #059669); }
+        .pct-text { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+
+        .type-tag {
+            font-size: 9px; font-weight: 700;
+            padding: 2px 7px; border-radius: 5px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .tag-turn { background: rgba(59,130,246,0.15); color: var(--blue); }
+        .tag-arr { background: rgba(16,185,129,0.15); color: var(--green); }
+        .tag-dep { background: rgba(245,158,11,0.15); color: var(--yellow); }
+
+        /* ══ ALERTS PANEL ══ */
+        .alerts-header {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .alerts-title {
+            font-size: 15px; font-weight: 800;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .alert-filters {
+            display: flex; gap: 5px; flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .alert-filter-btn {
+            padding: 4px 12px;
+            background: rgba(30,41,59,0.5);
+            border: 1px solid var(--border2);
+            border-radius: 20px; font-size: 10px; font-weight: 600;
+            cursor: pointer; transition: all 0.18s; color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .alert-filter-btn.active-all { border-color: var(--blue); color: var(--blue); background: rgba(59,130,246,0.1); }
+        .alert-filter-btn.active-crit { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.1); }
+        .alert-filter-btn.active-warn { border-color: var(--yellow); color: var(--yellow); background: rgba(245,158,11,0.1); }
+        .alert-filter-btn.active-info { border-color: var(--cyan); color: var(--cyan); background: rgba(6,182,212,0.1); }
+
+        .alerts-grid {
+            display: flex; flex-direction: column; gap: 8px;
+        }
+
+        .alert-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px; padding: 14px 16px;
+            backdrop-filter: blur(12px);
+            display: flex; align-items: flex-start; gap: 12px;
+            animation: alertIn 0.4s ease both;
+            position: relative; overflow: hidden;
+            cursor: pointer; transition: all 0.2s;
+        }
+        @keyframes alertIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .alert-card:hover { transform: translateX(3px); }
+        .alert-card.critical { border-left: 3px solid var(--red); }
+        .alert-card.warning { border-left: 3px solid var(--yellow); }
+        .alert-card.info { border-left: 3px solid var(--cyan); }
+
+        .alert-card.critical::after {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 100%;
+            background: linear-gradient(transparent 50%, rgba(239,68,68,0.03) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            animation: scan 4s linear infinite;
+        }
+        @keyframes scan { 0% { background-position: 0 0; } 100% { background-position: 0 100px; } }
+
+        .alert-icon-wrap {
+            width: 38px; height: 38px; flex-shrink: 0;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 17px;
+        }
+        .icon-crit { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); }
+        .icon-warn { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); }
+        .icon-info { background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.3); }
+
+        .alert-body { flex: 1; min-width: 0; }
+        .alert-title {
+            font-size: 13px; font-weight: 700;
+            margin-bottom: 3px;
+        }
+        .alert-title.crit { color: #fca5a5; }
+        .alert-title.warn { color: #fcd34d; }
+        .alert-title.info { color: #67e8f9; }
+
+        .alert-desc {
+            font-size: 12px; color: var(--text);
+            margin-bottom: 5px; line-height: 1.4;
+        }
+        .alert-meta {
+            display: flex; align-items: center; gap: 10px;
+            flex-wrap: wrap;
+        }
+        .alert-tag {
+            padding: 2px 8px; border-radius: 6px;
+            font-size: 10px; font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .atag-crit { background: rgba(239,68,68,0.12); color: #fca5a5; }
+        .atag-warn { background: rgba(245,158,11,0.12); color: #fcd34d; }
+        .atag-info { background: rgba(6,182,212,0.12); color: #67e8f9; }
+        .alert-time {
+            font-size: 10px; color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .alert-right {
+            flex-shrink: 0; text-align: right;
+            display: flex; flex-direction: column;
+            align-items: flex-end; gap: 4px;
+        }
+
+        .alert-value {
+            font-size: 20px; font-weight: 800;
+            font-family: 'JetBrains Mono', monospace; line-height: 1;
+        }
+        .av-crit { color: var(--red); text-shadow: 0 0 12px rgba(239,68,68,0.5); }
+        .av-warn { color: var(--yellow); }
+        .av-info { color: var(--cyan); }
+
+        .alert-unit {
+            font-size: 9px; color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .pulse-ring {
+            display: inline-block;
+            position: relative;
+        }
+        .pulse-ring::before {
+            content: '';
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            border: 1px solid rgba(239,68,68,0.4);
+            animation: ringPulse 2s ease-out infinite;
+        }
+        @keyframes ringPulse {
+            0% { transform: translate(-50%,-50%) scale(0.5); opacity: 1; }
+            100% { transform: translate(-50%,-50%) scale(2.5); opacity: 0; }
+        }
+
+        /* ══ ALERT SUMMARY ROW ══ */
+        .alert-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px; margin-bottom: 18px;
+        }
+        .summary-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px; padding: 12px 14px;
+            text-align: center;
+            backdrop-filter: blur(12px);
+        }
+        .summary-card.crit { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); }
+        .summary-card.warn { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.05); }
+        .summary-card.info { border-color: rgba(6,182,212,0.3); background: rgba(6,182,212,0.05); }
+        .sc-num { font-size: 26px; font-weight: 800; line-height: 1; margin-bottom: 3px; }
+        .sc-num.crit { color: var(--red); text-shadow: 0 0 20px rgba(239,68,68,0.4); }
+        .sc-num.warn { color: var(--yellow); }
+        .sc-num.info { color: var(--cyan); }
+        .sc-label { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+        /* ══ EMPTY / SKELETON ══ */
+        .empty-row {
+            padding: 40px; text-align: center;
+            color: var(--muted); font-size: 14px;
+        }
+        .skeleton-row {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(30,41,59,0.5);
+            display: flex; gap: 12px; align-items: center;
+        }
+        .skel { border-radius: 6px; background: rgba(59,130,246,0.08); animation: shimmer 1.4s ease-in-out infinite; }
+        @keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        /* ══ TOAST ══ */
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px);
+            background: rgba(16,185,129,0.92);
+            backdrop-filter: blur(10px);
+            color: #fff; padding: 10px 20px;
+            border-radius: 24px; font-size: 12px; font-weight: 600;
+            z-index: 100; opacity: 0;
+            transition: all 0.3s ease;
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast.error { background: rgba(239,68,68,0.92); }
+
+        /* ══ RESPONSIVE ══ */
+        @media (max-width: 768px) {
+            .rt-head, .rt-row { grid-template-columns: 2fr 1fr 1fr 0.8fr; }
+            .rt-head-cell:nth-child(3),
+            .rt-head-cell:nth-child(5),
+            .rt-cell:nth-child(3),
+            .rt-cell:nth-child(5) { display: none; }
+        }
+        @media (max-width: 520px) {
+            .rt-head, .rt-row { grid-template-columns: 2fr 1fr 0.8fr; }
+            .rt-head-cell:nth-child(4),
+            .rt-cell:nth-child(4) { display: none; }
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+            .filter-bar-2 { gap: 6px; }
+            .filter-select { max-width: 140px; font-size: 10px; }
+        }
+    
+        /* ══ FLIGHT DETAIL MODAL ══ */
+        .fdm-overlay {
+            position: fixed; inset: 0; z-index: 500;
+            background: rgba(2,5,18,0.88);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            display: flex; align-items: flex-start; justify-content: center;
+            padding: 24px 16px 40px;
+            overflow-y: auto;
+            animation: fdmFadeIn 0.22s ease;
+        }
+        @keyframes fdmFadeIn { from{opacity:0} to{opacity:1} }
+        .fdm-overlay.hidden { display: none; }
+
+        .fdm-box {
+            width: 100%; max-width: 980px;
+            background: #070d1f;
+            border: 1px solid rgba(59,130,246,0.25);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(59,130,246,0.08);
+            animation: fdmSlideUp 0.28s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes fdmSlideUp { from{opacity:0;transform:translateY(28px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+        /* Header */
+        .fdm-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 24px;
+            background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(20,30,58,0.9));
+            border-bottom: 1px solid rgba(59,130,246,0.15);
+            flex-wrap: wrap; gap: 12px;
+        }
+        .fdm-flight-id {
+            display: flex; align-items: center; gap: 14px;
+        }
+        .fdm-airline-logo {
+            width: 46px; height: 46px; border-radius: 12px;
+            background: linear-gradient(135deg, #1e3a5f, #2d6a9f);
+            border: 1px solid rgba(59,130,246,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+            box-shadow: 0 0 18px rgba(59,130,246,0.2);
+        }
+        .fdm-flight-num {
+            font-size: 22px; font-weight: 800; line-height: 1;
+            background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .fdm-flight-meta {
+            font-size: 11px; color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 3px; letter-spacing: 0.5px;
+        }
+        .fdm-header-right { display: flex; align-items: center; gap: 10px; }
+        .fdm-close {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25);
+            color: #fca5a5; font-size: 14px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; font-family: inherit;
+        }
+        .fdm-close:hover { background: rgba(239,68,68,0.22); transform: scale(1.05); }
+
+        .fdm-status-live {
+            display: flex; align-items: center; gap: 6px;
+            padding: 5px 12px; border-radius: 20px;
+            background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
+            font-size: 11px; font-weight: 700; color: #10b981;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .fdm-status-done {
+            display: flex; align-items: center; gap: 6px;
+            padding: 5px 12px; border-radius: 20px;
+            background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3);
+            font-size: 11px; font-weight: 700; color: #60a5fa;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Body */
+        .fdm-body { padding: 24px; display: flex; flex-direction: column; gap: 22px; }
+
+        /* Mini KPIs */
+        .fdm-kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+        .fdm-kpi {
+            background: rgba(15,23,42,0.7);
+            border: 1px solid rgba(59,130,246,0.12);
+            border-radius: 12px; padding: 13px 15px;
+            position: relative; overflow: hidden;
+        }
+        .fdm-kpi::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+        }
+        .fdm-kpi.k-blue::before { background: linear-gradient(90deg,#3b82f6,#8b5cf6); }
+        .fdm-kpi.k-green::before { background: linear-gradient(90deg,#10b981,#059669); }
+        .fdm-kpi.k-yellow::before { background: linear-gradient(90deg,#f59e0b,#f97316); }
+        .fdm-kpi.k-red::before { background: linear-gradient(90deg,#ef4444,#f97316); }
+        .fdm-kpi.k-cyan::before { background: linear-gradient(90deg,#06b6d4,#3b82f6); }
+        .fdm-kpi.k-purple::before { background: linear-gradient(90deg,#8b5cf6,#ec4899); }
+        .fdm-kpi-label {
+            font-size: 9px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1.5px; color: var(--muted);
+            font-family: 'JetBrains Mono', monospace; margin-bottom: 6px;
+        }
+        .fdm-kpi-val {
+            font-size: 24px; font-weight: 800; line-height: 1;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .fdm-kpi-val.kv-blue { color: #60a5fa; }
+        .fdm-kpi-val.kv-green { color: #34d399; }
+        .fdm-kpi-val.kv-yellow { color: #fcd34d; }
+        .fdm-kpi-val.kv-red { color: #f87171; }
+        .fdm-kpi-val.kv-cyan { color: #67e8f9; }
+        .fdm-kpi-val.kv-purple { color: #c4b5fd; }
+        .fdm-kpi-sub { font-size: 9px; color: var(--muted); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+
+        /* Section title */
+        .fdm-section-title {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 2px; color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+        }
+        .fdm-section-title::after {
+            content: ''; flex: 1; height: 1px;
+            background: rgba(59,130,246,0.12);
+        }
+
+        /* ── TIMELINE ── */
+        .fdm-timeline-wrap {
+            background: rgba(15,23,42,0.5);
+            border: 1px solid rgba(59,130,246,0.12);
+            border-radius: 14px; padding: 18px;
+            overflow-x: auto;
+        }
+        .fdm-tl-track {
+            min-width: 600px;
+            position: relative;
+        }
+        /* Horizontal time axis */
+        .fdm-tl-axis {
+            height: 32px; display: flex;
+            align-items: center; margin-bottom: 8px;
+            position: relative;
+        }
+        .fdm-tl-axis-line {
+            position: absolute; left: 160px; right: 0; top: 50%;
+            height: 1px; background: rgba(59,130,246,0.18);
+        }
+        .fdm-tl-tick {
+            position: absolute; top: 50%;
+            transform: translateX(-50%) translateY(-50%);
+            display: flex; flex-direction: column; align-items: center;
+            gap: 0;
+        }
+        .fdm-tl-tick-line { width: 1px; height: 8px; background: rgba(59,130,246,0.3); }
+        .fdm-tl-tick-label {
+            font-size: 9px; color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 2px; white-space: nowrap;
+        }
+
+        /* Each checkpoint row */
+        .fdm-cp-row {
+            display: flex; align-items: center; gap: 0;
+            margin-bottom: 6px; min-height: 32px;
+            position: relative;
+        }
+        .fdm-cp-label {
+            width: 160px; flex-shrink: 0;
+            font-size: 10px; font-weight: 600;
+            color: var(--muted); text-align: right;
+            padding-right: 12px; line-height: 1.2;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .fdm-cp-bar-area {
+            flex: 1; height: 26px;
+            position: relative;
+            background: rgba(30,41,59,0.4);
+            border-radius: 4px; overflow: visible;
+        }
+        /* The actual filled segment */
+        .fdm-cp-segment {
+            position: absolute; top: 2px; height: 22px;
+            border-radius: 3px;
+            display: flex; align-items: center;
+            padding: 0 7px;
+            font-size: 9px; font-weight: 700;
+            white-space: nowrap; overflow: hidden;
+            transition: width 0.8s cubic-bezier(0.4,0,0.2,1), left 0.8s cubic-bezier(0.4,0,0.2,1);
+        }
+        .fdm-cp-segment.seg-done { background: linear-gradient(90deg, rgba(16,185,129,0.7), rgba(5,150,105,0.5)); color: #6ee7b7; }
+        .fdm-cp-segment.seg-late { background: linear-gradient(90deg, rgba(239,68,68,0.7), rgba(220,38,38,0.5)); color: #fca5a5; }
+        .fdm-cp-segment.seg-warn { background: linear-gradient(90deg, rgba(245,158,11,0.7), rgba(217,119,6,0.5)); color: #fcd34d; }
+        .fdm-cp-segment.seg-pending { background: rgba(59,130,246,0.12); border: 1px dashed rgba(59,130,246,0.3); color: var(--muted); }
+
+        /* Dot marker on timeline */
+        .fdm-cp-dot {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 10px; height: 10px; border-radius: 50%;
+            z-index: 2; cursor: default;
+        }
+        .fdm-cp-dot.done { background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.6); }
+        .fdm-cp-dot.late { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.6); animation: cpPulse 1.5s ease-in-out infinite; }
+        .fdm-cp-dot.warn { background: #f59e0b; box-shadow: 0 0 8px rgba(245,158,11,0.6); }
+        .fdm-cp-dot.pending { background: var(--muted); opacity: 0.4; }
+        @keyframes cpPulse { 0%,100%{box-shadow:0 0 8px rgba(239,68,68,0.6)} 50%{box-shadow:0 0 16px rgba(239,68,68,0.9)} }
+
+        .fdm-cp-time-label {
+            position: absolute; top: -16px; left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px; color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .fdm-cp-delta {
+            width: 54px; flex-shrink: 0; text-align: right;
+            font-size: 10px; font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            padding-left: 8px;
+        }
+        .fdm-cp-delta.dt-ok { color: #10b981; }
+        .fdm-cp-delta.dt-warn { color: #f59e0b; }
+        .fdm-cp-delta.dt-late { color: #ef4444; }
+        .fdm-cp-delta.dt-null { color: var(--muted); opacity: 0.4; }
+
+        /* ── CHECKPOINTS GRID ── */
+        .fdm-cp-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 8px;
+        }
+        .fdm-cp-card {
+            background: rgba(15,23,42,0.6);
+            border: 1px solid rgba(59,130,246,0.1);
+            border-radius: 10px; padding: 10px 12px;
+            display: flex; align-items: center; gap: 10px;
+            transition: all 0.2s;
+        }
+        .fdm-cp-card:hover { border-color: rgba(59,130,246,0.3); transform: translateY(-1px); }
+        .fdm-cp-card.cp-done { border-color: rgba(16,185,129,0.25); background: rgba(16,185,129,0.04); }
+        .fdm-cp-card.cp-late { border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.05); }
+        .fdm-cp-card.cp-warn { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.04); }
+        .fdm-cp-card.cp-pending { opacity: 0.5; }
+        .fdm-cp-icon {
+            width: 30px; height: 30px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; flex-shrink: 0;
+        }
+        .fdm-cp-icon.cp-done { background: rgba(16,185,129,0.15); }
+        .fdm-cp-icon.cp-late { background: rgba(239,68,68,0.15); }
+        .fdm-cp-icon.cp-warn { background: rgba(245,158,11,0.15); }
+        .fdm-cp-icon.cp-pending { background: rgba(59,130,246,0.08); }
+        .fdm-cp-info { flex: 1; min-width: 0; }
+        .fdm-cp-name {
+            font-size: 10px; font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text); margin-bottom: 2px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .fdm-cp-ts { font-size: 9px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+        .fdm-cp-badge {
+            font-size: 9px; font-weight: 700; padding: 2px 6px;
+            border-radius: 5px; flex-shrink: 0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .fdm-cp-badge.bdone { background: rgba(16,185,129,0.15); color: #34d399; }
+        .fdm-cp-badge.blate { background: rgba(239,68,68,0.15); color: #f87171; }
+        .fdm-cp-badge.bwarn { background: rgba(245,158,11,0.15); color: #fcd34d; }
+        .fdm-cp-badge.bpend { background: rgba(59,130,246,0.08); color: var(--muted); }
+
+        /* ── AI ANALYSIS ── */
+        .fdm-ai-wrap {
+            background: rgba(139,92,246,0.06);
+            border: 1px solid rgba(139,92,246,0.2);
+            border-radius: 14px; padding: 18px;
+        }
+        .fdm-ai-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 14px; flex-wrap: wrap; gap: 8px;
+        }
+        .fdm-ai-title {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; font-weight: 700; color: #c4b5fd;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .fdm-ai-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+        .fdm-ai-btn {
+            padding: 5px 12px;
+            background: rgba(139,92,246,0.12);
+            border: 1px solid rgba(139,92,246,0.3);
+            border-radius: 8px; font-size: 10px; font-weight: 700;
+            color: #c4b5fd; cursor: pointer; transition: all 0.18s;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .fdm-ai-btn:hover { background: rgba(139,92,246,0.25); transform: translateY(-1px); }
+        .fdm-ai-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .fdm-ai-output {
+            min-height: 120px;
+            background: rgba(15,23,42,0.6);
+            border: 1px solid rgba(59,130,246,0.1);
+            border-radius: 10px; padding: 14px;
+            font-size: 12px; line-height: 1.7; color: var(--text);
+            font-family: 'Syne', sans-serif;
+        }
+        .fdm-ai-output strong { color: #c4b5fd; }
+        .fdm-ai-thinking {
+            display: flex; align-items: center; gap: 10px;
+            color: var(--muted); font-size: 12px;
+        }
+        .fdm-ai-dots { display: flex; gap: 4px; }
+        .fdm-ai-dots span {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #8b5cf6; animation: fdmDotBounce 1.2s infinite;
+        }
+        .fdm-ai-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .fdm-ai-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes fdmDotBounce { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+
+        /* Progress ring */
+        .fdm-progress-ring { transform: rotate(-90deg); }
+        .fdm-ring-bg { fill: none; stroke: rgba(59,130,246,0.12); }
+        .fdm-ring-fill {
+            fill: none;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        /* Inspector strip */
+        .fdm-inspector-strip {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px;
+            background: rgba(15,23,42,0.5);
+            border: 1px solid rgba(59,130,246,0.1);
+            border-radius: 10px;
+        }
+        .fdm-insp-avatar {
+            width: 34px; height: 34px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
+        }
+        .fdm-insp-name { font-size: 13px; font-weight: 700; }
+        .fdm-insp-role { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+        /* SLA table */
+        .fdm-sla-table { width: 100%; border-collapse: collapse; }
+        .fdm-sla-table td {
+            padding: 8px 10px; font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            border-bottom: 1px solid rgba(59,130,246,0.07);
+            vertical-align: middle;
+        }
+        .fdm-sla-table tr:last-child td { border-bottom: none; }
+        .fdm-sla-name { color: var(--muted); font-size: 10px; }
+        .fdm-sla-bar-cell { width: 100px; }
+        .fdm-sla-bar-bg { height: 4px; border-radius: 4px; background: rgba(30,41,59,0.8); overflow: hidden; }
+        .fdm-sla-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .fdm-kpi-row { grid-template-columns: repeat(2, 1fr); }
+            .fdm-cp-grid { grid-template-columns: 1fr 1fr; }
+            .fdm-cp-label { width: 100px; font-size: 9px; }
+        }
+
+        </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div class="app">
+        <header class="header">
+            <div class="header-top">
+                <div class="header-brand">
+                    <div class="logo-icon">🛡️</div>
+                    <div>
+                        <div class="logo-text">Admin Panel</div>
+                        <div class="logo-sub">Turnaround Check · Control Tower</div>
+                    </div>
+                    <div class="admin-badge">ADMIN</div>
+                </div>
+                <div class="header-right">
+                    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+                    <button class="btn-logout" onclick="logout()">Salir</button>
+                </div>
+            </div>
+
+            <!-- Filter Bar Row 1: fecha + usuario + refresh -->
+            <div class="filter-bar">
+                <span class="filter-label">📅</span>
+                <div class="date-pills">
+                    <button class="date-pill active" onclick="setDateFilter('today', this)">Hoy</button>
+                    <button class="date-pill" onclick="setDateFilter('yesterday', this)">Ayer</button>
+                    <button class="date-pill" onclick="setDateFilter('week', this)">Última semana</button>
+                    <button class="date-pill" onclick="setDateFilter('all', this)">Todo</button>
+                </div>
+                <input type="date" class="date-input" id="customDate" onchange="setCustomDate(this.value)" title="Fecha específica">
+                <span class="filter-label" style="margin-left:4px;">👤</span>
+                <select class="filter-select" id="userFilter" onchange="applyFilters()">
+                    <option value="all">Todos los usuarios</option>
+                </select>
+                <div class="refresh-btn" id="refreshBtn" onclick="loadAllReports(true)" title="Actualizar">↻</div>
+            </div>
+
+            <!-- Filter Bar Row 2: estación + aerolínea + tipo -->
+            <div class="filter-bar-2">
+                <span class="filter-label">🏢</span>
+                <select class="filter-select" id="stationFilter" onchange="applyFilters()" title="Filtrar por estación / aeropuerto">
+                    <option value="all">Todas las estaciones</option>
+                </select>
+
+                <span class="filter-label" style="margin-left:6px;">✈️</span>
+                <select class="filter-select" id="airlineFilter" onchange="applyFilters()" title="Filtrar por aerolínea">
+                    <option value="all">Todas las aerolíneas</option>
+                </select>
+
+                <span class="filter-label" style="margin-left:6px;">🔀</span>
+                <select class="filter-select" id="tipoFilter" onchange="applyFilters()" title="Filtrar por tipo de vuelo">
+                    <option value="all">Todos los tipos</option>
+                    <option value="TURN">TURN</option>
+                    <option value="RON-ARRIVAL">RON-ARRIVAL</option>
+                    <option value="RON-DEPARTURE">RON-DEPARTURE</option>
+                </select>
+
+                <button class="btn-reset-filters" id="btnResetFilters" onclick="resetSecondaryFilters()" title="Limpiar filtros secundarios">
+                    ✕ Limpiar filtros
+                </button>
+            </div>
+
+            <!-- Active filter chips -->
+            <div class="active-filters-bar" id="activeFiltersBar"></div>
+        </header>
+
+        <main class="main">
+            <!-- KPI Row -->
+            <div class="kpi-row" id="kpiRow">
+                <div class="kpi-card blue">
+                    <div class="kpi-label">Total Reportes</div>
+                    <div class="kpi-value blue" id="kpiTotal">–</div>
+                    <div class="kpi-sub">en el período</div>
+                </div>
+                <div class="kpi-card green">
+                    <div class="kpi-label">Completados</div>
+                    <div class="kpi-value green" id="kpiDone">–</div>
+                    <div class="kpi-sub" id="kpiDonePct">–</div>
+                </div>
+                <div class="kpi-card yellow">
+                    <div class="kpi-label">En Proceso</div>
+                    <div class="kpi-value yellow" id="kpiPending">–</div>
+                    <div class="kpi-sub">sin cerrar</div>
+                </div>
+                <div class="kpi-card red">
+                    <div class="kpi-label">Alertas Activas</div>
+                    <div class="kpi-value red" id="kpiAlerts">–</div>
+                    <div class="kpi-sub">requieren atención</div>
+                </div>
+                <div class="kpi-card cyan">
+                    <div class="kpi-label">Inspectores</div>
+                    <div class="kpi-value cyan" id="kpiUsers">–</div>
+                    <div class="kpi-sub">activos en período</div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('reportes', this)">
+                    📋 Reportes
+                    <span class="tab-badge normal" id="tabBadgeReportes">0</span>
+                </button>
+                <button class="tab-btn" onclick="switchTab('alertas', this)">
+                    🚨 Alertas
+                    <span class="tab-badge alert" id="tabBadgeAlertas">0</span>
+                </button>
+            </div>
+
+            <!-- ═══ TAB: REPORTES ═══ -->
+            <div class="tab-panel active" id="tab-reportes">
+                <div class="toolbar">
+                    <div class="toolbar-title">
+                        📋 Todos los Reportes
+                        <span class="count-tag" id="filteredCount">0</span>
+                    </div>
+                </div>
+
+                <!-- Inspector color legend -->
+                <div class="inspector-legend" id="inspectorLegend"></div>
+
+                <div class="report-table-wrap">
+                    <div class="rt-head">
+                        <div class="rt-head-cell">Vuelo</div>
+                        <div class="rt-head-cell">Inspector</div>
+                        <div class="rt-head-cell">Fecha / Hora</div>
+                        <div class="rt-head-cell">Aerolínea</div>
+                        <div class="rt-head-cell">Tipo</div>
+                        <div class="rt-head-cell">Estación</div>
+                        <div class="rt-head-cell">Avance</div>
+                        <div class="rt-head-cell">Estado</div>
+                    </div>
+                    <div class="rt-body" id="reportTableBody">
+                        <div class="skeleton-row"><div class="skel" style="width:120px;height:14px"></div><div class="skel" style="width:80px;height:14px"></div><div class="skel" style="width:100px;height:14px"></div></div>
+                        <div class="skeleton-row"><div class="skel" style="width:140px;height:14px"></div><div class="skel" style="width:90px;height:14px"></div><div class="skel" style="width:80px;height:14px"></div></div>
+                        <div class="skeleton-row"><div class="skel" style="width:110px;height:14px"></div><div class="skel" style="width:70px;height:14px"></div><div class="skel" style="width:120px;height:14px"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ TAB: ALERTAS ═══ -->
+            <div class="tab-panel" id="tab-alertas">
+                <div class="alerts-header">
+                    <div class="alerts-title">🚨 Alertas en Tiempo Real</div>
+                </div>
+
+                <div class="alert-summary">
+                    <div class="summary-card crit">
+                        <div class="sc-num crit" id="alertCritCount">0</div>
+                        <div class="sc-label">CRÍTICAS</div>
+                    </div>
+                    <div class="summary-card warn">
+                        <div class="sc-num warn" id="alertWarnCount">0</div>
+                        <div class="sc-label">ADVERTENCIAS</div>
+                    </div>
+                    <div class="summary-card info">
+                        <div class="sc-num info" id="alertInfoCount">0</div>
+                        <div class="sc-label">INFORMATIVAS</div>
+                    </div>
+                </div>
+
+                <div class="alert-filters">
+                    <button class="alert-filter-btn active-all" id="af-all" onclick="filterAlerts('all', this)">Todas</button>
+                    <button class="alert-filter-btn" id="af-crit" onclick="filterAlerts('critical', this)">🔴 Críticas</button>
+                    <button class="alert-filter-btn" id="af-warn" onclick="filterAlerts('warning', this)">🟡 Advertencias</button>
+                    <button class="alert-filter-btn" id="af-info" onclick="filterAlerts('info', this)">🔵 Informativas</button>
+                </div>
+
+                <div class="alerts-grid" id="alertsGrid"></div>
+            </div>
+
+        
+        <!-- ══════ FLIGHT DETAIL MODAL ══════ -->
+        <div id="fdmOverlay" class="fdm-overlay hidden" onclick="fdmClickOutside(event)">
+          <div class="fdm-box" id="fdmBox">
+
+            <!-- Header -->
+            <div class="fdm-header">
+              <div class="fdm-flight-id">
+                <div class="fdm-airline-logo" id="fdmAirlineIcon">✈️</div>
+                <div>
+                  <div class="fdm-flight-num" id="fdmFlightNum">–</div>
+                  <div class="fdm-flight-meta" id="fdmFlightMeta">–</div>
+                </div>
+              </div>
+              <div class="fdm-header-right">
+                <div id="fdmStatusBadge" class="fdm-status-live">⏺ EN PROCESO</div>
+                <button class="fdm-close" onclick="closeFDM()">✕</button>
+              </div>
+            </div>
+
+            <div class="fdm-body">
+
+              <!-- Mini KPIs -->
+              <div class="fdm-kpi-row" id="fdmKpiRow"></div>
+
+              <!-- Inspector -->
+              <div>
+                <div class="fdm-section-title">👤 Inspector Asignado</div>
+                <div id="fdmInspectorStrip"></div>
+              </div>
+
+              <!-- Timeline -->
+              <div>
+                <div class="fdm-section-title">⏱ Línea de Tiempo en Tiempo Real</div>
+                <div class="fdm-timeline-wrap">
+                  <div class="fdm-tl-track" id="fdmTlTrack"></div>
+                </div>
+              </div>
+
+              <!-- Checkpoints grid -->
+              <div>
+                <div class="fdm-section-title">✅ Checkpoints Operacionales</div>
+                <div class="fdm-cp-grid" id="fdmCpGrid"></div>
+              </div>
+
+              <!-- SLA comparison -->
+              <div>
+                <div class="fdm-section-title">📊 Análisis SLA</div>
+                <div style="background:rgba(15,23,42,0.5);border:1px solid rgba(59,130,246,0.12);border-radius:12px;padding:14px;overflow-x:auto;">
+                  <table class="fdm-sla-table" id="fdmSlaTable"></table>
+                </div>
+              </div>
+
+              <!-- AI Analysis -->
+              <div class="fdm-ai-wrap">
+                <div class="fdm-ai-header">
+                  <div class="fdm-ai-title">🤖 Análisis Claude AI — Este Vuelo</div>
+                  <div class="fdm-ai-btns">
+                    <button class="fdm-ai-btn" id="fdmAiBtnGeneral" onclick="fdmRunAI('general')">📊 Resumen</button>
+                    <button class="fdm-ai-btn" id="fdmAiBtnSLA" onclick="fdmRunAI('sla')">⚡ SLA</button>
+                    <button class="fdm-ai-btn" id="fdmAiBtnRecom" onclick="fdmRunAI('recom')">💡 Recomendaciones</button>
+                  </div>
+                </div>
+                <div class="fdm-ai-output" id="fdmAiOutput">
+                  <span style="color:var(--muted);font-size:11px;">Selecciona un análisis para que Claude evalúe este vuelo en tiempo real.</span>
+                </div>
+              </div>
+
+            </div><!-- /fdm-body -->
+          </div><!-- /fdm-box -->
+        </div>
+
+        </main>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+    // ══════════════════════════════════════════════════════
+    //  CONFIG
+    // ══════════════════════════════════════════════════════
+    const SCRIPT_URL      = 'https://script.google.com/macros/s/AKfycbxnufq5ET1NtHqgKe-s8wze_pXrniEQMS0MEoNARm1CeOlaqwyhcZ1Ar6qHLCyuYpX9/exec';
+    const REFRESH_INTERVAL = 30000;
+
+    const CP_COLS = [
+        'Briefing','Inicio FOD','Beacon OFF','Planta Eléctrica','Aire Acondicionado',
+        'Banda','Escalera','Inicia Descarga Carga','Waste & Water','Finaliza Descarga Carga',
+        'Inicia Descarga Equipaje','Finaliza Descarga Equipaje','Sube Limpieza','Baja Limpieza',
+        '2do FOD','Último Viaje Carreta','Inicia Carga Maleta','Última Maleta','Towbar',
+        'Cierre Bines','Push Back','3er FOD','En el Aire'
+    ];
+
+    const THRESHOLDS = {
+        beaconOffMax:     { warn: 10,  crit: 20  },
+        plantaElecMax:    { warn: 15,  crit: 30  },
+        pushbackMax:      { warn: 60,  crit: 100 },
+        incompleteMax:    { warn: 180, crit: 300 },
+    };
+    const BATTERY_AIRLINES = ['Delta','United','DL','UA'];
+
+    // ══════════════════════════════════════════════════════
+    //  STATE
+    // ══════════════════════════════════════════════════════
+    let allReports      = [];
+    let filteredReports = [];
+    let activeAlerts    = [];
+    let alertFilterMode = 'all';
+    let dateFilter      = 'today';
+    let customDateVal   = null;
+    let userFilter      = 'all';
+
+    // Secondary filter state
+    let stationFilter   = 'all';
+    let airlineFilter   = 'all';
+    let tipoFilter      = 'all';
+
+    // ══════════════════════════════════════════════════════
+    //  BOOT
+    // ══════════════════════════════════════════════════════
+    const userData = sessionStorage.getItem('user');
+    if (!userData) {
+        alert('Sesión no encontrada. Por favor inicie sesión.');
+        window.location.href = 'login-P10.html';
+    }
+
+    loadAllReports();
+    setInterval(() => loadAllReports(false), REFRESH_INTERVAL);
+
+    // ══════════════════════════════════════════════════════
+    //  THREE.JS BACKGROUND
+    // ══════════════════════════════════════════════════════
+    (function initBG() {
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const cam   = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1000);
+        const ren   = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        ren.setSize(innerWidth, innerHeight);
+        container.appendChild(ren.domElement);
+
+        const geo = new THREE.BufferGeometry();
+        const N = 2200, buf = new Float32Array(N * 3);
+        for (let i = 0; i < N * 3; i++) buf[i] = (Math.random() - 0.5) * 120;
+        geo.setAttribute('position', new THREE.BufferAttribute(buf, 3));
+        const mat = new THREE.PointsMaterial({ size: 0.055, color: 0x3b82f6, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending });
+        const pts = new THREE.Points(geo, mat);
+        scene.add(pts); cam.position.z = 35;
+
+        const gridHelper = new THREE.GridHelper(80, 30, 0x1e293b, 0x0f172a);
+        gridHelper.position.y = -18;
+        gridHelper.material.transparent = true; gridHelper.material.opacity = 0.3;
+        scene.add(gridHelper);
+
+        (function anim() {
+            requestAnimationFrame(anim);
+            pts.rotation.y += 0.0007;
+            gridHelper.position.z = (gridHelper.position.z - 0.05) % 2;
+            ren.render(scene, cam);
+        })();
+
+        window.addEventListener('resize', () => {
+            cam.aspect = innerWidth / innerHeight;
+            cam.updateProjectionMatrix();
+            ren.setSize(innerWidth, innerHeight);
+        });
+    })();
+
+    // ══════════════════════════════════════════════════════
+    //  DATA LOADING
+    // ══════════════════════════════════════════════════════
+    function loadAllReports(manual = false) {
+        if (manual) {
+            const rb = document.getElementById('refreshBtn');
+            rb.classList.add('spinning');
+            setTimeout(() => rb.classList.remove('spinning'), 700);
+        }
+        showLoadingSkeletons();
+        tryGetAllHistory(manual);
+    }
+
+    function showLoadingSkeletons() {
+        document.getElementById('reportTableBody').innerHTML = [1,2,3,4,5].map(() => `
+            <div class="skeleton-row">
+                <div class="skel" style="width:140px;height:13px;flex-shrink:0"></div>
+                <div class="skel" style="width:90px;height:13px;flex-shrink:0;margin-left:12px"></div>
+                <div class="skel" style="width:110px;height:13px;flex-shrink:0;margin-left:12px"></div>
+                <div class="skel" style="width:60px;height:13px;flex-shrink:0;margin-left:12px"></div>
+            </div>`).join('');
+    }
+
+    function jsonpFetch(id, baseUrl, timeoutMs, onData, onFail) {
+        const old = document.getElementById(id);
+        if (old) old.remove();
+        const cbName = 'jcb_' + id.replace(/-/g,'_') + '_' + Date.now();
+        const script = document.createElement('script');
+        script.id = id;
+        const timer = setTimeout(() => {
+            if (window[cbName]) { delete window[cbName]; script.remove(); onFail('timeout'); }
+        }, timeoutMs);
+        window[cbName] = function(data) {
+            clearTimeout(timer);
+            delete window[cbName];
+            if (script.parentNode) script.remove();
+            onData(data);
+        };
+        script.onerror = () => {
+            clearTimeout(timer);
+            delete window[cbName];
+            if (script.parentNode) script.remove();
+            onFail('network error');
+        };
+        script.src = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'callback=' + cbName;
+        document.body.appendChild(script);
+    }
+
+    function tryGetAllHistory(manual) {
+        jsonpFetch('jsonp-all', SCRIPT_URL + '?action=getAllHistory', 8000,
+            function(data) {
+                if (data && data.success && Array.isArray(data.reports) && data.reports.length > 0) {
+                    processRawReports(data.reports);
+                    if (manual) showToast('✓ ' + allReports.length + ' reportes cargados');
+                } else {
+                    tryGetHistoryNoFilter(manual);
+                }
+            },
+            function() { tryGetHistoryNoFilter(manual); }
+        );
+    }
+
+    function tryGetHistoryNoFilter(manual) {
+        jsonpFetch('jsonp-nof', SCRIPT_URL + '?action=getHistory', 8000,
+            function(data) {
+                if (data && data.success && Array.isArray(data.reports) && data.reports.length > 0) {
+                    processRawReports(data.reports);
+                    if (manual) showToast('✓ ' + allReports.length + ' reportes cargados');
+                } else {
+                    var ud = JSON.parse(sessionStorage.getItem('user') || '{}');
+                    fetchForInspector(ud.username || '', manual);
+                }
+            },
+            function() {
+                var ud = JSON.parse(sessionStorage.getItem('user') || '{}');
+                fetchForInspector(ud.username || '', manual);
+            }
+        );
+    }
+
+    function fetchForInspector(inspector, manual) {
+        if (!inspector) { processRawReports([]); return; }
+        jsonpFetch('jsonp-insp',
+            SCRIPT_URL + '?action=getHistory&inspector=' + encodeURIComponent(inspector),
+            10000,
+            function(data) {
+                var reports = (data && data.success && data.reports) ? data.reports : [];
+                processRawReports(reports);
+                if (manual) {
+                    if (reports.length > 0) showToast('✓ ' + reports.length + ' reportes (usuario actual)');
+                    else showToast('⚠ Sin datos disponibles', true);
+                }
+            },
+            function() { processRawReports([]); if (manual) showToast('Error de conexión', true); }
+        );
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  NORMALIZE
+    // ══════════════════════════════════════════════════════
+    function processRawReports(rawReports) {
+        resetInspectorColors();
+        activeInspectorFilter = null;
+        allReports = rawReports.map(normalizeReport);
+
+        populateUserFilter();
+        populateSecondaryFilters();   // ← NEW
+        applyFilters();
+    }
+
+    function normalizeReport(r) {
+        function get() {
+            for (var i = 0; i < arguments.length; i++) {
+                var v = r[arguments[i]];
+                if (v !== undefined && v !== null && v !== '') return v;
+            }
+            return null;
+        }
+
+        var flightKey    = get('Flight Key','flightKey') || '';
+        var airlineCode  = get('Código Aerolínea','airline') || '–';
+        var airlineName  = get('Aerolínea','airlineName') || '–';
+        var flightNumber = get('Vuelo','flightNumber') || '–';
+        var flightType   = get('Tipo','flightType') || 'TURN';
+        var flightTs     = get('Fecha/Hora','flightTimestamp') || '';
+        var inspector    = get('Inspector','inspector') || '–';
+        var role         = get('Rol','role') || '–';
+        var aeropuerto   = get('Aeropuerto','aeropuerto') || '–';
+        var tiempoTotal  = get('Tiempo Total (min)','tiempoTotal');
+        var itemsDone    = parseInt(get('Items Completados','itemsCompletados') || 0);
+        var itemsTotal   = parseInt(get('Items Totales','itemsTotales') || 23);
+
+        var progress = 0;
+        var tasaRaw = get('Tasa Completitud (%)','progress');
+        if (tasaRaw !== null) {
+            var p = parseFloat(String(tasaRaw).replace('%',''));
+            if (!isNaN(p)) progress = p;
+        } else if (itemsTotal > 0) {
+            progress = Math.round((itemsDone / itemsTotal) * 100);
+        }
+
+        var status = 'En Proceso';
+        var statusRaw = get('Estatus','status') || '';
+        if (statusRaw && /complet|done|cerrad/i.test(statusRaw)) {
+            status = 'Completado';
+        } else if (!statusRaw) {
+            status = progress >= 100 ? 'Completado' : 'En Proceso';
+        }
+
+        var checkpoints = CP_COLS.map(function(label) {
+            var ts = get(label);
+            return ts ? { label: label, timestamp: ts } : null;
+        }).filter(Boolean);
+
+        return {
+            flightKey: flightKey,
+            airline: airlineCode,
+            airlineName: airlineName,
+            flightNumber: flightNumber,
+            flightType: flightType,
+            flightTimestamp: flightTs,
+            inspector: inspector,
+            role: role,
+            aeropuerto: aeropuerto,
+            tiempoTotal: tiempoTotal,
+            itemsCompletados: itemsDone,
+            itemsTotales: itemsTotal,
+            progress: progress,
+            status: status,
+            checkpoints: checkpoints,
+            incident: r.incident || null,
+        };
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  POPULATE SECONDARY FILTER DROPDOWNS (dynamic from data)
+    // ══════════════════════════════════════════════════════
+    function populateSecondaryFilters() {
+        populateSelect('stationFilter', 'Todas las estaciones',
+            [...new Set(allReports.map(r => r.aeropuerto).filter(v => v && v !== '–'))].sort());
+
+        populateSelect('airlineFilter', 'Todas las aerolíneas',
+            [...new Set(allReports.map(r => r.airlineName || r.airline).filter(v => v && v !== '–'))].sort());
+
+        // Tipo: only show values that actually exist in data (plus static fallback)
+        const tipos = [...new Set(allReports.map(r => r.flightType).filter(Boolean))].sort();
+        populateSelect('tipoFilter', 'Todos los tipos', tipos);
+    }
+
+    function populateSelect(id, placeholder, options) {
+        const sel = document.getElementById(id);
+        const current = sel.value;
+        sel.innerHTML = `<option value="all">${placeholder}</option>`;
+        options.forEach(opt => {
+            const el = document.createElement('option');
+            el.value = opt; el.textContent = opt;
+            if (opt === current) el.selected = true;
+            sel.appendChild(el);
+        });
+        // Restore previous selection if still valid
+        if (options.includes(current)) sel.value = current;
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  FILTERS
+    // ══════════════════════════════════════════════════════
+    function populateUserFilter() {
+        const sel  = document.getElementById('userFilter');
+        const current = sel.value;
+        const users = [...new Set(allReports.map(r => r.inspector).filter(Boolean))].sort();
+        sel.innerHTML = '<option value="all">Todos los usuarios</option>';
+        users.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u; opt.textContent = u;
+            if (u === current) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    }
+
+    function setDateFilter(mode, el) {
+        dateFilter   = mode;
+        customDateVal = null;
+        document.getElementById('customDate').value = '';
+        document.querySelectorAll('.date-pill').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        applyFilters();
+    }
+
+    function setCustomDate(val) {
+        if (!val) return;
+        customDateVal = val;
+        dateFilter = 'custom';
+        document.querySelectorAll('.date-pill').forEach(p => p.classList.remove('active'));
+        applyFilters();
+    }
+
+    // ── Reset secondary filters (station / airline / tipo) ──
+    function resetSecondaryFilters() {
+        document.getElementById('stationFilter').value = 'all';
+        document.getElementById('airlineFilter').value = 'all';
+        document.getElementById('tipoFilter').value    = 'all';
+        stationFilter = airlineFilter = tipoFilter = 'all';
+        applyFilters();
+    }
+
+    // ── Remove a single chip ──
+    function removeFilterChip(type) {
+        if (type === 'station') { document.getElementById('stationFilter').value = 'all'; stationFilter = 'all'; }
+        if (type === 'airline') { document.getElementById('airlineFilter').value = 'all'; airlineFilter = 'all'; }
+        if (type === 'tipo')    { document.getElementById('tipoFilter').value    = 'all'; tipoFilter    = 'all'; }
+        applyFilters();
+    }
+
+    function applyFilters() {
+        userFilter    = document.getElementById('userFilter').value;
+        stationFilter = document.getElementById('stationFilter').value;
+        airlineFilter = document.getElementById('airlineFilter').value;
+        tipoFilter    = document.getElementById('tipoFilter').value;
+
+        const now = new Date();
+
+        filteredReports = allReports.filter(r => {
+            // ── Date filter ──
+            const ts = parseFlightDate(r);
+            if (!ts) return false;
+            const rDate = new Date(ts);
+
+            if (dateFilter === 'today') {
+                if (rDate.toDateString() !== now.toDateString()) return false;
+            } else if (dateFilter === 'yesterday') {
+                const yest = new Date(now); yest.setDate(yest.getDate() - 1);
+                if (rDate.toDateString() !== yest.toDateString()) return false;
+            } else if (dateFilter === 'week') {
+                const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
+                if (rDate < weekAgo) return false;
+            } else if (dateFilter === 'custom' && customDateVal) {
+                const chosen = new Date(customDateVal + 'T00:00:00');
+                if (rDate.toDateString() !== chosen.toDateString()) return false;
+            }
+
+            // ── User filter ──
+            if (userFilter !== 'all' && r.inspector !== userFilter) return false;
+
+            // ── Station filter (col AK: Aeropuerto) ──
+            if (stationFilter !== 'all' && r.aeropuerto !== stationFilter) return false;
+
+            // ── Airline filter (col C: Aerolínea) — match by name or code ──
+            if (airlineFilter !== 'all') {
+                const rAirline = r.airlineName || r.airline || '';
+                if (rAirline !== airlineFilter) return false;
+            }
+
+            // ── Tipo filter (col E: Tipo) ──
+            if (tipoFilter !== 'all' && r.flightType !== tipoFilter) return false;
+
+            return true;
+        });
+
+        updateSecondaryFilterUI();
+        renderTable();
+        updateKPIs();
+        buildAlerts();
+    }
+
+    // ── Highlight selects + show chips + toggle reset button ──
+    function updateSecondaryFilterUI() {
+        const stSel = document.getElementById('stationFilter');
+        const alSel = document.getElementById('airlineFilter');
+        const tpSel = document.getElementById('tipoFilter');
+        const resetBtn = document.getElementById('btnResetFilters');
+        const chipsBar = document.getElementById('activeFiltersBar');
+
+        [stSel, alSel, tpSel].forEach(sel => {
+            sel.classList.toggle('has-value', sel.value !== 'all');
+        });
+
+        const anyActive = stationFilter !== 'all' || airlineFilter !== 'all' || tipoFilter !== 'all';
+        resetBtn.classList.toggle('visible', anyActive);
+
+        // Build chips
+        const chips = [];
+        if (stationFilter !== 'all') chips.push({ type: 'station', label: '🏢 ' + stationFilter });
+        if (airlineFilter !== 'all') chips.push({ type: 'airline', label: '✈️ ' + airlineFilter });
+        if (tipoFilter    !== 'all') chips.push({ type: 'tipo',    label: '🔀 ' + tipoFilter    });
+
+        chipsBar.classList.toggle('visible', chips.length > 0);
+        chipsBar.innerHTML = chips.map(c =>
+            `<div class="af-chip" onclick="removeFilterChip('${c.type}')">
+                ${c.label} <span class="af-chip-x">✕</span>
+             </div>`
+        ).join('');
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  INSPECTOR COLOR SYSTEM
+    // ══════════════════════════════════════════════════════
+    const INSPECTOR_PALETTE = [
+        { bg: 'rgba(59,130,246,0.15)',  border: 'rgba(59,130,246,0.45)',  grad: 'linear-gradient(135deg,#3b82f6,#2563eb)', glow: 'rgba(59,130,246,0.5)',  text: '#93c5fd', dot: '#3b82f6'  },
+        { bg: 'rgba(16,185,129,0.15)',  border: 'rgba(16,185,129,0.45)',  grad: 'linear-gradient(135deg,#10b981,#059669)', glow: 'rgba(16,185,129,0.5)',  text: '#6ee7b7', dot: '#10b981'  },
+        { bg: 'rgba(245,158,11,0.15)',  border: 'rgba(245,158,11,0.45)',  grad: 'linear-gradient(135deg,#f59e0b,#d97706)', glow: 'rgba(245,158,11,0.5)',  text: '#fcd34d', dot: '#f59e0b'  },
+        { bg: 'rgba(239,68,68,0.15)',   border: 'rgba(239,68,68,0.45)',   grad: 'linear-gradient(135deg,#ef4444,#dc2626)', glow: 'rgba(239,68,68,0.5)',   text: '#fca5a5', dot: '#ef4444'  },
+        { bg: 'rgba(139,92,246,0.15)',  border: 'rgba(139,92,246,0.45)',  grad: 'linear-gradient(135deg,#8b5cf6,#7c3aed)', glow: 'rgba(139,92,246,0.5)',  text: '#c4b5fd', dot: '#8b5cf6'  },
+        { bg: 'rgba(6,182,212,0.15)',   border: 'rgba(6,182,212,0.45)',   grad: 'linear-gradient(135deg,#06b6d4,#0891b2)', glow: 'rgba(6,182,212,0.5)',   text: '#67e8f9', dot: '#06b6d4'  },
+        { bg: 'rgba(249,115,22,0.15)',  border: 'rgba(249,115,22,0.45)',  grad: 'linear-gradient(135deg,#f97316,#ea580c)', glow: 'rgba(249,115,22,0.5)',  text: '#fdba74', dot: '#f97316'  },
+        { bg: 'rgba(236,72,153,0.15)',  border: 'rgba(236,72,153,0.45)',  grad: 'linear-gradient(135deg,#ec4899,#db2777)', glow: 'rgba(236,72,153,0.5)',  text: '#f9a8d4', dot: '#ec4899'  },
+        { bg: 'rgba(20,184,166,0.15)',  border: 'rgba(20,184,166,0.45)',  grad: 'linear-gradient(135deg,#14b8a6,#0d9488)', glow: 'rgba(20,184,166,0.5)',  text: '#5eead4', dot: '#14b8a6'  },
+        { bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.45)',  grad: 'linear-gradient(135deg,#6366f1,#4f46e5)', glow: 'rgba(99,102,241,0.5)',  text: '#a5b4fc', dot: '#6366f1'  },
+        { bg: 'rgba(217,70,239,0.15)',  border: 'rgba(217,70,239,0.45)',  grad: 'linear-gradient(135deg,#d946ef,#c026d3)', glow: 'rgba(217,70,239,0.5)',  text: '#f0abfc', dot: '#d946ef'  },
+        { bg: 'rgba(132,204,22,0.15)',  border: 'rgba(132,204,22,0.45)',  grad: 'linear-gradient(135deg,#84cc16,#65a30d)', glow: 'rgba(132,204,22,0.5)',  text: '#bef264', dot: '#84cc16'  },
+        { bg: 'rgba(251,191,36,0.15)',  border: 'rgba(251,191,36,0.45)',  grad: 'linear-gradient(135deg,#fbbf24,#f59e0b)', glow: 'rgba(251,191,36,0.5)',  text: '#fde68a', dot: '#fbbf24'  },
+        { bg: 'rgba(52,211,153,0.15)',  border: 'rgba(52,211,153,0.45)',  grad: 'linear-gradient(135deg,#34d399,#10b981)', glow: 'rgba(52,211,153,0.5)',  text: '#6ee7b7', dot: '#34d399'  },
+        { bg: 'rgba(251,113,133,0.15)', border: 'rgba(251,113,133,0.45)', grad: 'linear-gradient(135deg,#fb7185,#f43f5e)', glow: 'rgba(251,113,133,0.5)', text: '#fda4af', dot: '#fb7185'  },
+        { bg: 'rgba(56,189,248,0.15)',  border: 'rgba(56,189,248,0.45)',  grad: 'linear-gradient(135deg,#38bdf8,#0ea5e9)', glow: 'rgba(56,189,248,0.5)',  text: '#7dd3fc', dot: '#38bdf8'  },
+        { bg: 'rgba(163,230,53,0.15)',  border: 'rgba(163,230,53,0.45)',  grad: 'linear-gradient(135deg,#a3e635,#84cc16)', glow: 'rgba(163,230,53,0.5)',  text: '#d9f99d', dot: '#a3e635'  },
+        { bg: 'rgba(248,113,113,0.15)', border: 'rgba(248,113,113,0.45)', grad: 'linear-gradient(135deg,#f87171,#ef4444)', glow: 'rgba(248,113,113,0.5)', text: '#fecaca', dot: '#f87171'  },
+        { bg: 'rgba(167,139,250,0.15)', border: 'rgba(167,139,250,0.45)', grad: 'linear-gradient(135deg,#a78bfa,#8b5cf6)', glow: 'rgba(167,139,250,0.5)', text: '#ddd6fe', dot: '#a78bfa'  },
+        { bg: 'rgba(45,212,191,0.15)',  border: 'rgba(45,212,191,0.45)',  grad: 'linear-gradient(135deg,#2dd4bf,#14b8a6)', glow: 'rgba(45,212,191,0.5)',  text: '#99f6e4', dot: '#2dd4bf'  },
+    ];
+
+    let inspectorColorMap = {};
+    let inspectorColorCounter = 0;
+
+    function getInspectorColor(name) {
+        if (!name) return INSPECTOR_PALETTE[0];
+        if (inspectorColorMap[name] === undefined) {
+            inspectorColorMap[name] = inspectorColorCounter % INSPECTOR_PALETTE.length;
+            inspectorColorCounter++;
+        }
+        return INSPECTOR_PALETTE[inspectorColorMap[name]];
+    }
+
+    function resetInspectorColors() {
+        inspectorColorMap = {};
+        inspectorColorCounter = 0;
+    }
+
+    let activeInspectorFilter = null;
+
+    function renderInspectorLegend() {
+        const legend = document.getElementById('inspectorLegend');
+        if (!legend) return;
+        const inspectors = [...new Set(allReports.map(r => r.inspector).filter(Boolean))].sort();
+        if (inspectors.length === 0) { legend.innerHTML = ''; return; }
+        legend.innerHTML = inspectors.map(name => {
+            const c       = getInspectorColor(name);
+            const isActive = activeInspectorFilter === name;
+            const isDimmed = activeInspectorFilter && activeInspectorFilter !== name;
+            const count   = filteredReports.filter(r => r.inspector === name).length;
+            return `<div class="legend-chip ${isActive ? 'active' : ''} ${isDimmed ? 'dimmed' : ''}"
+                        style="background:${c.bg};border-color:${c.border};color:${c.text};"
+                        onclick="toggleInspectorHighlight('${name.replace(/'/g,"\\'")}')">
+                        <div class="legend-dot" style="background:${c.dot};box-shadow:0 0 5px ${c.glow};"></div>
+                        ${name}
+                        <span style="opacity:0.6;font-size:10px;margin-left:2px;">${count}</span>
+                    </div>`;
+        }).join('');
+    }
+
+    function toggleInspectorHighlight(name) {
+        activeInspectorFilter = (activeInspectorFilter === name) ? null : name;
+        renderInspectorLegend();
+        renderTable();
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  TABLE RENDER
+    // ══════════════════════════════════════════════════════
+    function renderTable() {
+        const body = document.getElementById('reportTableBody');
+        document.getElementById('filteredCount').textContent = filteredReports.length;
+        document.getElementById('tabBadgeReportes').textContent = filteredReports.length;
+
+        if (filteredReports.length === 0) {
+            body.innerHTML = '<div class="empty-row">📭 Sin reportes para este período / filtro</div>';
+            renderInspectorLegend();
+            return;
+        }
+
+        let display = [...filteredReports].sort((a, b) => parseFlightDate(b) - parseFlightDate(a));
+
+        body.innerHTML = display.map((r, i) => {
+            const ts        = parseFlightDate(r);
+            const dt        = ts ? formatDateTime(new Date(ts)) : '–';
+            const prog      = r.progress || 0;
+            const done      = r.status === 'Completado';
+            const inspector = r.inspector || '?';
+            const initials  = inspector.length >= 2
+                ? (inspector.split(/[\s@._-]/)[0]?.[0] || '?').toUpperCase() +
+                  (inspector.split(/[\s@._-]/)[1]?.[0] || inspector[1] || '').toUpperCase()
+                : inspector.slice(0, 2).toUpperCase();
+            const typeTag   = buildTypeTag(r.flightType);
+            const incBadge  = r.incident ? '<span style="color:var(--red);margin-left:4px;">⚠</span>' : '';
+            const c         = getInspectorColor(inspector);
+            const isHighlighted = !activeInspectorFilter || activeInspectorFilter === inspector;
+            const rowOpacity    = isHighlighted ? '1' : '0.2';
+            const leftAccent    = isHighlighted ? `border-left: 2px solid ${c.dot};` : '';
+
+            return `
+            <div class="rt-row" style="animation-delay:${i*0.03}s;opacity:${rowOpacity};transition:opacity 0.25s;${leftAccent};cursor:pointer;" onclick="openFlightDetail('${r.flightKey}')" title="Ver detalle del vuelo">
+                <div class="rt-cell flight">
+                    ${r.airlineName || r.airline || '–'} ${r.flightNumber || '–'} ${incBadge}
+                    <span style="margin-left:6px;">${typeTag}</span>
+                </div>
+                <div class="rt-cell">
+                    <div class="user-pill" style="--ipill-bg:${c.bg};--ipill-border:${c.border};--ipill-text:${c.text};">
+                        <div class="user-avatar" style="--iavatar-bg:${c.grad};--iavatar-glow:${c.glow};">${initials}</div>
+                        <span class="user-name-text">${inspector}</span>
+                    </div>
+                </div>
+                <div class="rt-cell">${dt}</div>
+                <div class="rt-cell">${r.airline || '–'}</div>
+                <div class="rt-cell">${buildTypeTag(r.flightType)}</div>
+                <div class="rt-cell">${r.aeropuerto || '–'}</div>
+                <div class="rt-cell">
+                    <div class="pct-bar-wrap">
+                        <div class="pct-bar-bg">
+                            <div class="pct-bar-fill ${done ? 'done' : ''}" style="width:${prog}%"></div>
+                        </div>
+                        <span class="pct-text">${Math.round(prog)}%</span>
+                    </div>
+                </div>
+                <div class="rt-cell">
+                    <div class="status-dot-wrap">
+                        <div class="status-dot ${done ? 'dot-done' : 'dot-pending'}"></div>
+                        <span style="font-size:11px;">${done ? 'Listo' : 'En proceso'}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        renderInspectorLegend();
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  KPI UPDATE
+    // ══════════════════════════════════════════════════════
+    function updateKPIs() {
+        const total   = filteredReports.length;
+        const done    = filteredReports.filter(r => r.status === 'Completado').length;
+        const pending = total - done;
+        const users   = new Set(filteredReports.map(r => r.inspector).filter(Boolean)).size;
+        const pct     = total > 0 ? Math.round((done / total) * 100) : 0;
+
+        document.getElementById('kpiTotal').textContent   = total;
+        document.getElementById('kpiDone').textContent    = done;
+        document.getElementById('kpiDonePct').textContent = `${pct}% completitud`;
+        document.getElementById('kpiPending').textContent = pending;
+        document.getElementById('kpiUsers').textContent   = users;
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  ALERTS ENGINE
+    // ══════════════════════════════════════════════════════
+    function buildAlerts() {
+        activeAlerts = [];
+        var now = Date.now();
+
+        function cp(report, label) {
+            return (report.checkpoints || []).find(function(c){ return c.label === label; }) || null;
+        }
+        function minBetween(a, b) {
+            if (!a || !b) return null;
+            var d = (new Date(normalizeTs(b.timestamp)) - new Date(normalizeTs(a.timestamp))) / 60000;
+            return (isNaN(d) || d < 0) ? null : d;
+        }
+        function normalizeTs(ts) {
+            if (!ts) return null;
+            var s = String(ts).split('\n')[0].trim();
+            if (/^\d{1,2}:\d{2}/.test(s)) {
+                var today = new Date().toISOString().slice(0,10);
+                return today + 'T' + s;
+            }
+            return s;
+        }
+
+        var plantaDeltas = [];
+        allReports.forEach(function(r) {
+            var briefing = cp(r, 'Briefing');
+            var planta   = cp(r, 'Planta Eléctrica');
+            var m = minBetween(briefing, planta);
+            if (m !== null && m > 0 && m < 120) plantaDeltas.push(m);
+        });
+        var avgPlantaDelta = plantaDeltas.length > 0
+            ? plantaDeltas.reduce(function(a,b){return a+b;},0) / plantaDeltas.length
+            : 18;
+
+        filteredReports.forEach(function(r) {
+            var isTarget = BATTERY_AIRLINES.some(function(code){
+                return (r.airline||'').toUpperCase() === code ||
+                       (r.airlineName||'').toLowerCase().includes(code.toLowerCase());
+            });
+            if (!isTarget) return;
+            var briefing = cp(r, 'Briefing');
+            var planta   = cp(r, 'Planta Eléctrica');
+            var m = minBetween(briefing, planta);
+            if (m === null) return;
+            var over = m - avgPlantaDelta;
+            if (over >= THRESHOLDS.plantaElecMax.crit) {
+                activeAlerts.push({ id: 'bat-crit-' + r.flightKey, type: 'critical', icon: '🔋', iconClass: 'icon-crit',
+                    title: 'Retraso Crítico GPU/Planta — ' + (r.airlineName || r.airline),
+                    desc: 'Vuelo ' + r.flightNumber + ' (inspector: ' + r.inspector + '): Planta Eléctrica en ' + Math.round(m) + ' min post-Briefing. Promedio fleet: ' + Math.round(avgPlantaDelta) + ' min.',
+                    tags: [r.airline || '–', r.aeropuerto || '–', 'PLANTA ELÉCTRICA'], tagClass: 'atag-crit',
+                    value: '+' + Math.round(over), valueClass: 'av-crit', unit: 'min sobre promedio', time: formatTimeAgo(parseFlightDate(r)) });
+            } else if (over >= THRESHOLDS.plantaElecMax.warn) {
+                activeAlerts.push({ id: 'bat-warn-' + r.flightKey, type: 'warning', icon: '🔋', iconClass: 'icon-warn',
+                    title: 'Demora GPU/Planta — ' + (r.airlineName || r.airline),
+                    desc: 'Vuelo ' + r.flightNumber + ': Planta Eléctrica en ' + Math.round(m) + ' min post-Briefing (promedio: ' + Math.round(avgPlantaDelta) + ' min). Monitorear.',
+                    tags: [r.airline || '–', r.aeropuerto || '–', 'PLANTA ELÉCTRICA'], tagClass: 'atag-warn',
+                    value: '+' + Math.round(over), valueClass: 'av-warn', unit: 'min sobre promedio', time: formatTimeAgo(parseFlightDate(r)) });
+            }
+        });
+
+        filteredReports.forEach(function(r) {
+            var briefing = cp(r, 'Briefing');
+            var pushback = cp(r, 'Push Back');
+            var m = minBetween(briefing, pushback);
+            if (m === null) return;
+            if (m >= THRESHOLDS.pushbackMax.crit) {
+                activeAlerts.push({ id: 'push-crit-' + r.flightKey, type: 'critical', icon: '🚜', iconClass: 'icon-crit',
+                    title: 'Push Back Excesivo — ' + (r.airlineName || r.airline) + ' ' + r.flightNumber,
+                    desc: 'Inspector ' + r.inspector + ': tiempo Briefing → Push Back fue ' + Math.round(m) + ' min. Umbral crítico: ' + THRESHOLDS.pushbackMax.crit + ' min.',
+                    tags: [r.airline || '–', r.inspector || '–', 'PUSH BACK'], tagClass: 'atag-crit',
+                    value: Math.round(m) + '', valueClass: 'av-crit', unit: 'min Briefing→PushBack', time: formatTimeAgo(parseFlightDate(r)) });
+            } else if (m >= THRESHOLDS.pushbackMax.warn) {
+                activeAlerts.push({ id: 'push-warn-' + r.flightKey, type: 'warning', icon: '🚜', iconClass: 'icon-warn',
+                    title: 'Push Back Lento — ' + (r.airlineName || r.airline) + ' ' + r.flightNumber,
+                    desc: 'Inspector ' + r.inspector + ': ' + Math.round(m) + ' min Briefing→Push Back. Umbral advertencia: ' + THRESHOLDS.pushbackMax.warn + ' min.',
+                    tags: [r.airline || '–', r.inspector || '–', 'PUSH BACK'], tagClass: 'atag-warn',
+                    value: Math.round(m) + '', valueClass: 'av-warn', unit: 'min Briefing→PushBack', time: formatTimeAgo(parseFlightDate(r)) });
+            }
+        });
+
+        filteredReports.forEach(function(r) {
+            var briefing  = cp(r, 'Briefing');
+            var beaconOff = cp(r, 'Beacon OFF');
+            var m = minBetween(briefing, beaconOff);
+            if (m === null) return;
+            if (m >= THRESHOLDS.beaconOffMax.crit) {
+                activeAlerts.push({ id: 'bcn-crit-' + r.flightKey, type: 'critical', icon: '🔴', iconClass: 'icon-crit',
+                    title: 'Beacon OFF Crítico — ' + (r.airlineName || r.airline) + ' ' + r.flightNumber,
+                    desc: 'Inspector ' + r.inspector + ': Beacon OFF registrado ' + Math.round(m) + ' min después del Briefing. Máximo aceptable: ' + THRESHOLDS.beaconOffMax.crit + ' min.',
+                    tags: [r.airline || '–', r.inspector || '–', 'BEACON OFF'], tagClass: 'atag-crit',
+                    value: Math.round(m) + '', valueClass: 'av-crit', unit: 'min post-Briefing', time: formatTimeAgo(parseFlightDate(r)) });
+            } else if (m >= THRESHOLDS.beaconOffMax.warn) {
+                activeAlerts.push({ id: 'bcn-warn-' + r.flightKey, type: 'warning', icon: '🟡', iconClass: 'icon-warn',
+                    title: 'Beacon OFF Demorado — ' + (r.airlineName || r.airline) + ' ' + r.flightNumber,
+                    desc: 'Inspector ' + r.inspector + ': Beacon OFF en ' + Math.round(m) + ' min post-Briefing (umbral: ' + THRESHOLDS.beaconOffMax.warn + ' min).',
+                    tags: [r.airline || '–', r.inspector || '–', 'BEACON OFF'], tagClass: 'atag-warn',
+                    value: Math.round(m) + '', valueClass: 'av-warn', unit: 'min post-Briefing', time: formatTimeAgo(parseFlightDate(r)) });
+            }
+        });
+
+        allReports.filter(function(r){ return r.status === 'En Proceso'; }).forEach(function(r) {
+            var ts = parseFlightDate(r);
+            if (!ts) return;
+            var minutesOpen = (now - ts) / 60000;
+            if (minutesOpen >= THRESHOLDS.incompleteMax.crit) {
+                activeAlerts.push({ id: 'open-crit-' + r.flightKey, type: 'critical', icon: '⏳', iconClass: 'icon-crit',
+                    title: 'Reporte Sin Cerrar — ' + (r.airlineName || r.airline) + ' ' + r.flightNumber,
+                    desc: 'Inspector ' + r.inspector + ' tiene este reporte abierto hace ' + Math.round(minutesOpen) + ' min (' + (Math.round(minutesOpen/60*10)/10) + 'h). Avance: ' + (r.progress||0) + '%.',
+                    tags: [r.inspector || '–', Math.round(r.progress||0) + '% completo', 'INCOMPLETO'], tagClass: 'atag-crit',
+                    value: Math.round(minutesOpen) + '', valueClass: 'av-crit', unit: 'min sin cerrar', time: formatTimeAgo(ts) });
+            } else if (minutesOpen >= THRESHOLDS.incompleteMax.warn) {
+                activeAlerts.push({ id: 'open-warn-' + r.flightKey, type: 'warning', icon: '⚠️', iconClass: 'icon-warn',
+                    title: 'Reporte Prolongado — ' + (r.airlineName || r.airline) + ' ' + r.flightNumber,
+                    desc: 'Inspector ' + r.inspector + ': reporte abierto ' + Math.round(minutesOpen) + ' min. Avance: ' + (r.progress||0) + '%. Verificar.',
+                    tags: [r.inspector || '–', Math.round(r.progress||0) + '% completo', 'EN PROCESO'], tagClass: 'atag-warn',
+                    value: Math.round(minutesOpen) + '', valueClass: 'av-warn', unit: 'min abierto', time: formatTimeAgo(ts) });
+            }
+        });
+
+        filteredReports.filter(function(r){ return r.incident; }).forEach(function(r) {
+            var sev = r.incident.severity || '';
+            var isCrit = /alta|high|críti/i.test(sev);
+            activeAlerts.push({ id: 'inc-' + r.flightKey, type: isCrit ? 'critical' : 'warning',
+                icon: '🔴', iconClass: isCrit ? 'icon-crit' : 'icon-warn',
+                title: 'Incidente: ' + r.incident.type + ' — ' + (r.airlineName || r.airline) + ' ' + r.flightNumber,
+                desc: (r.incident.description || 'Sin descripción.') + ' Reportado por ' + r.inspector + '.',
+                tags: [sev || 'Sin severidad', r.airline || '–', 'INCIDENTE'], tagClass: isCrit ? 'atag-crit' : 'atag-warn',
+                value: sev || '–', valueClass: isCrit ? 'av-crit' : 'av-warn', unit: 'severidad', time: formatTimeAgo(parseFlightDate(r)) });
+        });
+
+        var byUser = {};
+        filteredReports.forEach(function(r) {
+            if (!byUser[r.inspector]) byUser[r.inspector] = { total: 0, done: 0 };
+            byUser[r.inspector].total++;
+            if (r.status === 'Completado') byUser[r.inspector].done++;
+        });
+        Object.keys(byUser).forEach(function(user) {
+            var s = byUser[user];
+            if (s.total >= 2) {
+                var pct = Math.round((s.done / s.total) * 100);
+                if (pct === 100) {
+                    activeAlerts.push({ id: 'perf-' + user, type: 'info', icon: '⭐', iconClass: 'icon-info',
+                        title: 'Desempeño Excelente — ' + user,
+                        desc: user + ' completó el 100% de sus ' + s.total + ' reportes en el período seleccionado.',
+                        tags: [s.total + ' reportes', '100% completitud', 'RENDIMIENTO'], tagClass: 'atag-info',
+                        value: '100%', valueClass: 'av-info', unit: 'completitud', time: 'período activo' });
+                }
+            }
+        });
+
+        const crit = activeAlerts.filter(a => a.type === 'critical').length;
+        const warn = activeAlerts.filter(a => a.type === 'warning').length;
+        const info = activeAlerts.filter(a => a.type === 'info').length;
+
+        document.getElementById('alertCritCount').textContent = crit;
+        document.getElementById('alertWarnCount').textContent = warn;
+        document.getElementById('alertInfoCount').textContent = info;
+        document.getElementById('kpiAlerts').textContent = crit + warn;
+        document.getElementById('tabBadgeAlertas').textContent = activeAlerts.length;
+
+        renderAlerts();
+    }
+
+    function renderAlerts() {
+        const grid = document.getElementById('alertsGrid');
+        const show = alertFilterMode === 'all'
+            ? activeAlerts
+            : activeAlerts.filter(a => a.type === alertFilterMode);
+
+        if (show.length === 0) {
+            grid.innerHTML = `<div style="text-align:center;padding:48px;color:var(--muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;">
+                ✅ Sin alertas activas en este filtro
+            </div>`;
+            return;
+        }
+
+        grid.innerHTML = show.map((a, i) => `
+            <div class="alert-card ${a.type}" style="animation-delay:${i*0.06}s">
+                <div class="alert-icon-wrap ${a.iconClass}">${a.icon}</div>
+                <div class="alert-body">
+                    <div class="alert-title ${a.type === 'critical' ? 'crit' : a.type === 'warning' ? 'warn' : 'info'}">${a.title}</div>
+                    <div class="alert-desc">${a.desc}</div>
+                    <div class="alert-meta">
+                        ${a.tags.map(t => `<span class="alert-tag ${a.tagClass}">${t}</span>`).join('')}
+                        <span class="alert-time">${a.time}</span>
+                    </div>
+                </div>
+                <div class="alert-right">
+                    <div class="alert-value ${a.valueClass}${a.type==='critical'?' pulse-ring':''}">${a.value}</div>
+                    <div class="alert-unit">${a.unit}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function filterAlerts(mode, el) {
+        alertFilterMode = mode;
+        document.querySelectorAll('.alert-filter-btn').forEach(b => { b.className = 'alert-filter-btn'; });
+        const modeMap = { all: 'active-all', critical: 'active-crit', warning: 'active-warn', info: 'active-info' };
+        el.classList.add(modeMap[mode] || 'active-all');
+        renderAlerts();
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  TAB SWITCHING
+    // ══════════════════════════════════════════════════════
+    function switchTab(name, el) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById(`tab-${name}`).classList.add('active');
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  HELPERS
+    // ══════════════════════════════════════════════════════
+    function parseFlightDate(r) {
+        try {
+            let ts = r.flightTimestamp || '';
+            if (!ts && r.flightKey) {
+                const m = r.flightKey.match(/(\d{4}-\d{2}-\d{2}T[\d:.Z]+)/);
+                if (m) ts = m[1];
+            }
+            if (!ts) return 0;
+            const d = new Date(ts);
+            if (!isNaN(d.getTime())) return d.getTime();
+            const parts = ts.match(/(\d+)\/(\d+)\/(\d+)\s+(\d+):(\d+):?(\d*)/);
+            if (parts) return new Date(
+                parseInt(parts[3]), parseInt(parts[1])-1, parseInt(parts[2]),
+                parseInt(parts[4]), parseInt(parts[5]), parseInt(parts[6]||0)
+            ).getTime();
+            return 0;
+        } catch(e) { return 0; }
+    }
+
+    function formatDateTime(d) {
+        return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+            + ' ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatTimeAgo(ts) {
+        if (!ts) return '–';
+        const diff = (Date.now() - ts) / 1000;
+        if (diff < 60) return 'hace un momento';
+        if (diff < 3600) return `hace ${Math.round(diff/60)} min`;
+        if (diff < 86400) return `hace ${Math.round(diff/3600)}h`;
+        return `hace ${Math.round(diff/86400)}d`;
+    }
+
+    function buildTypeTag(type) {
+        const map = { 'TURN': ['tag-turn','TURN'], 'RON-ARRIVAL': ['tag-arr','ARR'], 'RON-DEPARTURE': ['tag-dep','DEP'] };
+        const [cls, label] = map[type] || ['tag-turn', type || '–'];
+        return `<span class="type-tag ${cls}">${label}</span>`;
+    }
+
+    function showToast(msg, isErr = false) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = 'toast' + (isErr ? ' error' : '');
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    function logout() {
+        if (confirm('¿Cerrar sesión?')) {
+            sessionStorage.clear();
+            window.location.href = 'login-P10.html';
+        }
+    }
+    
+    // ══════════════════════════════════════════════════════
+    //  FLIGHT DETAIL MODAL
+    // ══════════════════════════════════════════════════════
+    const SCRIPT_URL_FDM = (typeof SCRIPT_URL !== 'undefined') ? SCRIPT_URL
+        : 'https://script.google.com/macros/s/AKfycbxnufq5ET1NtHqgKe-s8wze_pXrniEQMS0MEoNARm1CeOlaqwyhcZ1Ar6qHLCyuYpX9/exec';
+
+    // SLA thresholds (minutes from Beacon OFF)
+    const FDM_SLA = {
+        'Beacon OFF':               { sla: null,  icon: '🔴', label: 'Beacon OFF' },
+        'Planta Eléctrica':         { sla: 7,     icon: '⚡', label: 'Planta Eléctrica' },
+        'Aire Acondicionado':       { sla: 7,     icon: '❄️', label: 'Aire Acondicionado' },
+        'Banda':                    { sla: 10,    icon: '🛞', label: 'Banda' },
+        'Escalera':                 { sla: 10,    icon: '🪜', label: 'Escalera' },
+        'Inicia Descarga Carga':    { sla: 12,    icon: '📦', label: 'Inicio Desc. Carga' },
+        'Inicia Descarga Equipaje': { sla: 15,    icon: '🧳', label: '1ra Maleta' },
+        'Finaliza Descarga Equipaje':{ sla: 30,   icon: '✅', label: 'Fin Desc. Equipaje' },
+        'Waste & Water':            { sla: 20,    icon: '🚰', label: 'Waste & Water' },
+        'Sube Limpieza':            { sla: 25,    icon: '🧹', label: 'Sube Limpieza' },
+        'Baja Limpieza':            { sla: 45,    icon: '🧹', label: 'Baja Limpieza' },
+        '2do FOD':                  { sla: 50,    icon: '🔍', label: '2do FOD' },
+        'Inicia Carga Maleta':      { sla: 55,    icon: '🏷️', label: 'Inicio Carga Maleta' },
+        'Última Maleta':            { sla: 65,    icon: '🧳', label: 'Última Maleta' },
+        'Cierre Bines':             { sla: 70,    icon: '🔒', label: 'Cierre Bines' },
+        'Towbar':                   { sla: 72,    icon: '🔗', label: 'Towbar' },
+        'Push Back':                { sla: 80,    icon: '🚜', label: 'Push Back' },
+        '3er FOD':                  { sla: 82,    icon: '🔍', label: '3er FOD' },
+        'En el Aire':               { sla: 90,    icon: '🛫', label: 'En el Aire' },
+    };
+
+    let fdmCurrentReport  = null;
+    let fdmRefreshTimer   = null;
+    let fdmCurrentAiMode  = null;
+
+    // ── Open modal when clicking a row ──────────────────────────────────────
+    function openFlightDetail(flightKey) {
+        const report = allReports.find(r => r.flightKey === flightKey);
+        if (!report) return;
+        fdmCurrentReport = report;
+        fdmCurrentAiMode = null;
+
+        const overlay = document.getElementById('fdmOverlay');
+        overlay.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+
+        fdmRender(report);
+
+        // Auto-refresh every 15 s if in-process
+        clearInterval(fdmRefreshTimer);
+        if (report.status !== 'Completado') {
+            fdmRefreshTimer = setInterval(() => {
+                // Re-find from latest allReports
+                const fresh = allReports.find(r => r.flightKey === flightKey);
+                if (fresh) { fdmCurrentReport = fresh; fdmRender(fresh); }
+            }, 15000);
+        }
+    }
+
+    function closeFDM() {
+        document.getElementById('fdmOverlay').classList.add('hidden');
+        document.body.style.overflow = '';
+        clearInterval(fdmRefreshTimer);
+    }
+
+    function fdmClickOutside(e) {
+        if (e.target === document.getElementById('fdmOverlay')) closeFDM();
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFDM(); });
+
+    // ── Main render ──────────────────────────────────────────────────────────
+    function fdmRender(r) {
+        const done = r.status === 'Completado';
+
+        // Header
+        document.getElementById('fdmAirlineIcon').textContent =
+            r.flightType === 'TURN' ? '✈️' : r.flightType === 'RON-ARRIVAL' ? '🛬' : '🛫';
+        document.getElementById('fdmFlightNum').textContent =
+            `${r.airlineName || r.airline || '–'} ${r.flightNumber || '–'}`;
+        document.getElementById('fdmFlightMeta').textContent =
+            `${r.aeropuerto || '–'} · ${r.flightType || '–'} · ${fdmFmtDate(r)}`;
+
+        const badge = document.getElementById('fdmStatusBadge');
+        if (done) {
+            badge.className = 'fdm-status-done';
+            badge.textContent = '✓ COMPLETADO';
+        } else {
+            badge.className = 'fdm-status-live';
+            badge.innerHTML = '<span style="width:6px;height:6px;background:#10b981;border-radius:50%;display:inline-block;animation:pulse-live 1.5s ease-in-out infinite;margin-right:4px;"></span> EN PROCESO';
+        }
+
+        fdmRenderKPIs(r);
+        fdmRenderInspector(r);
+        fdmRenderTimeline(r);
+        fdmRenderCheckpoints(r);
+        fdmRenderSLA(r);
+    }
+
+    // ── KPIs ────────────────────────────────────────────────────────────────
+    function fdmRenderKPIs(r) {
+        const prog    = Math.round(r.progress || 0);
+        const done    = r.status === 'Completado';
+        const total   = r.itemsTotales || 23;
+        const itemsDone = r.itemsCompletados || 0;
+        const cps     = r.checkpoints || [];
+        const elapsed = fdmElapsedMin(r);
+        const pushCp  = cps.find(c => c.label === 'Push Back');
+        const beaconCp = cps.find(c => c.label === 'Beacon OFF');
+        const slaViolations = fdmCountSLAViolations(r);
+
+        // Progress circle SVG
+        const radius = 28, circ = 2 * Math.PI * radius;
+        const offset = circ - (prog / 100) * circ;
+        const ringColor = prog >= 80 ? '#10b981' : prog >= 50 ? '#f59e0b' : '#ef4444';
+
+        document.getElementById('fdmKpiRow').innerHTML = `
+          <div class="fdm-kpi k-${prog>=80?'green':prog>=50?'yellow':'red'}" style="display:flex;align-items:center;gap:14px;grid-column:span 1;">
+            <svg width="70" height="70" viewBox="0 0 70 70">
+              <circle class="fdm-ring-bg" cx="35" cy="35" r="${radius}" stroke-width="6"/>
+              <circle class="fdm-ring-fill fdm-progress-ring" cx="35" cy="35" r="${radius}"
+                stroke="${ringColor}" stroke-width="6"
+                stroke-dasharray="${circ}" stroke-dashoffset="${offset}"
+                style="transform-origin:center;"/>
+              <text x="35" y="40" text-anchor="middle" font-size="14" font-weight="800"
+                fill="${ringColor}" font-family="JetBrains Mono,monospace">${prog}%</text>
+            </svg>
+            <div>
+              <div class="fdm-kpi-label">Avance</div>
+              <div class="fdm-kpi-val" style="font-size:18px;color:${ringColor}">${itemsDone}/${total} items</div>
+              <div class="fdm-kpi-sub">${done?'Completado':'En proceso'}</div>
+            </div>
+          </div>
+
+          <div class="fdm-kpi k-cyan">
+            <div class="fdm-kpi-label">Checkpoints</div>
+            <div class="fdm-kpi-val kv-cyan">${cps.length}</div>
+            <div class="fdm-kpi-sub">de ${Object.keys(FDM_SLA).length} registrados</div>
+          </div>
+
+          <div class="fdm-kpi k-${elapsed!==null&&elapsed>90?'red':elapsed!==null&&elapsed>60?'yellow':'blue'}">
+            <div class="fdm-kpi-label">Tiempo Transcurrido</div>
+            <div class="fdm-kpi-val kv-${elapsed!==null&&elapsed>90?'red':elapsed!==null&&elapsed>60?'yellow':'blue'}">${elapsed!==null?elapsed+'m':'–'}</div>
+            <div class="fdm-kpi-sub">desde Briefing</div>
+          </div>
+
+          <div class="fdm-kpi k-${slaViolations>0?'red':'green'}">
+            <div class="fdm-kpi-label">Violaciones SLA</div>
+            <div class="fdm-kpi-val kv-${slaViolations>0?'red':'green'}">${slaViolations}</div>
+            <div class="fdm-kpi-sub">${slaViolations===0?'Todo en verde':'requieren atención'}</div>
+          </div>
+
+          <div class="fdm-kpi k-purple">
+            <div class="fdm-kpi-label">Aerolínea</div>
+            <div class="fdm-kpi-val kv-purple" style="font-size:16px">${r.airline || '–'}</div>
+            <div class="fdm-kpi-sub">${r.airlineName || ''}</div>
+          </div>
+
+          <div class="fdm-kpi k-${done?'green':'yellow'}">
+            <div class="fdm-kpi-label">Estado</div>
+            <div class="fdm-kpi-val kv-${done?'green':'yellow'}" style="font-size:16px">${done?'✓ Listo':'⏳ Activo'}</div>
+            <div class="fdm-kpi-sub">${r.aeropuerto || '–'}</div>
+          </div>
+        `;
+    }
+
+    // ── Inspector strip ──────────────────────────────────────────────────────
+    function fdmRenderInspector(r) {
+        const inspector = r.inspector || '–';
+        const c = getInspectorColor(inspector);
+        const initials = inspector.length >= 2
+            ? (inspector.split(/[\s@._-]/)[0]?.[0]||'?').toUpperCase() +
+              (inspector.split(/[\s@._-]/)[1]?.[0]||inspector[1]||'').toUpperCase()
+            : inspector.slice(0,2).toUpperCase();
+        document.getElementById('fdmInspectorStrip').innerHTML = `
+          <div class="fdm-inspector-strip">
+            <div class="fdm-insp-avatar" style="background:${c.grad};box-shadow:0 0 10px ${c.glow}">${initials}</div>
+            <div>
+              <div class="fdm-insp-name">${inspector}</div>
+              <div class="fdm-insp-role">${r.role||'Inspector'} · ${r.aeropuerto||'–'}</div>
+            </div>
+            <div style="margin-left:auto;text-align:right;">
+              <div style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;">Inicio</div>
+              <div style="font-size:12px;font-family:'JetBrains Mono',monospace;">${fdmFmtDate(r)}</div>
+            </div>
+          </div>`;
+    }
+
+    // ── Timeline ─────────────────────────────────────────────────────────────
+    function fdmRenderTimeline(r) {
+        const track = document.getElementById('fdmTlTrack');
+        const cps   = r.checkpoints || [];
+        if (!cps.length) {
+            track.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px;">Sin checkpoints registrados aún.</div>';
+            return;
+        }
+
+        // Parse all times to minutes-of-day
+        const parsed = cps.map(cp => ({ ...cp, min: fdmParseTimeMin(cp.timestamp) }))
+                          .filter(cp => cp.min !== null)
+                          .sort((a,b) => a.min - b.min);
+        if (!parsed.length) { track.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px;">No se pueden parsear los timestamps.</div>'; return; }
+
+        const minT = parsed[0].min;
+        const maxT = parsed[parsed.length-1].min;
+        const span = Math.max(maxT - minT, 5); // at least 5 min span
+
+        // Beacon OFF as reference
+        const beaconParsed = parsed.find(cp => cp.label === 'Beacon OFF');
+        const beaconMin = beaconParsed ? beaconParsed.min : minT;
+
+        // Axis ticks every ~10 min
+        const tickStep = span <= 30 ? 5 : span <= 60 ? 10 : 15;
+        const tickStart = Math.floor(minT / tickStep) * tickStep;
+        const ticks = [];
+        for (let t = tickStart; t <= maxT + tickStep; t += tickStep) ticks.push(t);
+
+        const LABEL_W = 160; // px
+
+        let axisHtml = `<div class="fdm-tl-axis">
+          <div style="width:${LABEL_W}px;flex-shrink:0;"></div>
+          <div style="flex:1;position:relative;height:32px;">
+            <div class="fdm-tl-axis-line"></div>
+            ${ticks.map(t => {
+                const pct = ((t - minT) / span * 100).toFixed(1);
+                const h = Math.floor(t/60), m = Math.round(t%60);
+                return `<div class="fdm-tl-tick" style="left:${pct}%;">
+                  <div class="fdm-tl-tick-line"></div>
+                  <div class="fdm-tl-tick-label">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}</div>
+                </div>`;
+            }).join('')}
+          </div>
+          <div style="width:60px;flex-shrink:0;"></div>
+        </div>`;
+
+        // One row per checkpoint
+        const rowsHtml = parsed.map(cp => {
+            const leftPct  = ((cp.min - minT) / span * 100).toFixed(2);
+            const slaInfo  = FDM_SLA[cp.label];
+            const deltaFromBeacon = beaconMin !== null ? +(cp.min - beaconMin).toFixed(1) : null;
+            const isLate  = slaInfo?.sla !== null && deltaFromBeacon !== null && deltaFromBeacon > slaInfo.sla;
+            const isWarn  = slaInfo?.sla !== null && deltaFromBeacon !== null && deltaFromBeacon > slaInfo.sla * 0.85 && !isLate;
+            const segClass = isLate ? 'seg-late' : isWarn ? 'seg-warn' : 'seg-done';
+            const dotClass = isLate ? 'late' : isWarn ? 'warn' : 'done';
+            const deltaClass= isLate ? 'dt-late' : isWarn ? 'dt-warn' : 'dt-ok';
+            const deltaLabel = deltaFromBeacon !== null ? `+${deltaFromBeacon}m` : '–';
+            const slaIcon = slaInfo?.icon || '·';
+            const timeStr = fdmFmtTime(cp.timestamp);
+
+            return `<div class="fdm-cp-row">
+              <div class="fdm-cp-label" title="${cp.label}">${slaIcon} ${slaInfo?.label || cp.label}</div>
+              <div class="fdm-cp-bar-area">
+                <div class="fdm-cp-segment ${segClass}"
+                     style="left:max(0%,calc(${leftPct}% - 3px));width:clamp(6px,3%,24px);">
+                </div>
+                <div class="fdm-cp-dot ${dotClass}" style="left:${leftPct}%;">
+                  <div class="fdm-cp-time-label">${timeStr}</div>
+                </div>
+              </div>
+              <div class="fdm-cp-delta ${deltaClass}">${deltaLabel}</div>
+            </div>`;
+        }).join('');
+
+        track.innerHTML = axisHtml + rowsHtml;
+    }
+
+    // ── Checkpoints grid ─────────────────────────────────────────────────────
+    function fdmRenderCheckpoints(r) {
+        const cps = r.checkpoints || [];
+        const beaconTs = cps.find(c => c.label==='Beacon OFF')?.timestamp;
+        const beaconMin = fdmParseTimeMin(beaconTs);
+
+        // Build the full expected checkpoint list
+        const allCps = Object.entries(FDM_SLA);
+        const cpMap  = Object.fromEntries(cps.map(c => [c.label, c]));
+
+        const html = allCps.map(([label, meta]) => {
+            const cp = cpMap[label];
+            if (!cp) {
+                // Not yet recorded
+                return `<div class="fdm-cp-card cp-pending">
+                  <div class="fdm-cp-icon cp-pending">${meta.icon}</div>
+                  <div class="fdm-cp-info">
+                    <div class="fdm-cp-name">${meta.label}</div>
+                    <div class="fdm-cp-ts">Pendiente</div>
+                  </div>
+                  <div class="fdm-cp-badge bpend">–</div>
+                </div>`;
+            }
+            const cpMin = fdmParseTimeMin(cp.timestamp);
+            const delta = (beaconMin !== null && cpMin !== null) ? +(cpMin - beaconMin).toFixed(1) : null;
+            const isLate = meta.sla !== null && delta !== null && delta > meta.sla;
+            const isWarn = meta.sla !== null && delta !== null && delta > meta.sla * 0.85 && !isLate;
+            const cls    = isLate ? 'cp-late' : isWarn ? 'cp-warn' : 'cp-done';
+            const bcls   = isLate ? 'blate' : isWarn ? 'bwarn' : 'bdone';
+            const dlabel = meta.sla !== null
+                ? (delta !== null ? `+${delta}m` : '–')
+                : fdmFmtTime(cp.timestamp);
+
+            return `<div class="fdm-cp-card ${cls}">
+              <div class="fdm-cp-icon ${cls}">${meta.icon}</div>
+              <div class="fdm-cp-info">
+                <div class="fdm-cp-name">${meta.label}</div>
+                <div class="fdm-cp-ts">${fdmFmtTime(cp.timestamp)}</div>
+              </div>
+              <div class="fdm-cp-badge ${bcls}">${dlabel}</div>
+            </div>`;
+        }).join('');
+
+        document.getElementById('fdmCpGrid').innerHTML = html;
+    }
+
+    // ── SLA Table ────────────────────────────────────────────────────────────
+    function fdmRenderSLA(r) {
+        const cps = r.checkpoints || [];
+        const beaconCp = cps.find(c => c.label==='Beacon OFF');
+        const beaconMin = fdmParseTimeMin(beaconCp?.timestamp);
+        const cpMap = Object.fromEntries(cps.map(c => [c.label, c]));
+
+        const slaCols = Object.entries(FDM_SLA).filter(([,m]) => m.sla !== null);
+
+        let html = `<tr style="font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--muted);">
+          <td>Checkpoint</td><td>SLA</td><td>Real</td><td>Delta</td><td style="width:120px;">vs SLA</td><td>Estado</td>
+        </tr>`;
+
+        for (const [label, meta] of slaCols) {
+            const cp = cpMap[label];
+            if (!cp) {
+                html += `<tr><td>${meta.icon} ${meta.label}</td><td>${meta.sla}m</td>
+                  <td colspan="4" style="color:var(--muted);opacity:0.5;">Pendiente</td></tr>`;
+                continue;
+            }
+            const cpMin = fdmParseTimeMin(cp.timestamp);
+            const delta = (beaconMin !== null && cpMin !== null) ? +(cpMin - beaconMin).toFixed(1) : null;
+            const pct   = delta !== null ? Math.min(100, (delta / meta.sla) * 100) : 0;
+            const isLate= delta !== null && delta > meta.sla;
+            const isWarn= delta !== null && delta > meta.sla * 0.85 && !isLate;
+            const color = isLate ? '#ef4444' : isWarn ? '#f59e0b' : '#10b981';
+            const badge = isLate ? '🔴 Violado' : isWarn ? '🟡 Límite' : '✅ OK';
+
+            html += `<tr>
+              <td><span class="fdm-sla-name">${meta.icon} ${meta.label}</span></td>
+              <td style="color:var(--muted)">${meta.sla}m</td>
+              <td style="color:${color};font-weight:700">${delta !== null ? delta+'m' : '–'}</td>
+              <td style="color:${color}">${delta !== null ? (delta - meta.sla > 0 ? '+':'') + (delta-meta.sla).toFixed(1)+'m' : '–'}</td>
+              <td class="fdm-sla-bar-cell">
+                <div class="fdm-sla-bar-bg">
+                  <div class="fdm-sla-bar-fill" style="width:${pct}%;background:${color}88"></div>
+                </div>
+              </td>
+              <td style="font-size:10px;">${badge}</td>
+            </tr>`;
+        }
+
+        document.getElementById('fdmSlaTable').innerHTML = html;
+    }
+
+    // ── Claude AI for this flight ────────────────────────────────────────────
+    async function fdmRunAI(mode) {
+        const r = fdmCurrentReport;
+        if (!r) return;
+        fdmCurrentAiMode = mode;
+
+        const output = document.getElementById('fdmAiOutput');
+        output.innerHTML = `<div class="fdm-ai-thinking">
+          <div class="fdm-ai-dots"><span></span><span></span><span></span></div>
+          <span>Analizando vuelo ${r.airlineName||r.airline} ${r.flightNumber}…</span>
+        </div>`;
+
+        // Disable buttons
+        ['fdmAiBtnGeneral','fdmAiBtnSLA','fdmAiBtnRecom'].forEach(id => {
+            const b = document.getElementById(id); if(b) b.disabled = true;
+        });
+
+        // Build data payload for Claude
+        const cps   = r.checkpoints || [];
+        const beaconMin = fdmParseTimeMin(cps.find(c=>c.label==='Beacon OFF')?.timestamp);
+        const cpMap = Object.fromEntries(cps.map(c=>[c.label,c]));
+
+        const slaData = Object.entries(FDM_SLA).filter(([,m])=>m.sla!==null).map(([label,meta])=>{
+            const cp = cpMap[label];
+            const cpMin = cp ? fdmParseTimeMin(cp.timestamp) : null;
+            const delta = (beaconMin!==null&&cpMin!==null) ? +(cpMin-beaconMin).toFixed(1) : null;
+            return { checkpoint: meta.label, sla_min: meta.sla, real_min: delta,
+                     delta_vs_sla: delta!==null ? +(delta-meta.sla).toFixed(1) : null,
+                     status: !cp ? 'PENDIENTE' : delta===null ? 'SIN REFERENCIA' : delta>meta.sla ? 'VIOLADO' : delta>meta.sla*0.85 ? 'LIMITE' : 'OK' };
+        });
+
+        const violations = slaData.filter(s=>s.status==='VIOLADO');
+        const elapsed    = fdmElapsedMin(r);
+
+        const flightData = {
+            vuelo: `${r.airlineName||r.airline} ${r.flightNumber}`,
+            tipo: r.flightType, aeropuerto: r.aeropuerto,
+            inspector: r.inspector, fecha: fdmFmtDate(r),
+            avance: `${Math.round(r.progress||0)}% (${r.itemsCompletados||0}/${r.itemsTotales||23} items)`,
+            estado: r.status, tiempo_transcurrido_min: elapsed,
+            checkpoints_registrados: cps.length,
+            violaciones_sla: violations.length,
+            sla_detail: slaData,
+        };
+
+        const systemPrompts = {
+            general: 'Eres un experto en operaciones de rampa aeroportuaria. Analiza los datos de este vuelo específico y genera un resumen ejecutivo conciso en español. Incluye estado general, riesgos identificados y puntos destacados. Usa emojis para facilitar lectura. Sé muy específico con los números.',
+            sla: 'Eres un experto en SLA de operaciones aeroportuarias. Los umbrales son tiempos desde Beacon OFF. Analiza las violaciones y puntos límite de este vuelo específico. Identifica cuáles son críticos, cuáles afectan la experiencia del pasajero y qué causas son probables. Sé muy concreto.',
+            recom: 'Eres un consultor de operaciones aeroportuarias. Basándote en los datos de este vuelo específico, genera 4-5 recomendaciones concretas y accionables para mejorar el desempeño. Para cada una indica: problema detectado, acción específica e impacto esperado. Prioriza por urgencia.',
+        };
+
+        try {
+            // Try calling via Apps Script proxy
+            const body = JSON.stringify({
+                action: 'claude',
+                system: systemPrompts[mode],
+                message: `Datos del vuelo en análisis:\n${JSON.stringify(flightData, null, 2)}`
+            });
+
+            const resp = await fetch(SCRIPT_URL_FDM, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: body
+            });
+
+            const raw  = await resp.text();
+            const data = JSON.parse(raw);
+
+            if (data.error) throw new Error(data.error);
+
+            const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n') || 'Sin respuesta.';
+            const formatted = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/^#{1,3} (.+)$/gm, '<strong style="font-size:13px;display:block;margin:10px 0 5px;color:#c4b5fd;">$1</strong>')
+                .replace(/^[•\-\*] (.+)$/gm, '<div style="padding:4px 0 4px 12px;border-left:2px solid rgba(139,92,246,0.4);margin:3px 0;">• $1</div>')
+                .replace(/✅([^\n]+)/g, '<div style="color:#34d399;padding:2px 0;">✅$1</div>')
+                .replace(/⚠️([^\n]+)/g, '<div style="color:#fcd34d;padding:2px 0;">⚠️$1</div>')
+                .replace(/🔴([^\n]+)/g, '<div style="color:#f87171;padding:2px 0;">🔴$1</div>')
+                .replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+
+            output.innerHTML = `<div style="font-size:12px;line-height:1.8;">${formatted}</div>`;
+        } catch(err) {
+            output.innerHTML = `<div style="color:var(--muted);font-size:12px;">
+              <strong style="color:#f87171;">Error al conectar con Claude</strong><br><br>
+              ${err.message}<br><br>
+              <strong>Resumen manual:</strong><br>
+              • Avance: ${Math.round(r.progress||0)}%<br>
+              • Checkpoints: ${cps.length} registrados<br>
+              • Violaciones SLA: ${violations.length}<br>
+              • Tiempo transcurrido: ${elapsed!==null?elapsed+'m':'–'}<br>
+            </div>`;
+        }
+
+        // Re-enable buttons
+        ['fdmAiBtnGeneral','fdmAiBtnSLA','fdmAiBtnRecom'].forEach(id => {
+            const b = document.getElementById(id); if(b) b.disabled = false;
+        });
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function fdmParseTimeMin(val) {
+        if (!val || val === 'null') return null;
+        const s = String(val).trim().split('\n')[0].trim();
+        // HH:MM or HH:MM:SS
+        const m1 = s.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+        if (m1) return parseInt(m1[1])*60 + parseInt(m1[2]) + (parseInt(m1[3]||0)/60);
+        // ISO timestamp
+        const d = new Date(s);
+        if (!isNaN(d.getTime())) return d.getHours()*60 + d.getMinutes() + d.getSeconds()/60;
+        return null;
+    }
+
+    function fdmFmtTime(val) {
+        if (!val || val === 'null') return '–';
+        const s = String(val).trim().split('\n')[0].trim();
+        const m = s.match(/(\d{1,2}:\d{2})(?::\d{2})?/);
+        if (m) return m[1];
+        const d = new Date(s);
+        if (!isNaN(d.getTime())) return d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+        return s.slice(0,5);
+    }
+
+    function fdmFmtDate(r) {
+        const ts = parseFlightDate(r);
+        if (!ts) return '–';
+        return new Date(ts).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})
+            + ' ' + new Date(ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+    }
+
+    function fdmElapsedMin(r) {
+        const cps = r.checkpoints || [];
+        const briefingCp = cps.find(c => c.label==='Briefing');
+        const startMin = briefingCp ? fdmParseTimeMin(briefingCp.timestamp) : null;
+        if (startMin === null) return null;
+        if (r.status === 'Completado') {
+            const lastCp = [...cps].sort((a,b)=>fdmParseTimeMin(b.timestamp)-fdmParseTimeMin(a.timestamp))[0];
+            const endMin = fdmParseTimeMin(lastCp?.timestamp);
+            if (endMin !== null) return +(endMin - startMin).toFixed(0);
+        }
+        // In progress — use current time
+        const now = new Date();
+        const nowMin = now.getHours()*60 + now.getMinutes();
+        return +(nowMin - startMin).toFixed(0);
+    }
+
+    function fdmCountSLAViolations(r) {
+        const cps = r.checkpoints || [];
+        const beaconMin = fdmParseTimeMin(cps.find(c=>c.label==='Beacon OFF')?.timestamp);
+        if (beaconMin === null) return 0;
+        let count = 0;
+        for (const cp of cps) {
+            const meta = FDM_SLA[cp.label];
+            if (!meta?.sla) continue;
+            const cpMin = fdmParseTimeMin(cp.timestamp);
+            if (cpMin !== null && (cpMin - beaconMin) > meta.sla) count++;
+        }
+        return count;
+    }
+
+    </script>
+</body>
+</html>
