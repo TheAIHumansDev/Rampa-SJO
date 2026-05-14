@@ -3,18 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    
-        <meta property="og:type" content="website">
-<meta property="og:title" content="Admin Dashboard | Aero AI">
-<meta property="og:description" content="Dashboard inteligente por aerolínea, vuelo y operador. Monitoreo operativo y datos en tiempo real para aeropuertos y equipos de rampa.">
-<meta property="og:url" content="https://dashboard.aeroaiops.com/">
-<meta property="og:site_name" content="Aero AI">
-<meta property="og:image" content="https://i.ibb.co/p6BwbHD9/Open-Graph-Images-4.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Aero AI Admin Dashboard - Real-Time Airport Operations">
-    
+    <title>Admin Dashboard — Turnaround Check</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
@@ -2164,22 +2153,26 @@
 
     // SLA thresholds (minutes from Beacon OFF)
     const FDM_SLA = {
+        'Briefing':                 { sla: null,  icon: '📋', label: 'Briefing' },
+        'Inicio FOD':               { sla: null,  icon: '🔍', label: 'Inicio FOD' },
         'Beacon OFF':               { sla: null,  icon: '🔴', label: 'Beacon OFF' },
         'Planta Eléctrica':         { sla: 7,     icon: '⚡', label: 'Planta Eléctrica' },
         'Aire Acondicionado':       { sla: 7,     icon: '❄️', label: 'Aire Acondicionado' },
         'Banda':                    { sla: 10,    icon: '🛞', label: 'Banda' },
         'Escalera':                 { sla: 10,    icon: '🪜', label: 'Escalera' },
         'Inicia Descarga Carga':    { sla: 12,    icon: '📦', label: 'Inicio Desc. Carga' },
+        'Waste & Water':            { sla: 20,    icon: '🚰', label: 'Waste & Water' },
+        'Finaliza Descarga Carga':  { sla: null,  icon: '📦', label: 'Fin Desc. Carga' },
         'Inicia Descarga Equipaje': { sla: 15,    icon: '🧳', label: '1ra Maleta' },
         'Finaliza Descarga Equipaje':{ sla: 30,   icon: '✅', label: 'Fin Desc. Equipaje' },
-        'Waste & Water':            { sla: 20,    icon: '🚰', label: 'Waste & Water' },
         'Sube Limpieza':            { sla: 25,    icon: '🧹', label: 'Sube Limpieza' },
         'Baja Limpieza':            { sla: 45,    icon: '🧹', label: 'Baja Limpieza' },
         '2do FOD':                  { sla: 50,    icon: '🔍', label: '2do FOD' },
+        'Último Viaje Carreta':     { sla: null,  icon: '🚗', label: 'Último Viaje Carreta' },
         'Inicia Carga Maleta':      { sla: 55,    icon: '🏷️', label: 'Inicio Carga Maleta' },
         'Última Maleta':            { sla: 65,    icon: '🧳', label: 'Última Maleta' },
-        'Cierre Bines':             { sla: 70,    icon: '🔒', label: 'Cierre Bines' },
         'Towbar':                   { sla: 72,    icon: '🔗', label: 'Towbar' },
+        'Cierre Bines':             { sla: 70,    icon: '🔒', label: 'Cierre Bines' },
         'Push Back':                { sla: 80,    icon: '🚜', label: 'Push Back' },
         '3er FOD':                  { sla: 82,    icon: '🔍', label: '3er FOD' },
         'En el Aire':               { sla: 90,    icon: '🛫', label: 'En el Aire' },
@@ -2392,15 +2385,16 @@
         // One row per checkpoint
         const rowsHtml = parsed.map(cp => {
             const leftPct  = ((cp.min - minT) / span * 100).toFixed(2);
-            const slaInfo  = FDM_SLA[cp.label];
+            const slaInfo  = FDM_SLA[cp.label] || null;           // may be undefined for Briefing, FOD, etc.
+            const slaThresh = (slaInfo && slaInfo.sla != null) ? slaInfo.sla : null;
             const deltaFromBeacon = beaconMin !== null ? +(cp.min - beaconMin).toFixed(1) : null;
-            const isLate  = slaInfo?.sla !== null && deltaFromBeacon !== null && deltaFromBeacon > slaInfo.sla;
-            const isWarn  = slaInfo?.sla !== null && deltaFromBeacon !== null && deltaFromBeacon > slaInfo.sla * 0.85 && !isLate;
+            const isLate  = slaThresh !== null && deltaFromBeacon !== null && deltaFromBeacon > slaThresh;
+            const isWarn  = slaThresh !== null && deltaFromBeacon !== null && deltaFromBeacon > slaThresh * 0.85 && !isLate;
             const segClass = isLate ? 'seg-late' : isWarn ? 'seg-warn' : 'seg-done';
             const dotClass = isLate ? 'late' : isWarn ? 'warn' : 'done';
-            const deltaClass= isLate ? 'dt-late' : isWarn ? 'dt-warn' : 'dt-ok';
+            const deltaClass= isLate ? 'dt-late' : isWarn ? 'dt-warn' : deltaFromBeacon !== null ? 'dt-ok' : 'dt-null';
             const deltaLabel = deltaFromBeacon !== null ? `+${deltaFromBeacon}m` : '–';
-            const slaIcon = slaInfo?.icon || '·';
+            const slaIcon = (slaInfo && slaInfo.icon) ? slaInfo.icon : '📍';
             const timeStr = fdmFmtTime(cp.timestamp);
 
             return `<div class="fdm-cp-row">
