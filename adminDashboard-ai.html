@@ -2212,7 +2212,7 @@
                 // Re-find from latest allReports
                 const fresh = allReports.find(r => r.flightKey === flightKey);
                 if (fresh) { fdmCurrentReport = fresh; fdmRender(fresh); }
-            }, 15000);
+            }, 600000);
         }
     }
 
