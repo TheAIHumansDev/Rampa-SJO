@@ -704,27 +704,31 @@
     })();
 
     // ══════════════════════════════════════════════════════
-    //  DATA LOADING — fetches all 3 sheets in parallel
+    //  DATA LOADING — fetches all 3 sheets with fallback chain
     // ══════════════════════════════════════════════════════
+
+    // Track which sheets loaded successfully for diagnostics
+    let loadDiagnostics = {};
+
     function loadAllReports(manual = false) {
         const btn = document.getElementById('refreshBtn');
         btn.classList.add('spinning');
         btn.disabled = true;
         showLoadingSkeletons();
+        loadDiagnostics = {};
 
         const sheets = [
-            { action: 'getHistory', sheetName: 'TURN',         flightType: 'TURN'         },
-            { action: 'getHistory', sheetName: 'RON_Llegada',   flightType: 'RON-ARRIVAL'  },
-            { action: 'getHistory', sheetName: 'RON_Salida',    flightType: 'RON-DEPARTURE'},
+            { sheetName: 'TURN',       flightType: 'TURN'         },
+            { sheetName: 'RON_Llegada', flightType: 'RON-ARRIVAL'  },
+            { sheetName: 'RON_Salida',  flightType: 'RON-DEPARTURE'},
         ];
 
         let results = [];
         let pending = sheets.length;
 
-        function done(reports, flightType) {
-            results = results.concat(
-                reports.map(r => ({ ...r, _sheetType: flightType }))
-            );
+        function done(reports, flightType, sheetName, source) {
+            loadDiagnostics[sheetName] = { count: reports.length, source };
+            results = results.concat(reports.map(r => ({ ...r, _sheetType: flightType })));
             pending--;
             if (pending === 0) finalize();
         }
@@ -734,24 +738,127 @@
             btn.disabled = false;
             const now = new Date();
             document.getElementById('lastUpdated').textContent =
-                'Actualizado: ' + now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                'Actualizado: ' + now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
             processRawReports(results);
-            if (manual) showToast('✓ ' + results.length + ' reportes cargados');
+
+            // Build diagnostic toast
+            const parts = Object.entries(loadDiagnostics).map(([name, d]) =>
+                d.count > 0 ? `${name}: ${d.count}` : `${name}: ✗`
+            );
+            const total = results.length;
+            if (manual || total === 0) {
+                const allFailed = Object.values(loadDiagnostics).every(d => d.count === 0);
+                if (allFailed) {
+                    showToast('⚠ Sin datos — verifica URL del GAS y redespliegue', true);
+                    showDiagnosticBanner();
+                } else {
+                    showToast(`✓ ${total} reportes  [${parts.join(' · ')}]`);
+                }
+            }
         }
 
-        sheets.forEach(({ action, sheetName, flightType }) => {
-            const url = SCRIPT_URL + '?action=' + action + '&sheet=' + encodeURIComponent(sheetName);
-            jsonpFetch('jsonp-' + sheetName.replace(/[^a-z0-9]/gi,'_'), url, 10000,
+        sheets.forEach(({ sheetName, flightType }) => {
+            loadSheetWithFallback(sheetName, flightType, done);
+        });
+    }
+
+    // ── Per-sheet loader with 3-attempt fallback chain ────────────────────
+    // Attempt 1: new GAS with ?action=getHistory&sheet=NAME  (new deploy)
+    // Attempt 2: ?action=getAllHistory                        (old deploy, TURN only)
+    // Attempt 3: ?action=getHistory                          (old deploy generic)
+    function loadSheetWithFallback(sheetName, flightType, done) {
+        const tag = 'jsonp_' + sheetName.replace(/[^a-z0-9]/gi,'_');
+
+        // Attempt 1 — new GAS with sheet param
+        const url1 = SCRIPT_URL + '?action=getHistory&sheet=' + encodeURIComponent(sheetName);
+        jsonpFetch(tag + '_a1', url1, 9000,
+            function(data) {
+                if (data && data.success && Array.isArray(data.reports) && data.reports.length > 0) {
+                    done(data.reports, flightType, sheetName, 'new-GAS');
+                } else if (data && data.success && Array.isArray(data.reports)) {
+                    // Sheet exists but empty — that's fine
+                    done([], flightType, sheetName, 'new-GAS-empty');
+                } else {
+                    attempt2();
+                }
+            },
+            function(err) {
+                console.warn('[' + sheetName + '] Attempt 1 failed (' + err + '), trying fallback...');
+                attempt2();
+            }
+        );
+
+        // Attempt 2 — old GAS getAllHistory (works for TURN)
+        function attempt2() {
+            const url2 = SCRIPT_URL + '?action=getAllHistory';
+            jsonpFetch(tag + '_a2', url2, 9000,
                 function(data) {
-                    const reps = (data && data.success && Array.isArray(data.reports)) ? data.reports : [];
-                    done(reps, flightType);
+                    if (data && data.success && Array.isArray(data.reports) && data.reports.length > 0) {
+                        // Filter by type if possible, otherwise take all for TURN
+                        let reps = data.reports;
+                        if (flightType !== 'TURN') {
+                            // Old GAS only has TURN — skip for RON sheets
+                            reps = reps.filter(r => {
+                                const t = r['Tipo'] || r['flightType'] || '';
+                                return t === flightType || t === sheetName;
+                            });
+                        }
+                        if (reps.length > 0) {
+                            done(reps, flightType, sheetName, 'old-GAS-all');
+                        } else {
+                            attempt3();
+                        }
+                    } else {
+                        attempt3();
+                    }
                 },
                 function(err) {
-                    console.warn('Sheet ' + sheetName + ' failed:', err);
-                    done([], flightType);
+                    console.warn('[' + sheetName + '] Attempt 2 failed (' + err + '), trying fallback...');
+                    attempt3();
                 }
             );
-        });
+        }
+
+        // Attempt 3 — old GAS getHistory (no sheet param)
+        function attempt3() {
+            if (flightType !== 'TURN') {
+                // Old GAS doesn't have RON sheets — give up gracefully
+                console.warn('[' + sheetName + '] All attempts failed. Sheet likely not in old GAS.');
+                done([], flightType, sheetName, 'failed');
+                return;
+            }
+            const url3 = SCRIPT_URL + '?action=getHistory';
+            jsonpFetch(tag + '_a3', url3, 9000,
+                function(data) {
+                    const reps = (data && data.success && Array.isArray(data.reports)) ? data.reports : [];
+                    done(reps, flightType, sheetName, reps.length ? 'old-GAS-fallback' : 'failed');
+                },
+                function(err) {
+                    console.warn('[' + sheetName + '] All 3 attempts failed.');
+                    done([], flightType, sheetName, 'failed');
+                }
+            );
+        }
+    }
+
+    // ── Diagnostic banner shown when everything fails ─────────────────────
+    function showDiagnosticBanner() {
+        const body = document.getElementById('reportTableBody');
+        body.innerHTML = `
+            <div style="padding:32px 24px;text-align:center;">
+                <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
+                <div style="font-size:14px;font-weight:700;color:#fca5a5;margin-bottom:8px;">No se pudo conectar con el GAS</div>
+                <div style="font-size:12px;color:var(--muted);line-height:1.7;max-width:480px;margin:0 auto;">
+                    El script de Google Apps Script no responde o retorna un error.<br><br>
+                    <strong style="color:var(--text);">Pasos para resolver:</strong><br>
+                    1. Abre Apps Script → <strong>Implementar → Administrar implementaciones</strong><br>
+                    2. Edita la implementación → selecciona <strong>"Nueva versión"</strong><br>
+                    3. Clic en <strong>Implementar</strong> → copia la nueva URL<br>
+                    4. Actualiza <code style="background:rgba(59,130,246,0.15);padding:1px 6px;border-radius:4px;">SCRIPT_URL</code> en este archivo HTML<br>
+                    5. Verifica que el acceso sea <strong>"Cualquier persona"</strong>
+                </div>
+                <button onclick="loadAllReports(true)" style="margin-top:20px;padding:8px 20px;background:rgba(59,130,246,0.15);border:1px solid var(--border);border-radius:20px;color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;font-family:'JetBrains Mono',monospace;">↻ Reintentar</button>
+            </div>`;
     }
 
     function showLoadingSkeletons() {
@@ -764,27 +871,40 @@
             </div>`).join('');
     }
 
+    // ── JSONP core — registers callback BEFORE setting src to avoid race ──
     function jsonpFetch(id, url, timeoutMs, onData, onFail) {
         const old = document.getElementById(id);
         if (old) old.remove();
         const cbName = 'jcb_' + id.replace(/[^a-z0-9]/gi,'_') + '_' + Date.now();
         const script = document.createElement('script');
         script.id = id;
+
+        // Register callback FIRST, then set src (avoids race condition)
         const timer = setTimeout(() => {
-            if (window[cbName]) { delete window[cbName]; script.remove(); onFail('timeout'); }
+            if (window[cbName]) {
+                delete window[cbName];
+                if (script.parentNode) script.remove();
+                onFail('timeout');
+            }
         }, timeoutMs);
+
         window[cbName] = function(data) {
-            clearTimeout(timer); delete window[cbName];
+            clearTimeout(timer);
+            delete window[cbName];
             if (script.parentNode) script.remove();
             onData(data);
         };
+
         script.onerror = () => {
-            clearTimeout(timer); delete window[cbName];
+            clearTimeout(timer);
+            delete window[cbName];
             if (script.parentNode) script.remove();
             onFail('network error');
         };
-        script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
+
+        // Set src AFTER callback is registered
         document.body.appendChild(script);
+        script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
     }
 
     // ══════════════════════════════════════════════════════
