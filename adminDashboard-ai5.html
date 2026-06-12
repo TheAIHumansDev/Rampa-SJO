@@ -1,5 +1,3 @@
-
-
  <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -644,21 +642,18 @@
     // ══════════════════════════════════════════════════════
     //  STATE
     // ══════════════════════════════════════════════════════
-    let allReports      = [];
-    let filteredReports = [];
-    let activeAlerts    = [];
-    let alertFilterMode = 'all';
-    let dateFilter      = 'today';
-    let customDateVal   = null;
+    var allReports      = [];
+    var filteredReports = [];
+    var activeAlerts    = [];
+    var alertFilterMode = 'all';
+    var dateFilter      = 'today';
+    var customDateVal   = null;
 
     // active filter values (read fresh from DOM in applyFilters)
-    let activeUserFilter    = 'all';
-    let activeSheetFilter   = 'all';
-    let activeStationFilter = 'all';
-    let activeAirlineFilter = 'all';
-
-    // loader diagnostics — before boot() to avoid TDZ
-    let loadDiagnostics = {};
+    var activeUserFilter    = 'all';
+    var activeSheetFilter   = 'all';
+    var activeStationFilter = 'all';
+    var activeAirlineFilter = 'all';
 
     // ══════════════════════════════════════════════════════
     //  BOOT
@@ -709,28 +704,35 @@
     })();
 
     // ══════════════════════════════════════════════════════
-    //  DATA LOADING — fetches all 3 sheets with fallback chain
+    //  DATA LOADING
+    //  Clean rewrite — no TDZ, no let at module scope for
+    //  variables used in boot(). Uses var for all module-level
+    //  state. Fallback chain for old & new GAS deploys.
     // ══════════════════════════════════════════════════════
 
-    function loadAllReports(manual = false) {
-        const btn = document.getElementById('refreshBtn');
+    function loadAllReports(manual) {
+        manual = !!manual;
+        var btn = document.getElementById('refreshBtn');
         btn.classList.add('spinning');
         btn.disabled = true;
         showLoadingSkeletons();
-        loadDiagnostics = {};
 
-        const sheets = [
-            { sheetName: 'TURN',       flightType: 'TURN'         },
-            { sheetName: 'RON_Llegada', flightType: 'RON-ARRIVAL'  },
-            { sheetName: 'RON_Salida',  flightType: 'RON-DEPARTURE'},
+        var sheets = [
+            { sheetName: 'TURN',        flightType: 'TURN'          },
+            { sheetName: 'RON_Llegada',  flightType: 'RON-ARRIVAL'   },
+            { sheetName: 'RON_Salida',   flightType: 'RON-DEPARTURE' },
         ];
 
-        let results = [];
-        let pending = sheets.length;
+        var results     = [];
+        var pending     = sheets.length;
+        var diagnostics = {};   // local — no module-level variable needed
 
         function done(reports, flightType, sheetName, source) {
-            loadDiagnostics[sheetName] = { count: reports.length, source };
-            results = results.concat(reports.map(r => ({ ...r, _sheetType: flightType })));
+            diagnostics[sheetName] = { count: reports.length, source: source };
+            for (var i = 0; i < reports.length; i++) {
+                reports[i]._sheetType = flightType;
+            }
+            results = results.concat(reports);
             pending--;
             if (pending === 0) finalize();
         }
@@ -738,75 +740,68 @@
         function finalize() {
             btn.classList.remove('spinning');
             btn.disabled = false;
-            const now = new Date();
+            var now = new Date();
             document.getElementById('lastUpdated').textContent =
-                'Actualizado: ' + now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+                'Actualizado: ' + now.toLocaleTimeString('es-ES',
+                    { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
             processRawReports(results);
 
-            // Build diagnostic toast
-            const parts = Object.entries(loadDiagnostics).map(([name, d]) =>
-                d.count > 0 ? `${name}: ${d.count}` : `${name}: ✗`
-            );
-            const total = results.length;
-            if (manual || total === 0) {
-                const allFailed = Object.values(loadDiagnostics).every(d => d.count === 0);
-                if (allFailed) {
-                    showToast('⚠ Sin datos — verifica URL del GAS y redespliegue', true);
-                    showDiagnosticBanner();
-                } else {
-                    showToast(`✓ ${total} reportes  [${parts.join(' · ')}]`);
-                }
+            var parts = Object.keys(diagnostics).map(function(name) {
+                var d = diagnostics[name];
+                return name + ': ' + (d.count > 0 ? d.count : '✗');
+            });
+            var allFailed = Object.keys(diagnostics).every(function(k) {
+                return diagnostics[k].count === 0;
+            });
+
+            if (allFailed) {
+                showToast('⚠ Sin datos — redesplega el GAS', true);
+                showDiagnosticBanner();
+            } else if (manual) {
+                showToast('✓ ' + results.length + ' reportes  [' + parts.join(' · ') + ']');
             }
         }
 
-        sheets.forEach(({ sheetName, flightType }) => {
-            loadSheetWithFallback(sheetName, flightType, done);
+        sheets.forEach(function(s) {
+            loadSheetWithFallback(s.sheetName, s.flightType, done);
         });
     }
 
-    // ── Per-sheet loader with 3-attempt fallback chain ────────────────────
-    // Attempt 1: new GAS with ?action=getHistory&sheet=NAME  (new deploy)
-    // Attempt 2: ?action=getAllHistory                        (old deploy, TURN only)
-    // Attempt 3: ?action=getHistory                          (old deploy generic)
+    // ── 3-attempt fallback per sheet ──────────────────────
     function loadSheetWithFallback(sheetName, flightType, done) {
-        const tag = 'jsonp_' + sheetName.replace(/[^a-z0-9]/gi,'_');
+        var tag = 'jst_' + sheetName.replace(/[^a-z0-9]/gi, '_');
 
-        // Attempt 1 — new GAS with sheet param
-        const url1 = SCRIPT_URL + '?action=getHistory&sheet=' + encodeURIComponent(sheetName);
-        jsonpFetch(tag + '_a1', url1, 9000,
+        // Attempt 1 — new GAS: ?action=getHistory&sheet=NAME
+        var url1 = SCRIPT_URL + '?action=getHistory&sheet=' + encodeURIComponent(sheetName);
+        jsonpFetch(tag + '_1', url1, 9000,
             function(data) {
                 if (data && data.success && Array.isArray(data.reports) && data.reports.length > 0) {
                     done(data.reports, flightType, sheetName, 'new-GAS');
-                } else if (data && data.success && Array.isArray(data.reports)) {
-                    // Sheet exists but empty — that's fine
+                } else if (data && data.success) {
                     done([], flightType, sheetName, 'new-GAS-empty');
                 } else {
                     attempt2();
                 }
             },
-            function(err) {
-                console.warn('[' + sheetName + '] Attempt 1 failed (' + err + '), trying fallback...');
-                attempt2();
-            }
+            function() { attempt2(); }
         );
 
-        // Attempt 2 — old GAS getAllHistory (works for TURN)
         function attempt2() {
-            const url2 = SCRIPT_URL + '?action=getAllHistory';
-            jsonpFetch(tag + '_a2', url2, 9000,
+            // Attempt 2 — old GAS: getAllHistory (returns TURN data)
+            var url2 = SCRIPT_URL + '?action=getAllHistory';
+            jsonpFetch(tag + '_2', url2, 9000,
                 function(data) {
                     if (data && data.success && Array.isArray(data.reports) && data.reports.length > 0) {
-                        // Filter by type if possible, otherwise take all for TURN
-                        let reps = data.reports;
+                        var reps = data.reports;
                         if (flightType !== 'TURN') {
-                            // Old GAS only has TURN — skip for RON sheets
-                            reps = reps.filter(r => {
-                                const t = r['Tipo'] || r['flightType'] || '';
-                                return t === flightType || t === sheetName;
+                            reps = reps.filter(function(r) {
+                                var t = r['Tipo'] || r['flightType'] || '';
+                                return t === flightType;
                             });
                         }
                         if (reps.length > 0) {
-                            done(reps, flightType, sheetName, 'old-GAS-all');
+                            done(reps, flightType, sheetName, 'old-all');
                         } else {
                             attempt3();
                         }
@@ -814,99 +809,96 @@
                         attempt3();
                     }
                 },
-                function(err) {
-                    console.warn('[' + sheetName + '] Attempt 2 failed (' + err + '), trying fallback...');
-                    attempt3();
-                }
+                function() { attempt3(); }
             );
         }
 
-        // Attempt 3 — old GAS getHistory (no sheet param)
         function attempt3() {
             if (flightType !== 'TURN') {
-                // Old GAS doesn't have RON sheets — give up gracefully
-                console.warn('[' + sheetName + '] All attempts failed. Sheet likely not in old GAS.');
-                done([], flightType, sheetName, 'failed');
+                // Old GAS has no RON sheets — give up
+                done([], flightType, sheetName, 'no-data');
                 return;
             }
-            const url3 = SCRIPT_URL + '?action=getHistory';
-            jsonpFetch(tag + '_a3', url3, 9000,
+            var url3 = SCRIPT_URL + '?action=getHistory';
+            jsonpFetch(tag + '_3', url3, 9000,
                 function(data) {
-                    const reps = (data && data.success && Array.isArray(data.reports)) ? data.reports : [];
-                    done(reps, flightType, sheetName, reps.length ? 'old-GAS-fallback' : 'failed');
+                    var reps = (data && data.success && Array.isArray(data.reports)) ? data.reports : [];
+                    done(reps, flightType, sheetName, reps.length ? 'old-fallback' : 'failed');
                 },
-                function(err) {
-                    console.warn('[' + sheetName + '] All 3 attempts failed.');
+                function() {
                     done([], flightType, sheetName, 'failed');
                 }
             );
         }
     }
 
-    // ── Diagnostic banner shown when everything fails ─────────────────────
     function showDiagnosticBanner() {
-        const body = document.getElementById('reportTableBody');
-        body.innerHTML = `
-            <div style="padding:32px 24px;text-align:center;">
-                <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
-                <div style="font-size:14px;font-weight:700;color:#fca5a5;margin-bottom:8px;">No se pudo conectar con el GAS</div>
-                <div style="font-size:12px;color:var(--muted);line-height:1.7;max-width:480px;margin:0 auto;">
-                    El script de Google Apps Script no responde o retorna un error.<br><br>
-                    <strong style="color:var(--text);">Pasos para resolver:</strong><br>
-                    1. Abre Apps Script → <strong>Implementar → Administrar implementaciones</strong><br>
-                    2. Edita la implementación → selecciona <strong>"Nueva versión"</strong><br>
-                    3. Clic en <strong>Implementar</strong> → copia la nueva URL<br>
-                    4. Actualiza <code style="background:rgba(59,130,246,0.15);padding:1px 6px;border-radius:4px;">SCRIPT_URL</code> en este archivo HTML<br>
-                    5. Verifica que el acceso sea <strong>"Cualquier persona"</strong>
-                </div>
-                <button onclick="loadAllReports(true)" style="margin-top:20px;padding:8px 20px;background:rgba(59,130,246,0.15);border:1px solid var(--border);border-radius:20px;color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;font-family:'JetBrains Mono',monospace;">↻ Reintentar</button>
-            </div>`;
+        document.getElementById('reportTableBody').innerHTML =
+            '<div style="padding:32px 24px;text-align:center;">' +
+            '<div style="font-size:32px;margin-bottom:12px;">⚠️</div>' +
+            '<div style="font-size:14px;font-weight:700;color:#fca5a5;margin-bottom:8px;">No se pudo conectar con el GAS</div>' +
+            '<div style="font-size:12px;color:var(--muted);line-height:1.8;max-width:480px;margin:0 auto;">' +
+            '1. Apps Script → <strong>Implementar → Administrar implementaciones</strong><br>' +
+            '2. Editar → seleccionar <strong>Nueva versión</strong> → Implementar<br>' +
+            '3. Copiar la URL nueva y actualizar <code>SCRIPT_URL</code> en el HTML<br>' +
+            '4. Acceso: <strong>Cualquier persona</strong>' +
+            '</div>' +
+            '<button onclick="loadAllReports(true)" style="margin-top:20px;padding:8px 20px;' +
+            'background:rgba(59,130,246,0.15);border:1px solid var(--border);border-radius:20px;' +
+            'color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;' +
+            'font-family:'JetBrains Mono',monospace;">↻ Reintentar</button></div>';
     }
 
     function showLoadingSkeletons() {
-        document.getElementById('reportTableBody').innerHTML = [1,2,3,4,5].map(() => `
-            <div class="skeleton-row">
-                <div class="skel" style="width:140px;height:13px;flex-shrink:0"></div>
-                <div class="skel" style="width:90px;height:13px;flex-shrink:0;margin-left:12px"></div>
-                <div class="skel" style="width:110px;height:13px;flex-shrink:0;margin-left:12px"></div>
-                <div class="skel" style="width:60px;height:13px;flex-shrink:0;margin-left:12px"></div>
-            </div>`).join('');
+        document.getElementById('reportTableBody').innerHTML =
+            [1,2,3,4,5].map(function() {
+                return '<div class="skeleton-row">' +
+                    '<div class="skel" style="width:140px;height:13px;flex-shrink:0"></div>' +
+                    '<div class="skel" style="width:90px;height:13px;flex-shrink:0;margin-left:12px"></div>' +
+                    '<div class="skel" style="width:110px;height:13px;flex-shrink:0;margin-left:12px"></div>' +
+                    '<div class="skel" style="width:60px;height:13px;flex-shrink:0;margin-left:12px"></div>' +
+                    '</div>';
+            }).join('');
     }
 
-    // ── JSONP core — registers callback BEFORE setting src to avoid race ──
+    // ── JSONP: callback registered BEFORE src assigned ────
     function jsonpFetch(id, url, timeoutMs, onData, onFail) {
-        const old = document.getElementById(id);
-        if (old) old.remove();
-        const cbName = 'jcb_' + id.replace(/[^a-z0-9]/gi,'_') + '_' + Date.now();
-        const script = document.createElement('script');
-        script.id = id;
+        var old = document.getElementById(id);
+        if (old) old.parentNode.removeChild(old);
 
-        // Register callback FIRST, then set src (avoids race condition)
-        const timer = setTimeout(() => {
-            if (window[cbName]) {
-                delete window[cbName];
-                if (script.parentNode) script.remove();
-                onFail('timeout');
-            }
+        var cbName = 'cb_' + id.replace(/[^a-z0-9]/gi, '_') + '_' + Date.now();
+        var script = document.createElement('script');
+        script.id  = id;
+
+        var fired = false;
+        var timer = setTimeout(function() {
+            if (!fired) { fired = true; cleanup(); onFail('timeout'); }
         }, timeoutMs);
 
+        function cleanup() {
+            if (window[cbName]) delete window[cbName];
+            if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
         window[cbName] = function(data) {
+            if (fired) return;
+            fired = true;
             clearTimeout(timer);
-            delete window[cbName];
-            if (script.parentNode) script.remove();
+            cleanup();
             onData(data);
         };
 
-        script.onerror = () => {
+        script.onerror = function() {
+            if (fired) return;
+            fired = true;
             clearTimeout(timer);
-            delete window[cbName];
-            if (script.parentNode) script.remove();
-            onFail('network error');
+            cleanup();
+            onFail('script-error');
         };
 
-        // Set src AFTER callback is registered
+        // Append THEN set src — guarantees callback exists before response arrives
         document.body.appendChild(script);
-        script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
+        script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + cbName;
     }
 
     // ══════════════════════════════════════════════════════
@@ -1151,8 +1143,8 @@
         { bg:'rgba(132,204,22,0.15)',  border:'rgba(132,204,22,0.45)',  grad:'linear-gradient(135deg,#84cc16,#65a30d)', glow:'rgba(132,204,22,0.5)',  text:'#bef264', dot:'#84cc16'  },
         { bg:'rgba(251,191,36,0.15)',  border:'rgba(251,191,36,0.45)',  grad:'linear-gradient(135deg,#fbbf24,#f59e0b)', glow:'rgba(251,191,36,0.5)',  text:'#fde68a', dot:'#fbbf24'  },
     ];
-    let inspectorColorMap = {};
-    let inspectorColorCounter = 0;
+    var inspectorColorMap = {};
+    var inspectorColorCounter = 0;
     function getInspectorColor(name) {
         if (!name) return INSPECTOR_PALETTE[0];
         if (inspectorColorMap[name] === undefined) {
@@ -1162,7 +1154,7 @@
         return INSPECTOR_PALETTE[inspectorColorMap[name]];
     }
     function resetInspectorColors() { inspectorColorMap = {}; inspectorColorCounter = 0; }
-    let activeInspectorFilter = null;
+    var activeInspectorFilter = null;
 
     function renderInspectorLegend() {
         const legend = document.getElementById('inspectorLegend');
@@ -1504,7 +1496,7 @@
     // ══════════════════════════════════════════════════════
     //  FLIGHT DETAIL MODAL
     // ══════════════════════════════════════════════════════
-    let fdmCurrentReport = null;
+    var fdmCurrentReport = null;
 
     function openFlightDetail(flightKey) {
         const report = allReports.find(r => r.flightKey === flightKey);
