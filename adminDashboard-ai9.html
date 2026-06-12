@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+
+
+ <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -655,6 +657,9 @@
     let activeStationFilter = 'all';
     let activeAirlineFilter = 'all';
 
+    // loader diagnostics — before boot() to avoid TDZ
+    let loadDiagnostics = {};
+
     // ══════════════════════════════════════════════════════
     //  BOOT
     // ══════════════════════════════════════════════════════
@@ -706,9 +711,6 @@
     // ══════════════════════════════════════════════════════
     //  DATA LOADING — fetches all 3 sheets with fallback chain
     // ══════════════════════════════════════════════════════
-
-    // Track which sheets loaded successfully for diagnostics
-    let loadDiagnostics = {};
 
     function loadAllReports(manual = false) {
         const btn = document.getElementById('refreshBtn');
