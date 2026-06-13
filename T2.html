@@ -1899,19 +1899,9 @@
         for(const cp of cps){ const meta=FDM_SLA[cp.label]; if(!meta?.sla) continue; const cpMin=fdmParseTimeMin(cp.timestamp); if(cpMin!==null&&(cpMin-beaconMin)>meta.sla) count++; }
         return count;
     }
-<!-- ══════════════════════════════════════════════════════════
-  BLOQUE 4 — JS (pegar al final del <script> existente,
-  antes del cierre </script>)
-═══════════════════════════════════════════════════════════════ -->
-<script id="billing-logic">
-// ════════════════════════════════════════════════════════════
-//  BILLING ENGINE
-//  Tarifas: TURN $500 | RON-ARRIVAL $300 | RON-DEPARTURE $400
-//  GPU (Planta Eléctrica): $200/hr desde checkpoint hasta último CP
-//  AC (Aire Acondicionado): $200/hr desde checkpoint hasta último CP
-//  Ambos se cobran por separado y se suman al cargo fijo.
-// ════════════════════════════════════════════════════════════
 
+<script id="billing-logic">
+    
 var BILL_RATES = {
     'TURN':          500,
     'RON-ARRIVAL':   300,
