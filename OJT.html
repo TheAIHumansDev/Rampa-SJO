@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OJT — On the Job Training</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow-x:hidden}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#060b1e;color:#e2e8f0;min-height:100vh}
+
+/* ── HEADER ── */
+.app-header{background:rgba(4,6,18,0.95);backdrop-filter:blur(18px);border-bottom:1px solid rgba(99,102,241,0.2);padding:14px 20px;position:sticky;top:0;z-index:50}
+.header-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:900px;margin:0 auto}
+.header-brand{display:flex;align-items:center;gap:10px}
+.ojt-badge{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-weight:700;font-size:11px;letter-spacing:1.5px;padding:4px 10px;border-radius:6px}
+.header-title{font-size:16px;font-weight:600;color:#fff}
+.header-right{display:flex;align-items:center;gap:10px}
+.trainee-chip{background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#a5b4fc;font-size:12px;font-weight:600;padding:5px 12px;border-radius:20px;display:flex;align-items:center;gap:6px}
+
+/* ── SETUP SCREEN ── */
+.setup-screen{max-width:480px;margin:48px auto;padding:0 20px}
+.setup-card{background:rgba(13,17,38,0.9);border:1px solid rgba(99,102,241,0.2);border-radius:20px;padding:32px}
+.setup-title{font-size:24px;font-weight:700;color:#fff;margin-bottom:6px;text-align:center}
+.setup-sub{color:#64748b;font-size:14px;text-align:center;margin-bottom:28px}
+.form-field{margin-bottom:18px}
+.form-field label{display:block;color:#94a3b8;font-size:13px;font-weight:500;margin-bottom:7px}
+.form-field input,
+.form-field select{width:100%;padding:13px 16px;background:rgba(30,41,59,0.7);border:1px solid rgba(99,102,241,0.2);border-radius:12px;color:#fff;font-size:15px;outline:none;transition:border-color .2s;font-family:inherit}
+.form-field input:focus,
+.form-field select:focus{border-color:#6366f1;background:rgba(30,41,59,0.95)}
+.form-field select option{background:#1e293b}
+.btn-start{width:100%;padding:15px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity .2s,transform .15s}
+.btn-start:hover{opacity:.92;transform:translateY(-1px)}
+.btn-start:active{opacity:.82;transform:none}
+
+/* ── MAIN DASHBOARD ── */
+.dashboard{display:none;max-width:900px;margin:0 auto;padding:20px}
+
+/* Progress bar */
+.progress-section{margin-bottom:20px}
+.progress-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.progress-label{color:#94a3b8;font-size:13px}
+.progress-pct{font-size:15px;font-weight:700;color:#a5b4fc}
+.progress-track{height:8px;background:rgba(99,102,241,0.15);border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:4px;transition:width .4s ease}
+
+/* Flight info strip */
+.flight-strip{background:rgba(13,17,38,0.8);border:1px solid rgba(99,102,241,0.2);border-radius:14px;padding:14px 18px;margin-bottom:20px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.flight-pill{display:flex;flex-direction:column;gap:2px}
+.flight-pill .pill-label{color:#475569;font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase}
+.flight-pill .pill-val{color:#e2e8f0;font-size:14px;font-weight:600}
+.flight-strip .divider{width:1px;height:36px;background:rgba(99,102,241,0.2);flex-shrink:0}
+
+/* Checkpoint grid */
+.section-label{color:#475569;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin:0 0 12px}
+.checkpoints-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px;margin-bottom:24px}
+
+.cp-card{background:rgba(13,17,38,0.8);border:1px solid rgba(99,102,241,0.15);border-radius:14px;padding:14px 12px;cursor:pointer;transition:all .2s;position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;min-height:110px;justify-content:center}
+.cp-card:hover{border-color:rgba(99,102,241,0.5);background:rgba(99,102,241,0.06);transform:translateY(-2px)}
+.cp-card:active{transform:translateY(0);opacity:.85}
+.cp-card.done{border-color:rgba(16,185,129,0.4);background:rgba(16,185,129,0.05)}
+.cp-card.done:hover{border-color:rgba(16,185,129,0.65);background:rgba(16,185,129,0.1)}
+.cp-card.optional{border-style:dashed}
+.cp-card.skipped{opacity:.5;border-color:rgba(71,85,105,0.3)}
+
+.cp-emoji{font-size:22px;line-height:1}
+.cp-label{font-size:12px;color:#cbd5e1;font-weight:500;line-height:1.3}
+.cp-time{font-size:10px;color:#10b981;font-family:'Courier New',monospace;font-weight:700;margin-top:2px}
+.cp-status{position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px}
+.cp-status.pending{background:rgba(99,102,241,0.2);color:#a5b4fc}
+.cp-status.done{background:rgba(16,185,129,0.25);color:#34d399}
+.cp-status.optional-badge{background:rgba(245,158,11,0.18);color:#fbbf24;font-size:9px;border-radius:4px;width:auto;padding:1px 5px;font-weight:700}
+.cp-card:not(.done):not(.skipped) .cp-time{display:none}
+
+/* multi-photo badge on card */
+.cp-multi-count{font-size:10px;background:rgba(99,102,241,0.25);color:#a5b4fc;padding:1px 7px;border-radius:10px;font-weight:700}
+
+/* Action bar */
+.action-bar{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+.btn-finish{flex:1;padding:14px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;min-width:160px}
+.btn-finish:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(16,185,129,0.3)}
+.btn-finish:disabled{opacity:.35;pointer-events:none;transform:none}
+.btn-new{padding:14px 20px;background:rgba(71,85,105,0.25);border:1px solid rgba(71,85,105,0.4);border-radius:12px;color:#94a3b8;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s}
+.btn-new:hover{background:rgba(71,85,105,0.4)}
+
+/* ── MODAL OVERLAY ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(2,4,14,0.88);z-index:100;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+@media(min-width:600px){.modal-overlay{align-items:center}}
+.modal-box{background:#0d1526;border:1px solid rgba(99,102,241,0.25);border-radius:22px 22px 0 0;padding:24px 20px 32px;width:100%;max-width:560px;position:relative;animation:slideUp .25s ease}
+@media(min-width:600px){.modal-box{border-radius:22px}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.modal-close{position:absolute;top:14px;right:16px;background:rgba(71,85,105,0.3);border:none;color:#94a3b8;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.modal-close:hover{background:rgba(239,68,68,0.25);color:#fca5a5}
+.modal-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:4px}
+.modal-sub{color:#64748b;font-size:13px;margin-bottom:20px}
+
+/* Camera view */
+.camera-wrap{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:4/3;margin-bottom:14px}
+.camera-wrap video{width:100%;height:100%;object-fit:cover;display:block}
+.cam-label{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(99,102,241,0.88);color:#fff;padding:5px 16px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.cam-ts{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,0.7);color:#fbbf24;font-family:'Courier New',monospace;font-size:11px;padding:4px 8px;border-radius:6px;font-weight:700}
+.cam-corners span{position:absolute;width:22px;height:22px;border:2.5px solid #6366f1}
+.cam-corners .tl{top:9%;left:9%;border-right:none;border-bottom:none}
+.cam-corners .tr{top:9%;right:9%;border-left:none;border-bottom:none}
+.cam-corners .bl{bottom:9%;left:9%;border-right:none;border-top:none}
+.cam-corners .br{bottom:9%;right:9%;border-left:none;border-top:none}
+
+.btn-capture{width:100%;padding:15px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;transition:opacity .2s}
+.btn-capture:hover{opacity:.88}
+.btn-capture:disabled{opacity:.4;pointer-events:none}
+
+/* Preview */
+.preview-wrap{display:none;margin-bottom:14px}
+.preview-wrap img{width:100%;border-radius:12px;object-fit:cover;aspect-ratio:4/3;display:block}
+.preview-ts{text-align:center;color:#fbbf24;font-size:12px;font-family:'Courier New',monospace;margin-top:8px;font-weight:600}
+.photo-actions{display:flex;gap:10px;margin-top:10px}
+.btn-retake{flex:1;padding:12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:10px;color:#fca5a5;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s}
+.btn-retake:hover{background:rgba(239,68,68,0.28)}
+.btn-confirm{flex:2;padding:12px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s}
+.btn-confirm:hover{opacity:.88}
+
+/* Multi-photo thumbs inside modal */
+.multi-thumbs{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.thumb-item{position:relative;width:72px;height:54px;border-radius:8px;overflow:hidden;border:1.5px solid rgba(99,102,241,0.35)}
+.thumb-item img{width:100%;height:100%;object-fit:cover}
+.thumb-del{position:absolute;top:2px;right:2px;background:rgba(239,68,68,0.85);border:none;color:#fff;width:16px;height:16px;border-radius:50%;font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.btn-add-more{padding:9px 14px;background:rgba(99,102,241,0.12);border:1.5px dashed rgba(99,102,241,0.4);border-radius:9px;color:#818cf8;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:12px;transition:all .2s;width:100%}
+.btn-add-more:hover{background:rgba(99,102,241,0.22)}
+.btn-360-save{width:100%;padding:14px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px;transition:opacity .2s}
+.btn-360-save:hover{opacity:.88}
+.btn-360-save:disabled{opacity:.35;pointer-events:none}
+
+/* Skip optional */
+.btn-skip-opt{width:100%;padding:10px;background:rgba(71,85,105,0.18);border:1px solid rgba(71,85,105,0.35);border-radius:10px;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;transition:background .2s;margin-top:6px}
+.btn-skip-opt:hover{background:rgba(71,85,105,0.32)}
+
+/* ── COMPLETION ── */
+.completion-screen{display:none;max-width:600px;margin:32px auto;padding:0 20px 60px}
+.completion-icon{font-size:64px;text-align:center;margin-bottom:16px;animation:bounce 1s ease}
+@keyframes bounce{0%,100%{transform:translateY(0)}40%{transform:translateY(-16px)}60%{transform:translateY(-8px)}}
+.completion-title{font-size:26px;font-weight:700;color:#fff;text-align:center;margin-bottom:6px}
+.completion-sub{color:#64748b;text-align:center;font-size:14px;margin-bottom:28px}
+.summary-card{background:rgba(13,17,38,0.9);border:1px solid rgba(99,102,241,0.2);border-radius:16px;padding:20px;margin-bottom:14px}
+.summary-head{font-size:13px;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+.summary-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:9px 0;border-bottom:1px solid rgba(99,102,241,0.1)}
+.summary-row:last-child{border-bottom:none}
+.summary-row .lbl{color:#475569;font-size:13px}
+.summary-row .val{color:#e2e8f0;font-size:13px;font-weight:600;text-align:right}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:12px}
+.gallery-item{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:4/3;background:rgba(30,41,59,0.4)}
+.gallery-item img{width:100%;height:100%;object-fit:cover;display:block}
+.gallery-item .g-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.78);color:#e2e8f0;padding:4px 6px;font-size:9px;text-align:center}
+.gallery-item .g-ts{position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.72);color:#fbbf24;font-size:8px;padding:2px 5px;border-radius:4px;font-family:'Courier New',monospace;font-weight:700}
+
+/* ── RESPONSIVE ── */
+@media(max-width:480px){
+  .checkpoints-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+  .cp-card{min-height:96px;padding:12px 10px}
+  .dashboard{padding:14px}
+}
+</style>
+</head>
+<body>
+
+<!-- ────────────────── HEADER ────────────────── -->
+<header class="app-header">
+  <div class="header-inner">
+    <div class="header-brand">
+      <span class="ojt-badge">OJT</span>
+      <span class="header-title">On The Job Training</span>
+    </div>
+    <div class="header-right">
+      <div class="trainee-chip" id="traineeChip" style="display:none">
+        ✈️ <span id="traineeNameChip">–</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ────────────────── SETUP ────────────────── -->
+<div class="setup-screen" id="setupScreen">
+  <div class="setup-card">
+    <div class="setup-title">Nuevo Entrenamiento</div>
+    <p class="setup-sub">Complete la información antes de iniciar la inspección OJT</p>
+
+    <div class="form-field">
+      <label>Nombre del Trainee</label>
+      <input type="text" id="traineeName" placeholder="Ej: Carlos Martínez">
+    </div>
+    <div class="form-field">
+      <label>Evaluador / Trainer</label>
+      <input type="text" id="trainerName" placeholder="Ej: Ana González">
+    </div>
+    <div class="form-field">
+      <label>Aerolínea</label>
+      <select id="airlineSelect">
+        <option value="">Seleccione una aerolínea</option>
+        <option value="DL">Delta</option>
+        <option value="WN">Southwest</option>
+        <option value="UA">United</option>
+        <option value="NK">Spirit</option>
+        <option value="AA">American Airlines</option>
+        <option value="WS">Westjet</option>
+        <option value="E9">Iberojet</option>
+        <option value="PO">Porter</option>
+        <option value="AV">Avianca</option>
+        <option value="IB">Iberia</option>
+        <option value="TS">Air Transat</option>
+        <option value="B6">JetBlue</option>
+        <option value="D0">DHL</option>
+        <option value="CG">Cargo</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>Tipo de Operación</label>
+      <select id="flightTypeSelect">
+        <option value="">Seleccione tipo</option>
+        <option value="TURN">TURN (Turnaround)</option>
+        <option value="RON-ARRIVAL">RON – Llegada</option>
+        <option value="RON-DEPARTURE">RON – Salida</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>Número de Vuelo</label>
+      <input type="text" id="flightNumber" placeholder="Ej: 1234">
+    </div>
+    <button class="btn-start" onclick="startTraining()">Iniciar Entrenamiento →</button>
+  </div>
+</div>
+
+<!-- ────────────────── DASHBOARD ────────────────── -->
+<div class="dashboard" id="dashboard">
+  <!-- Progress -->
+  <div class="progress-section">
+    <div class="progress-meta">
+      <span class="progress-label" id="progressLabel">0 de 0 completados</span>
+      <span class="progress-pct" id="progressPct">0%</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <!-- Flight strip -->
+  <div class="flight-strip" id="flightStrip"></div>
+
+  <!-- Grid -->
+  <div class="section-label">Checkpoints</div>
+  <div class="checkpoints-grid" id="checkpointsGrid"></div>
+
+  <div class="action-bar">
+    <button class="btn-finish" id="btnFinish" onclick="finishTraining()">✅ Finalizar Entrenamiento</button>
+    <button class="btn-new" onclick="resetTraining()">↩ Nuevo</button>
+  </div>
+</div>
+
+<!-- ────────────────── COMPLETION ────────────────── -->
+<div class="completion-screen" id="completionScreen">
+  <div class="completion-icon">🎓</div>
+  <h2 class="completion-title">¡OJT Completado!</h2>
+  <p class="completion-sub">Registro de entrenamiento guardado</p>
+  <div class="summary-card" id="summaryCard"></div>
+  <div class="summary-card">
+    <div class="summary-head">📸 Evidencias</div>
+    <div class="gallery-grid" id="evidenceGallery"></div>
+  </div>
+  <div class="action-bar" style="margin-top:20px">
+    <button class="btn-finish" onclick="resetTraining()">🔄 Nuevo Entrenamiento</button>
+  </div>
+</div>
+
+<!-- ────────────────── MODAL ────────────────── -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal-box" id="modalBox">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modalTitle">Checkpoint</div>
+    <div class="modal-sub" id="modalSub">Capture la foto de evidencia</div>
+
+    <!-- Standard camera -->
+    <div id="standardView">
+      <div class="camera-wrap" id="cameraWrap">
+        <video id="videoEl" autoplay playsinline></video>
+        <div class="cam-label" id="camLabel">–</div>
+        <div class="cam-corners">
+          <span class="tl"></span><span class="tr"></span>
+          <span class="bl"></span><span class="br"></span>
+        </div>
+        <div class="cam-ts" id="camTs">00:00:00</div>
+      </div>
+      <button class="btn-capture" id="btnCapture" onclick="capturePhoto()">📸 Capturar Foto</button>
+
+      <div class="preview-wrap" id="previewWrap">
+        <img id="previewImg" src="" alt="preview">
+        <div class="preview-ts" id="previewTs"></div>
+        <div class="photo-actions">
+          <button class="btn-retake" onclick="retakePhoto()">🔄 Tomar de Nuevo</button>
+          <button class="btn-confirm" onclick="confirmPhoto()">✓ Confirmar</button>
+        </div>
+      </div>
+      <button class="btn-skip-opt" id="btnSkipOpt" onclick="skipOptional()" style="display:none">Omitir (Opcional)</button>
+    </div>
+
+    <!-- Multi-photo (360°) -->
+    <div id="multiView" style="display:none">
+      <div class="multi-thumbs" id="multiThumbs"></div>
+      <div class="camera-wrap" id="multiCameraWrap">
+        <video id="multiVideoEl" autoplay playsinline></video>
+        <div class="cam-label" id="multiCamLabel">–</div>
+        <div class="cam-corners">
+          <span class="tl"></span><span class="tr"></span>
+          <span class="bl"></span><span class="br"></span>
+        </div>
+        <div class="cam-ts" id="multiCamTs">00:00:00</div>
+      </div>
+      <div class="preview-wrap" id="multiPreviewWrap">
+        <img id="multiPreviewImg" src="" alt="preview">
+        <div class="preview-ts" id="multiPreviewTs"></div>
+        <div class="photo-actions">
+          <button class="btn-retake" onclick="multiRetake()">🔄 Tomar de Nuevo</button>
+          <button class="btn-confirm" onclick="multiConfirm()">✓ Agregar</button>
+        </div>
+      </div>
+      <button class="btn-capture" id="btnMultiCapture" onclick="multiCapture()">📸 Capturar Foto</button>
+      <button class="btn-add-more" id="btnAddMore" onclick="multiStartCamera()" style="display:none">📷 Agregar Otra Foto</button>
+      <button class="btn-360-save" id="btn360Save" onclick="multi360Save()" disabled>✅ Guardar 360° (0 fotos)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const AIRLINE_NAMES = {DL:'Delta',WN:'Southwest',UA:'United',NK:'Spirit',AA:'American Airlines',WS:'Westjet',E9:'Iberojet',PO:'Porter',AV:'Avianca',IB:'Iberia',TS:'Air Transat',B6:'JetBlue',D0:'DHL',CG:'Cargo'};
+const FLIGHT_TYPE_NAMES = {'TURN':'TURN (Turnaround)','RON-ARRIVAL':'RON – Llegada','RON-DEPARTURE':'RON – Salida'};
+
+const QUESTIONS = {
+  TURN:[
+    {key:'briefing',label:'Briefing',emoji:'⚡'},
+    {key:'inicio_fod',label:'Inicio FOD',emoji:'🔍'},
+    {key:'beacon_off',label:'Beacon OFF',emoji:'🚨'},
+    {key:'360_inicio',label:'360° Aeronave – Inicio',emoji:'🔄',type:'multi_photo'},
+    {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true},
+    {key:'aire_acondicionado',label:'Aire Acondicionado',emoji:'❄️',optional:true},
+    {key:'banda',label:'Banda',emoji:'📦'},
+    {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
+    {key:'inicia_descarga_carga',label:'Inicia Descarga Carga',emoji:'🛄'},
+    {key:'waste_water',label:'Waste & Water',emoji:'💧'},
+    {key:'descarga_equipaje',label:'Finaliza Descarga Carga',emoji:'🛄'},
+    {key:'inicia_equipaje',label:'Inicia Descarga Equipaje',emoji:'🛄'},
+    {key:'finaliza_equipaje',label:'Finaliza Descarga Equipaje',emoji:'🛄'},
+    {key:'sube_limpieza',label:'Sube Limpieza',emoji:'🧹'},
+    {key:'baja_limpieza',label:'Baja Limpieza',emoji:'🧹'},
+    {key:'segundo_fod',label:'2do FOD',emoji:'🔍'},
+    {key:'ultimo_viaje_carreta',label:'Último Viaje Carreta',emoji:'🚚'},
+    {key:'inicia_carga_maleta',label:'Inicia Carga Maleta',emoji:'🧳'},
+    {key:'ultima_maleta',label:'Última Maleta',emoji:'🧳'},
+    {key:'towbar',label:'Towbar',emoji:'🔧'},
+    {key:'cierre_bines',label:'Cierre Bines',emoji:'🚪'},
+    {key:'360_fin',label:'360° Aeronave – Fin',emoji:'🔄',type:'multi_photo'},
+    {key:'push_back',label:'Push Back',emoji:'⬅️'},
+    {key:'tercer_fod',label:'3er FOD',emoji:'🔍'},
+    {key:'en_aire',label:'En el Aire',emoji:'✈️'}
+  ],
+  'RON-ARRIVAL':[
+    {key:'briefing',label:'Briefing',emoji:'⚡'},
+    {key:'fod',label:'FOD',emoji:'🔍'},
+    {key:'beacon_off',label:'Beacon OFF',emoji:'🚨'},
+    {key:'360_inicio',label:'360° Aeronave – Inicio',emoji:'🔄',type:'multi_photo'},
+    {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true},
+    {key:'aire_acondicionado',label:'Aire Acondicionado',emoji:'❄️',optional:true},
+    {key:'banda',label:'Banda',emoji:'📦'},
+    {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
+    {key:'inicia_descarga',label:'Inicia Descarga Equipaje',emoji:'🛄'},
+    {key:'finaliza_descarga',label:'Finaliza Descarga Equipaje',emoji:'🛄'},
+    {key:'waste_water',label:'Waste & Water',emoji:'💧'},
+    {key:'sube_limpieza',label:'Sube Limpieza',emoji:'🧹'},
+    {key:'baja_limpieza',label:'Baja Limpieza',emoji:'🧹'},
+    {key:'segundo_fod',label:'2do FOD',emoji:'🔍'},
+    {key:'ultimo_viaje_carreta',label:'Último Viaje Carreta',emoji:'🚚'},
+    {key:'cierre_bines',label:'Cierre Bines',emoji:'🚪'},
+    {key:'360_fin',label:'360° Aeronave – Fin',emoji:'🔄',type:'multi_photo'},
+    {key:'towbar',label:'Towbar',emoji:'🔧'}
+  ],
+  'RON-DEPARTURE':[
+    {key:'briefing',label:'Briefing',emoji:'⚡'},
+    {key:'fod',label:'FOD',emoji:'🔍'},
+    {key:'avion_posicion',label:'Avión en Posición',emoji:'✈️'},
+    {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true},
+    {key:'aire_acondicionado',label:'Aire Acondicionado',emoji:'❄️',optional:true},
+    {key:'banda',label:'Banda',emoji:'📦'},
+    {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
+    {key:'inicia_carga',label:'Inicia Carga Equipaje',emoji:'🛄'},
+    {key:'waste_water',label:'Waste & Water',emoji:'💧',optional:true},
+    {key:'segundo_fod',label:'2do FOD',emoji:'🔍'},
+    {key:'finaliza_carga',label:'Finaliza Carga Equipaje',emoji:'🛄'},
+    {key:'inicia_carga_carga',label:'Inicia Carga de Carga',emoji:'🛄'},
+    {key:'finaliza_carga_carga',label:'Finaliza Carga de Carga',emoji:'🛄'},
+    {key:'towbar',label:'Towbar',emoji:'🔧'},
+    {key:'cierre_bines',label:'Cierre Bines',emoji:'🚪'},
+    {key:'360_fin',label:'360° Aeronave – Fin',emoji:'🔄',type:'multi_photo'},
+    {key:'push_back',label:'Push Back',emoji:'🔧'},
+    {key:'tercer_fod',label:'3er FOD',emoji:'🔍'}
+  ]
+};
+
+// State
+let state = {
+  traineeName:'', trainerName:'', airline:'', flightType:'', flightNumber:'',
+  startTime:null, checkpoints:[], capturedPhotos:{}, activeKey:null, activeCheckpoint:null,
+  stream:null, tsInterval:null, previewData:null, previewTimestamp:null,
+  multiSession:[], multiPreviewData:null, multiPreviewTimestamp:null
+};
+
+function startTraining() {
+  const tn = document.getElementById('traineeName').value.trim();
+  const tr = document.getElementById('trainerName').value.trim();
+  const al = document.getElementById('airlineSelect').value;
+  const ft = document.getElementById('flightTypeSelect').value;
+  const fn = document.getElementById('flightNumber').value.trim();
+  if (!tn||!tr||!al||!ft||!fn) { alert('Por favor complete todos los campos'); return; }
+  state.traineeName = tn; state.trainerName = tr; state.airline = al;
+  state.flightType = ft; state.flightNumber = fn; state.startTime = new Date();
+  state.checkpoints = QUESTIONS[ft] || [];
+  state.capturedPhotos = {};
+  document.getElementById('traineeNameChip').textContent = tn;
+  document.getElementById('traineeChip').style.display = 'flex';
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  renderFlightStrip();
+  renderGrid();
+  updateProgress();
+}
+
+function renderFlightStrip() {
+  const s = state;
+  document.getElementById('flightStrip').innerHTML = `
+    <div class="flight-pill"><div class="pill-label">Trainee</div><div class="pill-val">${s.traineeName}</div></div>
+    <div class="divider"></div>
+    <div class="flight-pill"><div class="pill-label">Trainer</div><div class="pill-val">${s.trainerName}</div></div>
+    <div class="divider"></div>
+    <div class="flight-pill"><div class="pill-label">Aerolínea</div><div class="pill-val">${AIRLINE_NAMES[s.airline]||s.airline}</div></div>
+    <div class="divider"></div>
+    <div class="flight-pill"><div class="pill-label">Tipo</div><div class="pill-val">${FLIGHT_TYPE_NAMES[s.flightType]}</div></div>
+    <div class="divider"></div>
+    <div class="flight-pill"><div class="pill-label">Vuelo</div><div class="pill-val">${s.flightNumber}</div></div>
+  `;
+}
+
+function renderGrid() {
+  const grid = document.getElementById('checkpointsGrid');
+  grid.innerHTML = state.checkpoints.map((cp, i) => {
+    const photos = state.capturedPhotos[cp.key] || [];
+    const done = photos.length > 0;
+    const skipped = state.capturedPhotos[cp.key+'__skipped'];
+    const classes = ['cp-card', done?'done':'', cp.optional&&!done&&!skipped?'optional':'', skipped?'skipped':''].filter(Boolean).join(' ');
+    const statusIcon = done ? '✓' : (cp.optional ? 'OPT' : (i+1));
+    const statusClass = done ? 'done' : (cp.optional ? 'optional-badge' : 'pending');
+    const multiCount = cp.type==='multi_photo' && photos.length > 0 ? `<div class="cp-multi-count">${photos.length} foto${photos.length>1?'s':''}</div>` : '';
+    const timeStr = done && photos[0]?.timestamp ? `<div class="cp-time">${formatTime(new Date(photos[0].timestamp))}</div>` : '';
+    return `
+      <div class="${classes}" onclick="openCheckpoint('${cp.key}')">
+        <div class="cp-status ${statusClass}">${statusIcon}</div>
+        <div class="cp-emoji">${cp.emoji}</div>
+        <div class="cp-label">${cp.label}</div>
+        ${timeStr}${multiCount}
+      </div>`;
+  }).join('');
+}
+
+function updateProgress() {
+  const total = state.checkpoints.length;
+  const required = state.checkpoints.filter(c => !c.optional);
+  const done = required.filter(c => (state.capturedPhotos[c.key]||[]).length > 0 || state.capturedPhotos[c.key+'__skipped']);
+  const pct = total === 0 ? 0 : Math.round((done.length / required.length) * 100);
+  const anyDone = Object.keys(state.capturedPhotos).filter(k => !k.endsWith('__skipped') && (state.capturedPhotos[k]||[]).length > 0).length;
+  document.getElementById('progressLabel').textContent = `${done.length} de ${required.length} requeridos completados`;
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('btnFinish').disabled = (anyDone === 0);
+}
+
+// ── MODAL OPEN / CLOSE ──────────────────────────────────────────────────────
+function openCheckpoint(key) {
+  const cp = state.checkpoints.find(c => c.key === key);
+  if (!cp) return;
+  state.activeKey = key;
+  state.activeCheckpoint = cp;
+
+  document.getElementById('modalTitle').textContent = `${cp.emoji} ${cp.label}`;
+  document.getElementById('modalSub').textContent = cp.type === 'multi_photo'
+    ? 'Realice el recorrido 360° y capture las fotos necesarias'
+    : 'Capture la foto de evidencia de este checkpoint';
+  document.getElementById('camLabel').textContent = cp.label;
+  document.getElementById('multiCamLabel').textContent = cp.label;
+
+  if (cp.type === 'multi_photo') {
+    document.getElementById('standardView').style.display = 'none';
+    document.getElementById('multiView').style.display = 'block';
+    state.multiSession = (state.capturedPhotos[key] || []).filter(p => p.photo);
+    renderMultiThumbs();
+    updateMultiSaveBtn();
+    multiStartCamera();
+  } else {
+    document.getElementById('standardView').style.display = 'block';
+    document.getElementById('multiView').style.display = 'none';
+    document.getElementById('btnSkipOpt').style.display = cp.optional ? 'block' : 'none';
+    resetPreview();
+    startCamera();
+  }
+
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+function closeModal() {
+  stopAllCameras();
+  document.getElementById('modalOverlay').classList.remove('open');
+  state.previewData = null; state.previewTimestamp = null;
+  state.multiPreviewData = null; state.multiPreviewTimestamp = null;
+}
+
+// ── STANDARD CAMERA ──────────────────────────────────────────────────────────
+async function startCamera() {
+  try {
+    state.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    const v = document.getElementById('videoEl');
+    v.srcObject = state.stream;
+    document.getElementById('cameraWrap').style.display = 'block';
+    document.getElementById('btnCapture').style.display = 'block';
+    document.getElementById('previewWrap').style.display = 'none';
+    if (state.tsInterval) clearInterval(state.tsInterval);
+    state.tsInterval = setInterval(() => { document.getElementById('camTs').textContent = formatTime(new Date()); }, 1000);
+  } catch(e) { alert('Error accediendo cámara: ' + e.message); }
+}
+
+function capturePhoto() {
+  const v = document.getElementById('videoEl');
+  const c = document.createElement('canvas');
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  state.previewData = c.toDataURL('image/jpeg',0.82);
+  state.previewTimestamp = new Date().toISOString();
+  stopStream();
+  document.getElementById('cameraWrap').style.display = 'none';
+  document.getElementById('btnCapture').style.display = 'none';
+  document.getElementById('previewImg').src = state.previewData;
+  document.getElementById('previewTs').textContent = '⏰ ' + formatTime(new Date(state.previewTimestamp));
+  document.getElementById('previewWrap').style.display = 'block';
+  document.getElementById('btnSkipOpt').style.display = 'none';
+}
+
+function retakePhoto() {
+  state.previewData = null; state.previewTimestamp = null;
+  document.getElementById('previewWrap').style.display = 'none';
+  const cp = state.activeCheckpoint;
+  if (cp && cp.optional) document.getElementById('btnSkipOpt').style.display = 'block';
+  startCamera();
+}
+
+function confirmPhoto() {
+  const cp = state.activeCheckpoint;
+  if (!state.previewData || !cp) return;
+  if (!state.capturedPhotos[cp.key]) state.capturedPhotos[cp.key] = [];
+  state.capturedPhotos[cp.key] = [{photo:state.previewData, timestamp:state.previewTimestamp, label:cp.label, emoji:cp.emoji}];
+  closeModal();
+  renderGrid();
+  updateProgress();
+}
+
+function skipOptional() {
+  const cp = state.activeCheckpoint;
+  if (!cp) return;
+  state.capturedPhotos[cp.key+'__skipped'] = true;
+  closeModal();
+  renderGrid();
+  updateProgress();
+}
+
+function resetPreview() {
+  document.getElementById('cameraWrap').style.display = 'block';
+  document.getElementById('btnCapture').style.display = 'block';
+  document.getElementById('previewWrap').style.display = 'none';
+}
+
+// ── MULTI-PHOTO (360°) ────────────────────────────────────────────────────────
+async function multiStartCamera() {
+  try {
+    state.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    const v = document.getElementById('multiVideoEl');
+    v.srcObject = state.stream;
+    document.getElementById('multiCameraWrap').style.display = 'block';
+    document.getElementById('btnMultiCapture').style.display = 'block';
+    document.getElementById('multiPreviewWrap').style.display = 'none';
+    document.getElementById('btnAddMore').style.display = 'none';
+    if (state.tsInterval) clearInterval(state.tsInterval);
+    state.tsInterval = setInterval(() => { document.getElementById('multiCamTs').textContent = formatTime(new Date()); }, 1000);
+  } catch(e) { alert('Error accediendo cámara: ' + e.message); }
+}
+
+function multiCapture() {
+  const v = document.getElementById('multiVideoEl');
+  const c = document.createElement('canvas');
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  state.multiPreviewData = c.toDataURL('image/jpeg',0.82);
+  state.multiPreviewTimestamp = new Date().toISOString();
+  stopStream();
+  document.getElementById('multiCameraWrap').style.display = 'none';
+  document.getElementById('btnMultiCapture').style.display = 'none';
+  document.getElementById('multiPreviewImg').src = state.multiPreviewData;
+  document.getElementById('multiPreviewTs').textContent = '⏰ ' + formatTime(new Date(state.multiPreviewTimestamp));
+  document.getElementById('multiPreviewWrap').style.display = 'block';
+}
+
+function multiRetake() {
+  state.multiPreviewData = null; state.multiPreviewTimestamp = null;
+  document.getElementById('multiPreviewWrap').style.display = 'none';
+  multiStartCamera();
+}
+
+function multiConfirm() {
+  const cp = state.activeCheckpoint;
+  state.multiSession.push({photo:state.multiPreviewData, timestamp:state.multiPreviewTimestamp, label:cp.label, emoji:cp.emoji});
+  state.multiPreviewData = null; state.multiPreviewTimestamp = null;
+  document.getElementById('multiPreviewWrap').style.display = 'none';
+  renderMultiThumbs();
+  updateMultiSaveBtn();
+  document.getElementById('btnAddMore').style.display = 'block';
+  document.getElementById('multiCameraWrap').style.display = 'none';
+  document.getElementById('btnMultiCapture').style.display = 'none';
+}
+
+function multiDeleteThumb(i) {
+  state.multiSession.splice(i,1);
+  renderMultiThumbs();
+  updateMultiSaveBtn();
+}
+
+function renderMultiThumbs() {
+  const el = document.getElementById('multiThumbs');
+  el.innerHTML = state.multiSession.map((item,i) => `
+    <div class="thumb-item">
+      <img src="${item.photo}" alt="foto ${i+1}">
+      <button class="thumb-del" onclick="multiDeleteThumb(${i})">✕</button>
+    </div>`).join('');
+}
+
+function updateMultiSaveBtn() {
+  const n = state.multiSession.length;
+  const btn = document.getElementById('btn360Save');
+  btn.disabled = n === 0;
+  btn.textContent = `✅ Guardar 360° (${n} foto${n!==1?'s':''})`;
+}
+
+function multi360Save() {
+  const cp = state.activeCheckpoint;
+  if (!cp || state.multiSession.length === 0) return;
+  state.capturedPhotos[cp.key] = state.multiSession.map(p => ({...p}));
+  closeModal();
+  renderGrid();
+  updateProgress();
+}
+
+// ── UTILITIES ────────────────────────────────────────────────────────────────
+function stopStream() {
+  if (state.stream) { state.stream.getTracks().forEach(t=>t.stop()); state.stream = null; }
+  if (state.tsInterval) { clearInterval(state.tsInterval); state.tsInterval = null; }
+}
+function stopAllCameras() { stopStream(); }
+function formatTime(d) { return d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+
+// ── FINISH ───────────────────────────────────────────────────────────────────
+function finishTraining() {
+  stopAllCameras();
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('completionScreen').style.display = 'block';
+  buildSummary();
+  buildGallery();
+}
+
+function buildSummary() {
+  const s = state;
+  const total = s.checkpoints.length;
+  const required = s.checkpoints.filter(c => !c.optional);
+  const completedRequired = required.filter(c => (s.capturedPhotos[c.key]||[]).length > 0).length;
+  const completedOptional = s.checkpoints.filter(c => c.optional && (s.capturedPhotos[c.key]||[]).length > 0).length;
+  let totalPhotos = 0;
+  Object.values(s.capturedPhotos).forEach(arr => { if (Array.isArray(arr)) totalPhotos += arr.filter(p=>p.photo).length; });
+  const dur = s.startTime ? Math.round((Date.now()-s.startTime.getTime())/60000) : 0;
+
+  document.getElementById('summaryCard').innerHTML = `
+    <div class="summary-head">🎓 Resumen OJT</div>
+    <div class="summary-row"><div class="lbl">Trainee</div><div class="val">${s.traineeName}</div></div>
+    <div class="summary-row"><div class="lbl">Evaluador</div><div class="val">${s.trainerName}</div></div>
+    <div class="summary-row"><div class="lbl">Aerolínea</div><div class="val">${AIRLINE_NAMES[s.airline]||s.airline}</div></div>
+    <div class="summary-row"><div class="lbl">Tipo de Operación</div><div class="val">${FLIGHT_TYPE_NAMES[s.flightType]}</div></div>
+    <div class="summary-row"><div class="lbl">Vuelo</div><div class="val">${s.flightNumber}</div></div>
+    <div class="summary-row"><div class="lbl">Checkpoints Requeridos</div><div class="val">${completedRequired} / ${required.length}</div></div>
+    <div class="summary-row"><div class="lbl">Opcionales Completados</div><div class="val">${completedOptional}</div></div>
+    <div class="summary-row"><div class="lbl">Total Fotos</div><div class="val">${totalPhotos}</div></div>
+    <div class="summary-row"><div class="lbl">Duración Sesión</div><div class="val">${dur} min</div></div>
+    <div class="summary-row"><div class="lbl">Fecha</div><div class="val">${s.startTime ? s.startTime.toLocaleDateString('es-CR') : '–'}</div></div>`;
+}
+
+function buildGallery() {
+  const items = [];
+  state.checkpoints.forEach(cp => {
+    const photos = state.capturedPhotos[cp.key] || [];
+    photos.forEach((p, i) => {
+      if (p.photo) {
+        const label = photos.length > 1 ? `${cp.emoji} ${cp.label} #${i+1}` : `${cp.emoji} ${cp.label}`;
+        const ts = p.timestamp ? formatTime(new Date(p.timestamp)) : '';
+        items.push(`<div class="gallery-item"><img src="${p.photo}" alt="${label}"><div class="g-ts">${ts}</div><div class="g-label">${label}</div></div>`);
+      }
+    });
+  });
+  document.getElementById('evidenceGallery').innerHTML = items.join('') || '<div style="color:#475569;font-size:13px;padding:12px 0;">No se capturaron fotos</div>';
+}
+
+function resetTraining() {
+  stopAllCameras();
+  state = {traineeName:'',trainerName:'',airline:'',flightType:'',flightNumber:'',startTime:null,checkpoints:[],capturedPhotos:{},activeKey:null,activeCheckpoint:null,stream:null,tsInterval:null,previewData:null,previewTimestamp:null,multiSession:[],multiPreviewData:null,multiPreviewTimestamp:null};
+  document.getElementById('traineeChip').style.display = 'none';
+  document.getElementById('completionScreen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'block';
+  document.getElementById('traineeName').value='';
+  document.getElementById('trainerName').value='';
+  document.getElementById('airlineSelect').value='';
+  document.getElementById('flightTypeSelect').value='';
+  document.getElementById('flightNumber').value='';
+}
+</script>
+</body>
+</html>
