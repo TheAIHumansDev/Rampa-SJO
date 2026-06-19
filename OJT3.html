@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OJT Monitor — ISAGO/IATA</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:14px;-webkit-text-size-adjust:100%}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#050c18;color:#c8d8e8;min-height:100vh;overflow-x:hidden}
+
+:root{
+  --bg0:#050c18;
+  --bg1:#080f1e;
+  --bg2:#0c1628;
+  --bg3:#111e34;
+  --cx:#00d4ff;
+  --cx-dim:rgba(0,212,255,0.12);
+  --cx-mid:rgba(0,212,255,0.35);
+  --cx-bright:rgba(0,212,255,0.7);
+  --text:#c8d8e8;
+  --text-mid:#7a98b8;
+  --text-dim:#3a5068;
+  --green:#00e878;
+  --green-bg:rgba(0,232,120,0.08);
+  --green-dim:rgba(0,232,120,0.25);
+  --amber:#f5a623;
+  --amber-bg:rgba(245,166,35,0.08);
+  --amber-dim:rgba(245,166,35,0.28);
+  --red:#ff4060;
+  --red-bg:rgba(255,64,96,0.08);
+  --red-dim:rgba(255,64,96,0.28);
+  --pending-bg:rgba(0,212,255,0.05);
+  --border:rgba(0,212,255,0.15);
+  --border-bright:rgba(0,212,255,0.4);
+  --rule:rgba(0,212,255,0.08);
+}
+
+/* ── CLIP-PATH CORNERS utility ─────────────────── */
+.clip-card{clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)}
+.clip-sm{clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+.clip-badge{clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)}
+
+/* ── SCANLINE overlay ────────────────────────── */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);pointer-events:none;z-index:1000}
+
+/* ── SETUP SCREEN ─────────────────────────────── */
+.setup-wrap{max-width:520px;margin:0 auto;padding:28px 16px 60px}
+
+.hud-header{border-bottom:1px solid var(--border-bright);padding-bottom:16px;margin-bottom:24px;position:relative}
+.hud-header::after{content:'';position:absolute;bottom:-1px;left:0;width:60px;height:2px;background:var(--cx)}
+.hud-logo-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.hud-badge{background:var(--cx);color:#050c18;font-size:10px;font-weight:800;letter-spacing:2.5px;padding:5px 11px;font-family:'Courier New',monospace}
+.hud-doc-id{font-size:10px;color:var(--text-dim);letter-spacing:1.5px;font-family:'Courier New',monospace}
+.hud-title{font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.3px}
+.hud-sub{font-size:10px;color:var(--cx);letter-spacing:3px;text-transform:uppercase;margin-top:4px;font-family:'Courier New',monospace}
+
+.form-section{background:var(--bg1);border:1px solid var(--border);padding:18px;margin-bottom:12px;position:relative}
+.form-section::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--cx)}
+.form-section-title{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--cx);border-bottom:1px solid var(--rule);padding-bottom:8px;margin-bottom:14px;font-family:'Courier New',monospace}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-row.full{grid-template-columns:1fr}
+.form-field label{display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-mid);margin-bottom:5px;font-family:'Courier New',monospace}
+.form-field input,.form-field select{width:100%;padding:9px 11px;border:1px solid var(--border);background:var(--bg0);font-family:'Courier New',monospace;font-size:12px;color:var(--text);outline:none;transition:border-color .15s;-webkit-appearance:none}
+.form-field input:focus,.form-field select:focus{border-color:var(--cx);background:var(--bg2)}
+.form-field select option{background:#0c1628}
+
+.btn-start-audit{width:100%;padding:14px;background:var(--cx);color:#050c18;border:none;font-family:'Courier New',monospace;font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:opacity .15s;margin-top:6px;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.btn-start-audit:hover{opacity:.85}
+
+/* ── DASHBOARD ─────────────────────────────────── */
+.dashboard{display:none}
+
+.audit-header{background:var(--bg1);border-bottom:1px solid var(--border);padding:10px 14px;position:sticky;top:0;z-index:50}
+.audit-header-inner{max-width:980px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.audit-brand{display:flex;align-items:center;gap:10px}
+.audit-badge{background:var(--cx);color:#050c18;font-size:9px;font-weight:800;letter-spacing:2px;padding:4px 9px;font-family:'Courier New',monospace;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)}
+.audit-doc-title{font-size:13px;font-weight:600;color:#fff;letter-spacing:.3px}
+.audit-meta-pills{display:flex;gap:6px;flex-wrap:wrap}
+.meta-pill{font-size:10px;padding:3px 8px;border:1px solid var(--border);background:var(--cx-dim);color:var(--text-mid);font-family:'Courier New',monospace}
+.meta-pill strong{color:var(--cx)}
+
+/* RAG strip */
+.rag-strip{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 14px}
+.rag-strip-inner{max-width:980px;margin:0 auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rag-node{display:flex;align-items:center;gap:7px;padding:5px 10px;border:1px solid;font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;font-family:'Courier New',monospace;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)}
+.rag-node.pending{border-color:var(--border-bright);background:var(--cx-dim);color:var(--cx)}
+.rag-node.ok{border-color:var(--green-dim);background:var(--green-bg);color:var(--green)}
+.rag-node.obs{border-color:var(--amber-dim);background:var(--amber-bg);color:var(--amber)}
+.rag-node.finding{border-color:var(--red-dim);background:var(--red-bg);color:var(--red)}
+.rag-node-dot{width:6px;height:6px;border-radius:50%}
+.rag-node.pending .rag-node-dot{background:var(--cx)}
+.rag-node.ok .rag-node-dot{background:var(--green)}
+.rag-node.obs .rag-node-dot{background:var(--amber)}
+.rag-node.finding .rag-node-dot{background:var(--red)}
+.rag-spacer{flex:1}
+.btn-finish-audit{padding:7px 16px;background:transparent;color:var(--cx);border:1px solid var(--cx);font-family:'Courier New',monospace;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;cursor:pointer;transition:all .15s;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)}
+.btn-finish-audit:hover{background:var(--cx);color:#050c18}
+.btn-finish-audit:disabled{opacity:.3;cursor:not-allowed}
+
+/* ── MAIN BODY ─────────────────────────────────── */
+.main-body{max-width:980px;margin:0 auto;padding:14px}
+
+/* ── CHECKPOINT ROW ────────────────────────────── */
+.cp-row{display:flex;margin-bottom:6px;background:var(--bg1);border:1px solid var(--border);position:relative;transition:border-color .15s}
+.cp-row:hover{border-color:var(--border-bright)}
+.cp-row.expanded{border-color:var(--cx)}
+
+.cp-rag-bar{width:3px;flex-shrink:0;background:var(--text-dim)}
+.cp-row.status-ok .cp-rag-bar{background:var(--green)}
+.cp-row.status-obs .cp-rag-bar{background:var(--amber)}
+.cp-row.status-finding .cp-rag-bar{background:var(--red)}
+.cp-row.status-skipped .cp-rag-bar{background:var(--text-dim);opacity:.4}
+
+.cp-head{display:flex;align-items:center;padding:10px 12px;cursor:pointer;gap:10px;flex:1;min-width:0}
+.cp-seq{font-size:10px;color:var(--text-dim);letter-spacing:.5px;flex-shrink:0;min-width:22px;font-family:'Courier New',monospace}
+.cp-emoji-wrap{font-size:15px;flex-shrink:0;filter:saturate(0.7)}
+.cp-info{flex:1;min-width:0}
+.cp-name{font-size:12px;font-weight:600;color:#e0eef8;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cp-tags{display:flex;gap:4px;margin-top:3px;flex-wrap:wrap}
+.cp-tag{font-size:8px;letter-spacing:1.2px;text-transform:uppercase;padding:1px 5px;border:1px solid;font-family:'Courier New',monospace;font-weight:700}
+.cp-tag.optional{border-color:var(--amber-dim);color:var(--amber)}
+.cp-tag.multi{border-color:var(--border-bright);color:var(--cx)}
+.cp-tag.photo-count{border-color:var(--green-dim);color:var(--green)}
+.cp-tag.finding-tag{border-color:var(--red-dim);color:var(--red)}
+.cp-tag.obs-tag{border-color:var(--amber-dim);color:var(--amber)}
+
+.cp-right{display:flex;align-items:center;gap:8px;padding-right:10px;flex-shrink:0}
+.cp-timestamp{font-size:10px;color:var(--text-dim);font-family:'Courier New',monospace}
+.cp-status-badge{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 7px;border:1px solid;font-weight:700;white-space:nowrap;font-family:'Courier New',monospace;clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px)}
+.cp-status-badge.pending{border-color:var(--border);color:var(--text-dim)}
+.cp-status-badge.ok{border-color:var(--green-dim);color:var(--green);background:var(--green-bg)}
+.cp-status-badge.obs{border-color:var(--amber-dim);color:var(--amber);background:var(--amber-bg)}
+.cp-status-badge.finding{border-color:var(--red-dim);color:var(--red);background:var(--red-bg)}
+.cp-status-badge.skipped{border-color:var(--border);color:var(--text-dim);opacity:.5}
+.cp-chevron{font-size:9px;color:var(--text-dim);transition:transform .2s}
+.cp-row.expanded .cp-chevron{transform:rotate(180deg);color:var(--cx)}
+
+/* ── EXPANDED PANEL ────────────────────────────── */
+.cp-panel{display:none;border-top:1px solid var(--rule);padding:14px 14px 14px 28px;background:var(--bg2)}
+.cp-row.expanded .cp-panel{display:block}
+
+.panel-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+@media(max-width:600px){.panel-grid{grid-template-columns:1fr}}
+
+.panel-block{background:var(--bg1);border:1px solid var(--border);padding:12px;position:relative}
+.panel-block::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:var(--cx);opacity:.3}
+.panel-block-title{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--cx);border-bottom:1px solid var(--rule);padding-bottom:7px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;font-family:'Courier New',monospace}
+.btn-open-cam{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 8px;background:transparent;color:var(--cx);border:1px solid var(--cx);cursor:pointer;font-family:'Courier New',monospace;transition:all .15s;clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px)}
+.btn-open-cam:hover{background:var(--cx);color:#050c18}
+
+.photo-thumbs{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
+.photo-thumb{position:relative;width:62px;height:46px;border:1px solid var(--border)}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(0.9)}
+.photo-thumb-del{position:absolute;top:1px;right:1px;background:rgba(255,64,96,0.85);color:#fff;border:none;width:13px;height:13px;font-size:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.no-photos{font-size:10px;color:var(--text-dim);font-style:italic;padding:4px 0;font-family:'Courier New',monospace}
+
+.findings-list{display:flex;flex-direction:column;gap:5px;margin-bottom:7px}
+.finding-item{border-left:2px solid;padding:7px 9px}
+.finding-item.sev-OB{border-color:var(--green);background:var(--green-bg)}
+.finding-item.sev-NC{border-color:var(--amber);background:var(--amber-bg)}
+.finding-item.sev-RNC{border-color:var(--red);background:var(--red-bg)}
+.finding-item.sev-REQ{border-color:var(--cx);background:var(--cx-dim)}
+.finding-item-head{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+.finding-code{font-size:8px;font-weight:800;letter-spacing:1.5px;padding:1px 5px;font-family:'Courier New',monospace;color:#050c18;clip-path:polygon(3px 0,100% 0,100% calc(100% - 3px),calc(100% - 3px) 100%,0 100%,0 3px)}
+.finding-code.sev-OB{background:var(--green)}
+.finding-code.sev-NC{background:var(--amber)}
+.finding-code.sev-RNC{background:var(--red)}
+.finding-code.sev-REQ{background:var(--cx)}
+.finding-type{font-size:10px;color:var(--text-mid)}
+.finding-del{margin-left:auto;background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:11px;padding:1px 3px;transition:color .15s}
+.finding-del:hover{color:var(--red)}
+.finding-desc{font-size:11px;color:var(--text);line-height:1.45}
+.finding-action{font-size:10px;color:var(--cx);margin-top:3px}
+.finding-ts{font-size:9px;color:var(--text-dim);margin-top:2px;letter-spacing:.3px;font-family:'Courier New',monospace}
+
+.btn-add-finding{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:6px 10px;background:transparent;color:var(--text-mid);border:1px dashed var(--border-bright);cursor:pointer;font-family:'Courier New',monospace;width:100%;transition:all .15s}
+.btn-add-finding:hover{border-color:var(--cx);color:var(--cx);background:var(--cx-dim)}
+
+.panel-notes-block{background:var(--bg1);border:1px solid var(--border);padding:10px;margin-bottom:10px;position:relative}
+.panel-notes-block::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:var(--cx);opacity:.3}
+.notes-label{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--cx);margin-bottom:6px;font-family:'Courier New',monospace}
+.notes-textarea{width:100%;min-height:50px;border:none;background:transparent;font-family:'Courier New',monospace;font-size:11px;color:var(--text);resize:vertical;outline:none;line-height:1.5}
+.notes-textarea::placeholder{color:var(--text-dim)}
+
+.cp-status-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.status-label{font-size:9px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;font-family:'Courier New',monospace}
+.status-btn{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:5px 10px;border:1px solid;cursor:pointer;font-family:'Courier New',monospace;font-weight:700;transition:all .15s;clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px)}
+.status-btn.ok{border-color:var(--green-dim);color:var(--green);background:transparent}
+.status-btn.ok:hover,.status-btn.ok.active{background:var(--green-bg)}
+.status-btn.obs{border-color:var(--amber-dim);color:var(--amber);background:transparent}
+.status-btn.obs:hover,.status-btn.obs.active{background:var(--amber-bg)}
+.status-btn.finding{border-color:var(--red-dim);color:var(--red);background:transparent}
+.status-btn.finding:hover,.status-btn.finding.active{background:var(--red-bg)}
+.status-btn.skip{border-color:var(--border);color:var(--text-dim);background:transparent}
+.status-btn.skip:hover,.status-btn.skip.active{background:var(--bg3)}
+
+/* ── MODALS ────────────────────────────────────── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(2,6,14,0.85);z-index:200;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+@media(min-width:600px){.modal-overlay{align-items:center}}
+.modal-box{background:var(--bg1);border:1px solid var(--border-bright);border-top:2px solid var(--cx);width:100%;max-width:520px;position:relative;animation:slideUp .2s ease;max-height:95vh;overflow-y:auto}
+@keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--rule);background:var(--bg2)}
+.modal-head-title{font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--cx);font-family:'Courier New',monospace}
+.modal-close-btn{background:none;border:1px solid var(--border);color:var(--text-mid);width:22px;height:22px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;font-family:'Courier New',monospace;transition:all .15s}
+.modal-close-btn:hover{border-color:var(--red);color:var(--red)}
+.modal-body{padding:14px}
+
+.cam-wrap{position:relative;aspect-ratio:4/3;background:#000;overflow:hidden;margin-bottom:10px;border:1px solid var(--border)}
+.cam-wrap video{width:100%;height:100%;object-fit:cover;display:block}
+.cam-label-bar{position:absolute;bottom:0;left:0;right:0;background:rgba(5,12,24,0.82);color:var(--cx);padding:6px 10px;font-size:9px;letter-spacing:1.5px;font-family:'Courier New',monospace;text-transform:uppercase}
+.cam-ts-badge{position:absolute;top:8px;right:8px;background:rgba(5,12,24,0.82);color:var(--amber);font-size:10px;padding:3px 7px;font-family:'Courier New',monospace;font-weight:700;border:1px solid var(--amber-dim)}
+
+/* HUD corner decorations on camera */
+.cam-wrap::before,.cam-wrap::after{content:'';position:absolute;width:18px;height:18px;border-color:var(--cx);border-style:solid;z-index:2}
+.cam-wrap::before{top:8px;left:8px;border-width:2px 0 0 2px}
+.cam-wrap::after{bottom:8px;right:8px;border-width:0 2px 2px 0}
+
+.btn-cam-capture{width:100%;padding:11px;background:var(--cx);color:#050c18;border:none;font-family:'Courier New',monospace;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;cursor:pointer;margin-bottom:8px;transition:opacity .15s;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);font-weight:800}
+.btn-cam-capture:hover{opacity:.85}
+.preview-section{display:none;margin-bottom:10px}
+.preview-section img{width:100%;display:block;margin-bottom:8px;border:1px solid var(--border);filter:saturate(0.9)}
+.preview-ts-bar{font-size:10px;color:var(--amber);text-align:center;margin-bottom:8px;font-family:'Courier New',monospace;letter-spacing:1px}
+.preview-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-retake{padding:9px;background:transparent;border:1px solid var(--border);color:var(--text-mid);font-family:'Courier New',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.btn-retake:hover{border-color:var(--text-mid);color:var(--text)}
+.btn-confirm-photo{padding:9px;background:var(--green);color:#050c18;border:none;font-family:'Courier New',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:opacity .15s;font-weight:800;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)}
+.btn-confirm-photo:hover{opacity:.85}
+
+.fform-field{margin-bottom:12px}
+.fform-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--cx);display:block;margin-bottom:5px;font-family:'Courier New',monospace}
+.fform-select,.fform-textarea{width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--bg0);font-family:'Courier New',monospace;font-size:11px;color:var(--text);outline:none;transition:border-color .15s;-webkit-appearance:none}
+.fform-select:focus,.fform-textarea:focus{border-color:var(--cx)}
+.fform-select option,.fform-select optgroup{background:var(--bg2)}
+.fform-textarea{min-height:70px;resize:vertical;line-height:1.5}
+.sev-pills{display:flex;gap:6px;flex-wrap:wrap}
+.sev-pill{padding:5px 10px;border:1px solid var(--border);cursor:pointer;font-size:8px;letter-spacing:2px;text-transform:uppercase;font-weight:800;font-family:'Courier New',monospace;transition:all .15s;color:var(--text-mid);clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px)}
+.sev-pill:hover{border-color:var(--cx);color:var(--cx)}
+.sev-pill.active-OB{background:var(--green);border-color:var(--green);color:#050c18}
+.sev-pill.active-NC{background:var(--amber);border-color:var(--amber);color:#050c18}
+.sev-pill.active-RNC{background:var(--red);border-color:var(--red);color:#fff}
+.sev-pill.active-REQ{background:var(--cx);border-color:var(--cx);color:#050c18}
+.btn-save-finding{width:100%;padding:11px;background:var(--cx);color:#050c18;border:none;font-family:'Courier New',monospace;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;cursor:pointer;margin-top:4px;transition:opacity .15s;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);font-weight:800}
+.btn-save-finding:hover{opacity:.85}
+
+/* ── COMPLETION ─────────────────────────────────── */
+.completion-screen{display:none;max-width:760px;margin:0 auto;padding:24px 14px 60px}
+.comp-header{border-bottom:1px solid var(--border-bright);padding-bottom:14px;margin-bottom:22px;position:relative}
+.comp-header::after{content:'';position:absolute;bottom:-1px;left:0;width:80px;height:2px;background:var(--cx)}
+.comp-title{font-size:20px;font-weight:700;color:#fff;letter-spacing:-0.3px}
+.comp-sub{font-size:9px;color:var(--cx);letter-spacing:3px;text-transform:uppercase;margin-top:4px;font-family:'Courier New',monospace}
+
+.report-section{border:1px solid var(--border);margin-bottom:12px;background:var(--bg1);position:relative}
+.report-section::before{content:'';position:absolute;top:0;left:0;width:2px;height:100%;background:var(--cx)}
+.report-section-head{background:var(--bg2);border-bottom:1px solid var(--rule);padding:8px 12px;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--cx);font-weight:700;font-family:'Courier New',monospace}
+.report-table{width:100%;border-collapse:collapse}
+.report-table td{padding:8px 12px;border-bottom:1px solid var(--rule);font-size:11px;vertical-align:top}
+.report-table td:first-child{color:var(--text-dim);width:180px;font-size:9px;letter-spacing:1px;text-transform:uppercase;font-family:'Courier New',monospace}
+.report-table tr:last-child td{border-bottom:none}
+
+.finding-report-item{padding:10px 12px;border-bottom:1px solid var(--rule)}
+.finding-report-item:last-child{border-bottom:none}
+.finding-report-item .fri-head{display:flex;gap:8px;align-items:center;margin-bottom:4px}
+.finding-report-item .fri-cp{font-weight:700;font-size:11px;color:#e0eef8}
+
+.gallery-report{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:7px;padding:10px}
+.gallery-report-item{position:relative;aspect-ratio:4/3;overflow:hidden;border:1px solid var(--border)}
+.gallery-report-item img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(0.85)}
+.gallery-report-item .g-label{position:absolute;bottom:0;left:0;right:0;background:rgba(5,12,24,0.88);color:var(--text-mid);font-size:8px;padding:3px 5px;font-family:'Courier New',monospace}
+
+.comp-actions{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.btn-comp{padding:11px 18px;background:var(--cx);color:#050c18;border:none;font-family:'Courier New',monospace;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;cursor:pointer;transition:opacity .15s;font-weight:800;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)}
+.btn-comp:hover{opacity:.85}
+.btn-comp.sec{background:transparent;border:1px solid var(--border-bright);color:var(--cx)}
+.btn-comp.sec:hover{background:var(--cx-dim)}
+
+@media(max-width:600px){
+  .audit-header-inner{flex-direction:column;align-items:flex-start}
+  .panel-grid{grid-template-columns:1fr}
+  .cp-right{gap:4px}
+  .form-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ SETUP ═══ -->
+<div id="setupScreen">
+<div class="setup-wrap">
+  <div class="hud-header">
+    <div class="hud-logo-row">
+      <div class="hud-badge">ISAGO · IATA</div>
+      <div class="hud-doc-id">SAF-OJT-001 · REV 2025</div>
+    </div>
+    <div class="hud-title">On the Job Training</div>
+    <div class="hud-sub">Ground Ops Safety Audit Monitor</div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">// Personal</div>
+    <div class="form-row">
+      <div class="form-field"><label>Trainee</label><input type="text" id="traineeName" placeholder="Nombre completo"></div>
+      <div class="form-field"><label>Evaluador / Trainer</label><input type="text" id="trainerName" placeholder="Nombre completo"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>ID Empleado</label><input type="text" id="traineeId" placeholder="ID-0000"></div>
+      <div class="form-field"><label>Posición Evaluada</label><input type="text" id="traineePos" placeholder="Ej: Inspector de Rampa"></div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">// Operación</div>
+    <div class="form-row">
+      <div class="form-field">
+        <label>Aerolínea</label>
+        <select id="airlineSelect">
+          <option value="">— Seleccione —</option>
+          <option value="DL">Delta</option><option value="WN">Southwest</option>
+          <option value="UA">United</option><option value="NK">Spirit</option>
+          <option value="AA">American Airlines</option><option value="WS">Westjet</option>
+          <option value="E9">Iberojet</option><option value="PO">Porter</option>
+          <option value="AV">Avianca</option><option value="IB">Iberia</option>
+          <option value="TS">Air Transat</option><option value="B6">JetBlue</option>
+          <option value="D0">DHL</option><option value="CG">Cargo</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Tipo de Operación</label>
+        <select id="flightTypeSelect">
+          <option value="">— Seleccione —</option>
+          <option value="TURN">TURN (Turnaround)</option>
+          <option value="RON-ARRIVAL">RON – Llegada</option>
+          <option value="RON-DEPARTURE">RON – Salida</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Número de Vuelo</label><input type="text" id="flightNumber" placeholder="Ej: 1234"></div>
+      <div class="form-field"><label>Posición / Gate</label><input type="text" id="gateNumber" placeholder="Ej: A12"></div>
+    </div>
+  </div>
+
+  <button class="btn-start-audit" onclick="startAudit()">[ Iniciar Sesión OJT ]</button>
+</div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div id="dashboard" class="dashboard">
+  <div class="audit-header">
+    <div class="audit-header-inner">
+      <div class="audit-brand">
+        <div class="audit-badge">OJT</div>
+        <div class="audit-doc-title" id="auditDocTitle">–</div>
+      </div>
+      <div class="audit-meta-pills" id="auditMetaPills"></div>
+    </div>
+  </div>
+  <div class="rag-strip">
+    <div class="rag-strip-inner">
+      <div class="rag-node pending"><div class="rag-node-dot"></div><span id="ragPendingN">0</span>&nbsp;PEND</div>
+      <div class="rag-node ok"><div class="rag-node-dot"></div><span id="ragOkN">0</span>&nbsp;OK</div>
+      <div class="rag-node obs"><div class="rag-node-dot"></div><span id="ragObsN">0</span>&nbsp;OBS</div>
+      <div class="rag-node finding"><div class="rag-node-dot"></div><span id="ragFindingN">0</span>&nbsp;HALL</div>
+      <div class="rag-spacer"></div>
+      <button class="btn-finish-audit" id="btnFinish" onclick="finishAudit()" disabled>[ Cerrar Sesión ]</button>
+    </div>
+  </div>
+  <div class="main-body" id="checkpointList"></div>
+</div>
+
+<!-- ═══ COMPLETION ═══ -->
+<div id="completionScreen" class="completion-screen">
+  <div class="comp-header">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div class="hud-badge">ISAGO · IATA</div>
+      <div style="font-size:9px;color:var(--text-dim);letter-spacing:1.5px;font-family:'Courier New',monospace">INFORME OJT FINAL</div>
+    </div>
+    <div class="comp-title">Registro de Entrenamiento en Línea</div>
+    <div class="comp-sub">Ground Operations · SAL / MSLP</div>
+  </div>
+  <div id="reportSummarySection"></div>
+  <div id="reportFindingsSection"></div>
+  <div id="reportGallerySection"></div>
+  <div class="comp-actions">
+    <button class="btn-comp" onclick="resetAudit()">Nueva Sesión</button>
+    <button class="btn-comp sec" onclick="window.print()">Imprimir / PDF</button>
+  </div>
+</div>
+
+<!-- ═══ CAMERA MODAL ═══ -->
+<div class="modal-overlay" id="camModal" onclick="handleCamOverlay(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-head-title" id="camModalTitle">EVIDENCIA FOTOGRÁFICA</div>
+      <button class="modal-close-btn" onclick="closeCamModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="cam-wrap" id="camWrap">
+        <video id="videoEl" autoplay playsinline></video>
+        <div class="cam-label-bar" id="camLabelBar">–</div>
+        <div class="cam-ts-badge" id="camTsBadge">00:00:00</div>
+      </div>
+      <button class="btn-cam-capture" id="btnCapture" onclick="capturePhoto()">[ Capturar ]</button>
+      <div class="preview-section" id="previewSection">
+        <img id="previewImg" src="" alt="preview">
+        <div class="preview-ts-bar" id="previewTsBar"></div>
+        <div class="preview-actions">
+          <button class="btn-retake" onclick="retakePhoto()">↩ Retomar</button>
+          <button class="btn-confirm-photo" onclick="confirmPhoto()">✓ Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FINDING MODAL ═══ -->
+<div class="modal-overlay" id="findingModal" onclick="handleFindingOverlay(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-head-title" id="findingModalTitle">REGISTRAR HALLAZGO</div>
+      <button class="modal-close-btn" onclick="closeFindingModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fform-field">
+        <label class="fform-label">// Tipo de Hallazgo</label>
+        <select class="fform-select" id="fType">
+          <option value="">— Seleccione tipo —</option>
+          <optgroup label="Seguridad / Safety">
+            <option value="Incumplimiento Procedimiento">Incumplimiento de Procedimiento</option>
+            <option value="Riesgo FOD">Riesgo FOD</option>
+            <option value="Daño a Aeronave">Daño a Aeronave</option>
+            <option value="Uso Incorrecto de EPP">Uso Incorrecto de EPP</option>
+            <option value="Diamante de Seguridad">Diamante de Seguridad</option>
+            <option value="Posicionamiento de Equipo">Posicionamiento de Equipo</option>
+          </optgroup>
+          <optgroup label="Operacional">
+            <option value="Retraso Operacional">Retraso Operacional</option>
+            <option value="Equipo Defectuoso">Equipo Defectuoso</option>
+            <option value="Comunicación">Falla de Comunicación</option>
+            <option value="Documentación">Documentación Incompleta</option>
+            <option value="Coordinación">Falta de Coordinación</option>
+          </optgroup>
+          <optgroup label="Entrenamiento">
+            <option value="Técnica Incorrecta">Técnica Incorrecta</option>
+            <option value="Conocimiento Deficiente">Conocimiento Deficiente</option>
+            <option value="Conducta Positiva">Conducta Positiva ✓</option>
+            <option value="Área de Mejora">Área de Mejora</option>
+          </optgroup>
+          <optgroup label="Otro">
+            <option value="Otro">Otro</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="fform-field">
+        <label class="fform-label">// Clasificación ISAGO</label>
+        <div class="sev-pills">
+          <div class="sev-pill" data-sev="OB" onclick="selectSev('OB')">OB</div>
+          <div class="sev-pill" data-sev="NC" onclick="selectSev('NC')">NC</div>
+          <div class="sev-pill" data-sev="RNC" onclick="selectSev('RNC')">RNC</div>
+          <div class="sev-pill" data-sev="REQ" onclick="selectSev('REQ')">REQ</div>
+        </div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:5px;font-family:'Courier New',monospace">OB=Observación · NC=No Conformidad · RNC=NC Repetida · REQ=Requerimiento</div>
+      </div>
+      <div class="fform-field">
+        <label class="fform-label">// Descripción</label>
+        <textarea class="fform-textarea" id="fDesc" placeholder="Describa el hallazgo observado, referenciando el procedimiento aplicable si corresponde..."></textarea>
+      </div>
+      <div class="fform-field">
+        <label class="fform-label">// Acción Inmediata / Requerimiento</label>
+        <textarea class="fform-textarea" id="fAction" placeholder="Corrección inmediata o acción requerida..." style="min-height:46px"></textarea>
+      </div>
+      <button class="btn-save-finding" onclick="saveFinding()">[ Guardar Hallazgo ]</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const AIRLINE_NAMES={DL:'Delta',WN:'Southwest',UA:'United',NK:'Spirit',AA:'American Airlines',WS:'Westjet',E9:'Iberojet',PO:'Porter',AV:'Avianca',IB:'Iberia',TS:'Air Transat',B6:'JetBlue',D0:'DHL',CG:'Cargo'};
+const FTYPE_NAMES={'TURN':'TURN (Turnaround)','RON-ARRIVAL':'RON – Llegada','RON-DEPARTURE':'RON – Salida'};
+const QUESTIONS={
+  TURN:[
+    {key:'briefing',label:'Briefing',emoji:'⚡'},
+    {key:'inicio_fod',label:'Inicio FOD',emoji:'🔍'},
+    {key:'beacon_off',label:'Beacon OFF',emoji:'🚨'},
+    {key:'360_inicio',label:'360° Aeronave – Inicio Operación',emoji:'🔄',type:'multi_photo'},
+    {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true},
+    {key:'aire_acondicionado',label:'Aire Acondicionado',emoji:'❄️',optional:true},
+    {key:'banda',label:'Banda',emoji:'📦'},
+    {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
+    {key:'inicia_descarga_carga',label:'Inicia Descarga Carga',emoji:'🛄'},
+    {key:'waste_water',label:'Waste & Water',emoji:'💧'},
+    {key:'descarga_equipaje',label:'Finaliza Descarga Carga',emoji:'🛄'},
+    {key:'inicia_equipaje',label:'Inicia Descarga Equipaje',emoji:'🛄'},
+    {key:'finaliza_equipaje',label:'Finaliza Descarga Equipaje',emoji:'🛄'},
+    {key:'sube_limpieza',label:'Sube Limpieza',emoji:'🧹'},
+    {key:'baja_limpieza',label:'Baja Limpieza',emoji:'🧹'},
+    {key:'segundo_fod',label:'2do FOD',emoji:'🔍'},
+    {key:'ultimo_viaje_carreta',label:'Último Viaje Carreta',emoji:'🚚'},
+    {key:'inicia_carga_maleta',label:'Inicia Carga Maleta',emoji:'🧳'},
+    {key:'ultima_maleta',label:'Última Maleta',emoji:'🧳'},
+    {key:'towbar',label:'Towbar',emoji:'🔧'},
+    {key:'cierre_bines',label:'Cierre Bines',emoji:'🚪'},
+    {key:'360_fin',label:'360° Aeronave – Fin Operación',emoji:'🔄',type:'multi_photo'},
+    {key:'push_back',label:'Push Back',emoji:'⬅️'},
+    {key:'tercer_fod',label:'3er FOD',emoji:'🔍'},
+    {key:'en_aire',label:'En el Aire',emoji:'✈️'}
+  ],
+  'RON-ARRIVAL':[
+    {key:'briefing',label:'Briefing',emoji:'⚡'},
+    {key:'fod',label:'FOD',emoji:'🔍'},
+    {key:'beacon_off',label:'Beacon OFF',emoji:'🚨'},
+    {key:'360_inicio',label:'360° Aeronave – Inicio',emoji:'🔄',type:'multi_photo'},
+    {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true},
+    {key:'aire_acondicionado',label:'Aire Acondicionado',emoji:'❄️',optional:true},
+    {key:'banda',label:'Banda',emoji:'📦'},
+    {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
+    {key:'inicia_descarga',label:'Inicia Descarga Equipaje',emoji:'🛄'},
+    {key:'finaliza_descarga',label:'Finaliza Descarga Equipaje',emoji:'🛄'},
+    {key:'waste_water',label:'Waste & Water',emoji:'💧'},
+    {key:'sube_limpieza',label:'Sube Limpieza',emoji:'🧹'},
+    {key:'baja_limpieza',label:'Baja Limpieza',emoji:'🧹'},
+    {key:'segundo_fod',label:'2do FOD',emoji:'🔍'},
+    {key:'ultimo_viaje_carreta',label:'Último Viaje Carreta',emoji:'🚚'},
+    {key:'cierre_bines',label:'Cierre Bines',emoji:'🚪'},
+    {key:'360_fin',label:'360° Aeronave – Fin',emoji:'🔄',type:'multi_photo'},
+    {key:'towbar',label:'Towbar',emoji:'🔧'}
+  ],
+  'RON-DEPARTURE':[
+    {key:'briefing',label:'Briefing',emoji:'⚡'},
+    {key:'fod',label:'FOD',emoji:'🔍'},
+    {key:'avion_posicion',label:'Avión en Posición',emoji:'✈️'},
+    {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true},
+    {key:'aire_acondicionado',label:'Aire Acondicionado',emoji:'❄️',optional:true},
+    {key:'banda',label:'Banda',emoji:'📦'},
+    {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
+    {key:'inicia_carga',label:'Inicia Carga Equipaje',emoji:'🛄'},
+    {key:'waste_water',label:'Waste & Water',emoji:'💧',optional:true},
+    {key:'segundo_fod',label:'2do FOD',emoji:'🔍'},
+    {key:'finaliza_carga',label:'Finaliza Carga Equipaje',emoji:'🛄'},
+    {key:'inicia_carga_carga',label:'Inicia Carga de Carga',emoji:'🛄'},
+    {key:'finaliza_carga_carga',label:'Finaliza Carga de Carga',emoji:'🛄'},
+    {key:'towbar',label:'Towbar',emoji:'🔧'},
+    {key:'cierre_bines',label:'Cierre Bines',emoji:'🚪'},
+    {key:'360_fin',label:'360° Aeronave – Fin',emoji:'🔄',type:'multi_photo'},
+    {key:'push_back',label:'Push Back',emoji:'🔧'},
+    {key:'tercer_fod',label:'3er FOD',emoji:'🔍'}
+  ]
+};
+
+let S={traineeName:'',traineeId:'',traineePos:'',trainerName:'',airline:'',flightType:'',flightNumber:'',gate:'',startTime:null,checkpoints:[],cpData:{},expandedKey:null,stream:null,tsInterval:null,camMode:null,camKey:null,previewData:null,previewTs:null,selectedSev:null,findingKey:null};
+
+function ft(d){return d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+function fd(d){return d.toLocaleDateString('es-CR',{day:'2-digit',month:'2-digit',year:'numeric'})}
+function cpData(key){if(!S.cpData[key])S.cpData[key]={status:'pending',photos:[],findings:[],notes:'',timestamps:[]};return S.cpData[key]}
+
+function startAudit(){
+  const tn=document.getElementById('traineeName').value.trim();
+  const tr=document.getElementById('trainerName').value.trim();
+  const al=document.getElementById('airlineSelect').value;
+  const ft2=document.getElementById('flightTypeSelect').value;
+  const fn=document.getElementById('flightNumber').value.trim();
+  if(!tn||!tr||!al||!ft2||!fn){alert('Por favor complete los campos requeridos.');return;}
+  S.traineeName=tn;S.traineeId=document.getElementById('traineeId').value.trim();
+  S.traineePos=document.getElementById('traineePos').value.trim();
+  S.trainerName=tr;S.airline=al;S.flightType=ft2;S.flightNumber=fn;
+  S.gate=document.getElementById('gateNumber').value.trim();
+  S.startTime=new Date();S.checkpoints=QUESTIONS[ft2]||[];S.cpData={};
+  document.getElementById('setupScreen').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  document.getElementById('auditDocTitle').textContent=`${AIRLINE_NAMES[al]||al} · ${fn} · ${FTYPE_NAMES[ft2]}`;
+  document.getElementById('auditMetaPills').innerHTML=`
+    <div class="meta-pill">Trainee: <strong>${tn}</strong></div>
+    <div class="meta-pill">Trainer: <strong>${tr}</strong></div>
+    ${S.gate?`<div class="meta-pill">Gate: <strong>${S.gate}</strong>`:''}
+    <div class="meta-pill">${fd(S.startTime)} <strong>${ft(S.startTime)}</strong></div>`;
+  renderList();updateRAG();
+}
+
+function renderList(){
+  document.getElementById('checkpointList').innerHTML=S.checkpoints.map((cp,i)=>renderCpRow(cp,i)).join('');
+}
+
+function renderCpRow(cp,i){
+  const d=cpData(cp.key);
+  const statusClass=d.status==='pending'?'':'status-'+d.status;
+  const statusLabel={pending:'PENDIENTE',ok:'CONFORME',obs:'OBSERVACIÓN',finding:'HALLAZGO',skipped:'OMITIDO'}[d.status]||'PENDIENTE';
+  const statusBadgeClass={pending:'pending',ok:'ok',obs:'obs',finding:'finding',skipped:'skipped'}[d.status]||'pending';
+  const expanded=S.expandedKey===cp.key;
+  const photoCount=d.photos.length;
+  const findCount=d.findings.length;
+  const sevOrder={RNC:0,NC:1,OB:2,REQ:3};
+  const sortedFindings=[...d.findings].sort((a,b)=>(sevOrder[a.sev]??4)-(sevOrder[b.sev]??4));
+  const worstFinding=sortedFindings[0];
+  const tags=[
+    cp.optional?'<span class="cp-tag optional">OPC</span>':'',
+    cp.type==='multi_photo'?'<span class="cp-tag multi">360°</span>':'',
+    photoCount>0?`<span class="cp-tag photo-count">📸 ${photoCount}</span>`:'',
+    findCount>0&&(worstFinding?.sev==='RNC'||worstFinding?.sev==='NC')?`<span class="cp-tag finding-tag">${findCount} ${worstFinding.sev}</span>`:'',
+    findCount>0&&worstFinding?.sev==='OB'&&!d.findings.some(f=>f.sev==='RNC'||f.sev==='NC')?`<span class="cp-tag obs-tag">${findCount} OB</span>`:'',
+  ].filter(Boolean).join('');
+  const ts=d.timestamps.length>0?`<div class="cp-timestamp">${ft(new Date(d.timestamps[d.timestamps.length-1]))}</div>`:'';
+  return `<div class="cp-row ${statusClass}${expanded?' expanded':''}" id="cprow-${cp.key}">
+    <div class="cp-rag-bar"></div>
+    <div style="flex:1;min-width:0">
+      <div class="cp-head" onclick="toggleExpand('${cp.key}')">
+        <div class="cp-seq">${String(i+1).padStart(2,'0')}</div>
+        <div class="cp-emoji-wrap">${cp.emoji}</div>
+        <div class="cp-info">
+          <div class="cp-name">${cp.label}</div>
+          <div class="cp-tags">${tags}</div>
+        </div>
+        <div class="cp-right">
+          ${ts}
+          <div class="cp-status-badge ${statusBadgeClass}">${statusLabel}</div>
+          <div class="cp-chevron">▼</div>
+        </div>
+      </div>
+      <div class="cp-panel">${expanded?renderPanel(cp,d):''}</div>
+    </div>
+  </div>`;
+}
+
+function renderPanel(cp,d){
+  const photoHtml=d.photos.length>0
+    ?d.photos.map((p,i)=>`<div class="photo-thumb"><img src="${p.data}" alt="foto ${i+1}"><button class="photo-thumb-del" onclick="deletePhoto('${cp.key}',${i})">✕</button></div>`).join('')
+    :`<div class="no-photos">SIN EVIDENCIA</div>`;
+  const findingsHtml=d.findings.length>0
+    ?d.findings.map((f,i)=>`
+      <div class="finding-item sev-${f.sev}">
+        <div class="finding-item-head">
+          <span class="finding-code sev-${f.sev}">${f.sev}</span>
+          <span class="finding-type">${f.type}</span>
+          <button class="finding-del" onclick="deleteFinding('${cp.key}',${i})">✕</button>
+        </div>
+        <div class="finding-desc">${f.desc}</div>
+        ${f.action?`<div class="finding-action">→ ${f.action}</div>`:''}
+        <div class="finding-ts">${f.ts}</div>
+      </div>`).join('')
+    :`<div class="no-photos">SIN HALLAZGOS</div>`;
+  return `
+    <div class="panel-grid">
+      <div class="panel-block">
+        <div class="panel-block-title">Evidencia<button class="btn-open-cam" onclick="openCam('${cp.key}')">+ Foto</button></div>
+        <div class="photo-thumbs" id="thumbs-${cp.key}">${photoHtml}</div>
+      </div>
+      <div class="panel-block">
+        <div class="panel-block-title">Hallazgos<button class="btn-open-cam" onclick="openFindingModal('${cp.key}')">+ Hallazgo</button></div>
+        <div class="findings-list" id="findings-${cp.key}">${findingsHtml}</div>
+      </div>
+    </div>
+    <div class="panel-notes-block">
+      <div class="notes-label">// Notas del Evaluador</div>
+      <textarea class="notes-textarea" placeholder="Observaciones, contexto operacional, conducta del trainee..." oninput="saveNotes('${cp.key}',this.value)">${d.notes}</textarea>
+    </div>
+    <div class="cp-status-row">
+      <span class="status-label">Estado:</span>
+      <button class="status-btn ok${d.status==='ok'?' active':''}" onclick="setStatus('${cp.key}','ok')">✓ Conforme</button>
+      <button class="status-btn obs${d.status==='obs'?' active':''}" onclick="setStatus('${cp.key}','obs')">⚠ Observación</button>
+      <button class="status-btn finding${d.status==='finding'?' active':''}" onclick="setStatus('${cp.key}','finding')">✕ Hallazgo</button>
+      ${cp.optional?`<button class="status-btn skip${d.status==='skipped'?' active':''}" onclick="setStatus('${cp.key}','skipped')">— Omitir</button>`:''}
+    </div>`;
+}
+
+function toggleExpand(key){
+  S.expandedKey=S.expandedKey===key?null:key;
+  renderList();
+  if(S.expandedKey){requestAnimationFrame(()=>{const el=document.getElementById('cprow-'+key);if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});})}
+}
+
+function setStatus(key,status){const d=cpData(key);d.status=status;if(status!=='pending')d.timestamps.push(new Date().toISOString());renderList();updateRAG()}
+function saveNotes(key,val){cpData(key).notes=val}
+
+function updateRAG(){
+  let pending=0,ok=0,obs=0,finding=0;
+  S.checkpoints.forEach(cp=>{const s=cpData(cp.key).status;if(s==='pending')pending++;else if(s==='ok'||s==='skipped')ok++;else if(s==='obs')obs++;else if(s==='finding')finding++;});
+  document.getElementById('ragPendingN').textContent=pending;
+  document.getElementById('ragOkN').textContent=ok;
+  document.getElementById('ragObsN').textContent=obs;
+  document.getElementById('ragFindingN').textContent=finding;
+  const anyDone=Object.values(S.cpData).some(d=>d.status!=='pending');
+  document.getElementById('btnFinish').disabled=!anyDone;
+}
+
+function openCam(key){
+  S.camKey=key;
+  const cp=S.checkpoints.find(c=>c.key===key);
+  document.getElementById('camModalTitle').textContent=`EVIDENCIA // ${cp?cp.label.toUpperCase():''}`;
+  document.getElementById('camLabelBar').textContent=cp?cp.label:'–';
+  document.getElementById('previewSection').style.display='none';
+  document.getElementById('camWrap').style.display='block';
+  document.getElementById('btnCapture').style.display='block';
+  S.previewData=null;S.previewTs=null;
+  document.getElementById('camModal').classList.add('open');
+  startStream();
+}
+async function startStream(){
+  try{
+    S.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    document.getElementById('videoEl').srcObject=S.stream;
+    if(S.tsInterval)clearInterval(S.tsInterval);
+    S.tsInterval=setInterval(()=>{document.getElementById('camTsBadge').textContent=ft(new Date())},1000);
+  }catch(e){alert('Error cámara: '+e.message)}
+}
+function capturePhoto(){
+  const v=document.getElementById('videoEl');
+  const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+  S.previewData=c.toDataURL('image/jpeg',0.82);S.previewTs=new Date().toISOString();
+  stopStream();
+  document.getElementById('camWrap').style.display='none';document.getElementById('btnCapture').style.display='none';
+  document.getElementById('previewImg').src=S.previewData;
+  document.getElementById('previewTsBar').textContent='⏰ '+ft(new Date(S.previewTs));
+  document.getElementById('previewSection').style.display='block';
+}
+function retakePhoto(){S.previewData=null;S.previewTs=null;document.getElementById('previewSection').style.display='none';document.getElementById('camWrap').style.display='block';document.getElementById('btnCapture').style.display='block';startStream()}
+function confirmPhoto(){
+  if(!S.previewData)return;
+  const d=cpData(S.camKey);d.photos.push({data:S.previewData,ts:S.previewTs});d.timestamps.push(S.previewTs);
+  const exp=S.expandedKey;closeCamModal();S.expandedKey=exp;renderList();updateRAG();
+}
+function closeCamModal(){stopStream();document.getElementById('camModal').classList.remove('open')}
+function handleCamOverlay(e){if(e.target===document.getElementById('camModal'))closeCamModal()}
+function stopStream(){if(S.stream){S.stream.getTracks().forEach(t=>t.stop());S.stream=null}if(S.tsInterval){clearInterval(S.tsInterval);S.tsInterval=null}}
+function deletePhoto(key,i){cpData(key).photos.splice(i,1);renderList()}
+
+function openFindingModal(key){
+  S.findingKey=key;S.selectedSev=null;
+  const cp=S.checkpoints.find(c=>c.key===key);
+  document.getElementById('findingModalTitle').textContent=`HALLAZGO // ${cp?cp.label.toUpperCase():''}`;
+  document.getElementById('fType').value='';document.getElementById('fDesc').value='';document.getElementById('fAction').value='';
+  document.querySelectorAll('.sev-pill').forEach(p=>p.className='sev-pill');
+  document.getElementById('findingModal').classList.add('open');
+}
+function closeFindingModal(){document.getElementById('findingModal').classList.remove('open')}
+function handleFindingOverlay(e){if(e.target===document.getElementById('findingModal'))closeFindingModal()}
+function selectSev(sev){
+  S.selectedSev=sev;
+  document.querySelectorAll('.sev-pill').forEach(p=>{p.className='sev-pill'+(p.dataset.sev===sev?' active-'+sev:'')});
+}
+function saveFinding(){
+  const type=document.getElementById('fType').value;const desc=document.getElementById('fDesc').value.trim();const action=document.getElementById('fAction').value.trim();
+  if(!type||!S.selectedSev||!desc){alert('Complete tipo, clasificación y descripción.');return}
+  const d=cpData(S.findingKey);
+  d.findings.push({type,sev:S.selectedSev,desc,action,ts:ft(new Date())+' · '+fd(new Date())});
+  d.timestamps.push(new Date().toISOString());
+  if(S.selectedSev==='RNC'||S.selectedSev==='NC') d.status='finding';
+  else if(S.selectedSev==='OB'&&d.status==='pending') d.status='obs';
+  const exp=S.expandedKey;closeFindingModal();S.expandedKey=exp;renderList();updateRAG();
+}
+function deleteFinding(key,i){cpData(key).findings.splice(i,1);renderList();updateRAG()}
+
+function finishAudit(){
+  stopStream();document.getElementById('dashboard').style.display='none';document.getElementById('completionScreen').style.display='block';buildReport();
+}
+function buildReport(){
+  const s=S;const total=s.checkpoints.length;
+  const sc={ok:0,obs:0,finding:0,skipped:0,pending:0};let allFindings=[];let totalPhotos=0;
+  s.checkpoints.forEach(cp=>{const d=cpData(cp.key);sc[d.status]=(sc[d.status]||0)+1;d.findings.forEach(f=>allFindings.push({cp,f}));totalPhotos+=d.photos.length});
+  const dur=s.startTime?Math.round((Date.now()-s.startTime.getTime())/60000):0;
+  document.getElementById('reportSummarySection').innerHTML=`
+    <div class="report-section">
+      <div class="report-section-head">// Información General</div>
+      <table class="report-table">
+        <tr><td>Trainee</td><td>${s.traineeName}${s.traineeId?' · '+s.traineeId:''}</td></tr>
+        <tr><td>Posición</td><td>${s.traineePos||'–'}</td></tr>
+        <tr><td>Evaluador</td><td>${s.trainerName}</td></tr>
+        <tr><td>Aerolínea / Vuelo</td><td>${AIRLINE_NAMES[s.airline]||s.airline} · ${s.flightNumber}</td></tr>
+        <tr><td>Tipo Operación</td><td>${FTYPE_NAMES[s.flightType]}</td></tr>
+        <tr><td>Gate / Posición</td><td>${s.gate||'–'}</td></tr>
+        <tr><td>Fecha</td><td>${fd(s.startTime)} ${ft(s.startTime)}</td></tr>
+        <tr><td>Duración</td><td>${dur} min</td></tr>
+        <tr><td>Checkpoints Evaluados</td><td>${total-(sc.pending||0)} / ${total}</td></tr>
+        <tr><td>Conformes</td><td style="color:var(--green)">${sc.ok||0}</td></tr>
+        <tr><td>Con Observación</td><td style="color:var(--amber)">${sc.obs||0}</td></tr>
+        <tr><td>Con Hallazgo (NC/RNC)</td><td style="color:var(--red)">${sc.finding||0}</td></tr>
+        <tr><td>Total Hallazgos</td><td>${allFindings.length}</td></tr>
+        <tr><td>Evidencias Fotográficas</td><td>${totalPhotos}</td></tr>
+      </table>
+    </div>`;
+  const findingsHtml=allFindings.length>0?allFindings.map(({cp,f})=>`
+    <div class="finding-report-item">
+      <div class="fri-head">
+        <span class="finding-code sev-${f.sev}">${f.sev}</span>
+        <span class="fri-cp">${cp.emoji} ${cp.label}</span>
+        <span style="color:var(--text-dim);font-size:9px;font-family:'Courier New',monospace">${f.type}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text);margin-bottom:3px">${f.desc}</div>
+      ${f.action?`<div style="font-size:10px;color:var(--cx)">→ ${f.action}</div>`:''}
+      <div style="font-size:9px;color:var(--text-dim);margin-top:3px;font-family:'Courier New',monospace">${f.ts}</div>
+    </div>`):`<div style="padding:12px;font-size:10px;color:var(--text-dim);font-family:'Courier New',monospace">SIN HALLAZGOS REGISTRADOS</div>`;
+  document.getElementById('reportFindingsSection').innerHTML=`<div class="report-section"><div class="report-section-head">// Hallazgos Registrados (${allFindings.length})</div>${findingsHtml}</div>`;
+  const galleryItems=[];
+  s.checkpoints.forEach(cp=>{cpData(cp.key).photos.forEach((p,i)=>{const label=cpData(cp.key).photos.length>1?`${cp.label} #${i+1}`:cp.label;galleryItems.push(`<div class="gallery-report-item"><img src="${p.data}" alt="${label}"><div class="g-label">${label}</div></div>`)})});
+  document.getElementById('reportGallerySection').innerHTML=galleryItems.length?`<div class="report-section"><div class="report-section-head">// Evidencias Fotográficas (${totalPhotos})</div><div class="gallery-report">${galleryItems.join('')}</div></div>`:'';
+}
+function resetAudit(){
+  stopStream();
+  S={traineeName:'',traineeId:'',traineePos:'',trainerName:'',airline:'',flightType:'',flightNumber:'',gate:'',startTime:null,checkpoints:[],cpData:{},expandedKey:null,stream:null,tsInterval:null,camMode:null,camKey:null,previewData:null,previewTs:null,selectedSev:null,findingKey:null};
+  document.getElementById('completionScreen').style.display='none';
+  ['traineeName','traineeId','traineePos','trainerName','flightNumber','gateNumber'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('airlineSelect').value='';document.getElementById('flightTypeSelect').value='';
+  document.getElementById('setupScreen').style.display='block';
+}
+</script>
+</body>
+</html>
