@@ -302,7 +302,7 @@
 
 <header>
   <h1>OJT <span>Señalero</span> · Ground Handler AS</h1>
-  <div class="badge" id="modelBadge">claude-sonnet-4-6 · evaluación en vivo</div>
+  <div class="badge" id="modelBadge">AI · evaluación en vivo</div>
 </header>
 
 <div class="container">
@@ -312,11 +312,11 @@
 
     <!-- API KEY SETUP -->
     <div id="setupPanel">
-      <h2>Configuración · API Key de Claude</h2>
+      <h2>Configuración · API Key </h2>
       <small class="hint">
-        Pega tu API Key de Anthropic (console.anthropic.com → API Keys). Se guarda únicamente en
+        Pega tu API Key. Se guarda únicamente en
         <b>este navegador</b> (localStorage), nunca se envía a ningún servidor distinto de
-        <code>api.anthropic.com</code>. No la compartas con nadie.
+        <code>No la compartas con nadie.</code>. 
       </small>
       <div class="row">
         <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-...">
@@ -531,7 +531,7 @@ function refreshKeyUI(){
 saveKeyBtn.addEventListener('click', ()=>{
   const val = apiKeyInput.value.trim();
   if(!val.startsWith('sk-ant-')){
-    alert("La API Key debe comenzar con 'sk-ant-'. Verifica que la copiaste completa desde console.anthropic.com");
+    alert("La API Key debe comenzar con 'sk-ant-'");
     return;
   }
   localStorage.setItem(STORAGE_KEY, val);
@@ -628,7 +628,7 @@ renderSignalList();
 captureBtn.addEventListener('click', async ()=>{
   if(!currentSignalId){ alert("Selecciona primero una señal."); return; }
   const apiKey = getStoredKey();
-  if(!apiKey){ alert("Primero guarda tu API Key de Claude."); return; }
+  if(!apiKey){ alert("Primero guarda tu API Key"); return; }
 
   flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
 
@@ -696,7 +696,7 @@ captureBtn.addEventListener('click', async ()=>{
   }catch(err){
     resultBox.className = "fail";
     resultBox.innerHTML = `<div class="verdict">⚠️ Error</div><div>${escapeHtml(err.message)}</div>
-      <small class="hint">Verifica tu API Key, tu conexión, o que tu cuenta tenga créditos disponibles en console.anthropic.com</small>`;
+      <small class="hint">Verifica tu API Key, tu conexión, o que tu cuenta tenga créditos disponibles en consola.</small>`;
   }finally{
     captureBtn.disabled = false;
   }
