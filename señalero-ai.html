@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OJT Señalero · Ground Handler AS</title>
+<style>
+  :root{
+    --bg:#0b0e14;
+    --panel:#141925;
+    --panel2:#1b2230;
+    --border:#2a3344;
+    --accent:#ff6a00;
+    --accent2:#ffb347;
+    --ok:#2ecc71;
+    --bad:#ff4d4f;
+    --warn:#f5c244;
+    --text:#e8ecf4;
+    --muted:#8b96ab;
+    --mono: 'Courier New', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:radial-gradient(circle at top, #161c29 0%, #0b0e14 60%);
+    color:var(--text);
+    font-family:'Segoe UI', Arial, sans-serif;
+    min-height:100vh;
+  }
+  header{
+    padding:18px 24px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:linear-gradient(90deg, #11151f, #161c29);
+  }
+  header h1{
+    font-size:18px;
+    margin:0;
+    letter-spacing:0.5px;
+  }
+  header h1 span{color:var(--accent);}
+  .badge{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--muted);
+    border:1px solid var(--border);
+    padding:4px 10px;
+    border-radius:20px;
+  }
+  .container{
+    max-width:1180px;
+    margin:0 auto;
+    padding:22px;
+    display:grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap:22px;
+  }
+  @media(max-width:880px){
+    .container{grid-template-columns:1fr;}
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:18px;
+  }
+  .panel h2{
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:var(--muted);
+    margin:0 0 14px 0;
+  }
+  /* API KEY SETUP */
+  #setupPanel{display:flex;flex-direction:column;gap:10px;}
+  #setupPanel input{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:8px;
+    font-family:var(--mono);
+    font-size:13px;
+  }
+  .row{display:flex;gap:10px;align-items:center;}
+  .row > *{flex:1;}
+  small.hint{color:var(--muted);font-size:11px;line-height:1.5;}
+  button{
+    cursor:pointer;
+    border:none;
+    border-radius:8px;
+    padding:10px 16px;
+    font-weight:600;
+    font-size:13px;
+    transition:transform .1s ease, opacity .15s ease;
+  }
+  button:active{transform:scale(0.97);}
+  button.primary{background:var(--accent);color:#0b0e14;}
+  button.primary:hover{background:var(--accent2);}
+  button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--border);}
+  button.secondary:hover{border-color:var(--accent);}
+  button:disabled{opacity:0.4;cursor:not-allowed;}
+  button.danger{background:var(--bad);color:#fff;}
+
+  /* CAMERA */
+  .camWrap{
+    position:relative;
+    border-radius:12px;
+    overflow:hidden;
+    background:#000;
+    border:1px solid var(--border);
+    aspect-ratio:4/3;
+  }
+  video{width:100%;height:100%;object-fit:cover;display:block;}
+  canvas{display:none;}
+  .flash{
+    position:absolute;inset:0;
+    background:#fff;
+    opacity:0;
+    pointer-events:none;
+  }
+  .flash.go{animation:flashAnim .35s ease;}
+  @keyframes flashAnim{0%{opacity:.7;}100%{opacity:0;}}
+  .camOverlay{
+    position:absolute;
+    top:10px;left:10px;right:10px;
+    display:flex;
+    justify-content:space-between;
+    font-family:var(--mono);
+    font-size:11px;
+    color:#fff;
+    text-shadow:0 1px 3px rgba(0,0,0,.8);
+  }
+  .recDot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--bad);
+    display:inline-block;
+    margin-right:6px;
+    animation:pulse 1.2s infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+  .camControls{
+    display:flex;gap:10px;margin-top:12px;
+  }
+
+  /* SIGNAL LIST */
+  .signalList{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    max-height:480px;
+    overflow-y:auto;
+    padding-right:4px;
+  }
+  .signalItem{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 12px;
+    border-radius:8px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    font-size:13px;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .signalItem:hover{border-color:var(--accent);}
+  .signalItem.active{
+    border-color:var(--accent);
+    background:#241a12;
+  }
+  .signalItem .num{
+    font-family:var(--mono);
+    color:var(--muted);
+    font-size:11px;
+    width:18px;
+  }
+  .signalItem .name{flex:1;}
+  .status-dot{
+    width:10px;height:10px;border-radius:50%;
+    background:#3a4458;
+    flex-shrink:0;
+  }
+  .status-dot.pass{background:var(--ok);}
+  .status-dot.fail{background:var(--bad);}
+  .status-dot.pending{background:var(--warn);}
+
+  /* CURRENT SIGNAL CARD */
+  .currentSignal{
+    background:linear-gradient(135deg, #1e2433, #171c28);
+    border:1px solid var(--accent);
+    border-radius:12px;
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .currentSignal .label{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--accent2);
+    text-transform:uppercase;
+    letter-spacing:1px;
+  }
+  .currentSignal h3{
+    margin:6px 0 8px 0;
+    font-size:20px;
+  }
+  .currentSignal p{
+    margin:0;
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.5;
+  }
+
+  /* RESULT */
+  #resultBox{
+    margin-top:14px;
+    padding:14px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:var(--panel2);
+    min-height:80px;
+    font-size:13px;
+    line-height:1.55;
+  }
+  #resultBox.pass{border-color:var(--ok);background:#10271a;}
+  #resultBox.fail{border-color:var(--bad);background:#2a1416;}
+  #resultBox .verdict{
+    font-weight:700;
+    font-size:15px;
+    margin-bottom:6px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .scoreTag{
+    font-family:var(--mono);
+    font-size:11px;
+    padding:2px 8px;
+    border-radius:20px;
+    background:var(--panel);
+    border:1px solid var(--border);
+  }
+
+  /* PROGRESS */
+  .progressBar{
+    width:100%;
+    height:8px;
+    background:var(--panel2);
+    border-radius:6px;
+    overflow:hidden;
+    border:1px solid var(--border);
+    margin:10px 0 4px 0;
+  }
+  .progressBar .fill{
+    height:100%;
+    background:linear-gradient(90deg, var(--accent), var(--accent2));
+    width:0%;
+    transition:width .3s ease;
+  }
+  .progressText{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+  }
+
+  .hidden{display:none !important;}
+  .spinner{
+    width:14px;height:14px;
+    border:2px solid rgba(255,255,255,.25);
+    border-top-color:#fff;
+    border-radius:50%;
+    display:inline-block;
+    animation:spin .7s linear infinite;
+    vertical-align:middle;
+    margin-right:6px;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  #finalSummary{
+    text-align:center;
+    padding:30px 20px;
+  }
+  #finalSummary .bigScore{
+    font-size:48px;
+    font-weight:800;
+    margin:10px 0;
+  }
+  footer{
+    text-align:center;
+    color:var(--muted);
+    font-size:11px;
+    padding:20px;
+    font-family:var(--mono);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>OJT <span>Señalero</span> · Ground Handler AS</h1>
+  <div class="badge" id="modelBadge">claude-sonnet-4-6 · evaluación en vivo</div>
+</header>
+
+<div class="container">
+
+  <!-- LEFT: CAMERA / EVALUATION -->
+  <div class="panel">
+
+    <!-- API KEY SETUP -->
+    <div id="setupPanel">
+      <h2>Configuración · API Key de Claude</h2>
+      <small class="hint">
+        Pega tu API Key de Anthropic (console.anthropic.com → API Keys). Se guarda únicamente en
+        <b>este navegador</b> (localStorage), nunca se envía a ningún servidor distinto de
+        <code>api.anthropic.com</code>. No la compartas con nadie.
+      </small>
+      <div class="row">
+        <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-...">
+        <button class="primary" id="saveKeyBtn" style="flex:0 0 auto;">Guardar</button>
+      </div>
+      <div class="row" id="keyStatusRow" style="display:none;">
+        <small class="hint" id="keyStatusText" style="flex:1;"></small>
+        <button class="secondary" id="changeKeyBtn" style="flex:0 0 auto;">Cambiar key</button>
+        <button class="danger" id="clearKeyBtn" style="flex:0 0 auto;">Borrar</button>
+      </div>
+    </div>
+
+    <div id="cameraSection" class="hidden" style="margin-top:18px;">
+      <h2>Cámara en vivo</h2>
+      <div class="camWrap">
+        <video id="video" autoplay playsinline muted></video>
+        <div class="flash" id="flash"></div>
+        <div class="camOverlay">
+          <span><span class="recDot" id="recDot" style="display:none;"></span><span id="camLabel">Cámara apagada</span></span>
+          <span id="clock"></span>
+        </div>
+      </div>
+      <canvas id="canvas"></canvas>
+      <div class="camControls">
+        <button class="secondary" id="startCamBtn">▶ Iniciar cámara</button>
+        <button class="primary" id="liveToggleBtn" disabled>🔴 Iniciar evaluación en vivo</button>
+      </div>
+      <div class="row" style="margin-top:10px;align-items:center;">
+        <small class="hint" style="flex:1;">Intervalo de análisis:</small>
+        <select id="intervalSelect" style="flex:0 0 auto;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-family:var(--mono);font-size:12px;">
+          <option value="1500">cada 1.5s</option>
+          <option value="2000" selected>cada 2s</option>
+          <option value="3000">cada 3s</option>
+          <option value="4000">cada 4s</option>
+        </select>
+        <label class="hint" style="flex:0 0 auto;display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="autoAdvanceChk" checked> avanzar automático al acertar
+        </label>
+      </div>
+
+      <div id="resultBox">
+        <small class="hint">Selecciona una señal de la lista, posiciónate frente a la cámara y presiona "Evaluar señal" para que la IA verifique tu ejecución.</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: SIGNAL LIST / PROGRESS -->
+  <div class="panel">
+    <h2>Progreso del entrenamiento</h2>
+    <div class="progressBar"><div class="fill" id="progressFill"></div></div>
+    <div class="progressText">
+      <span id="progressLabel">0 / 14 completadas</span>
+      <span id="progressScore">Aciertos: 0</span>
+    </div>
+
+    <div class="currentSignal" id="currentSignalCard">
+      <div class="label">Señal seleccionada</div>
+      <h3 id="currentSignalName">—</h3>
+      <p id="currentSignalDesc">Selecciona una señal de la lista de abajo.</p>
+    </div>
+
+    <h2 style="margin-top:18px;">Listado de señales (ICAO)</h2>
+    <div class="signalList" id="signalList"></div>
+
+    <div style="margin-top:14px;display:flex;gap:10px;">
+      <button class="secondary" id="resetBtn" style="flex:1;">↺ Reiniciar entrenamiento</button>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Herramienta interna de entrenamiento · Avianca SAL · Las evaluaciones son generadas por IA y deben validarse con un supervisor ADES/Avianca antes de certificar al señalero.
+</footer>
+
+<script>
+/* ====================== DATOS DE SEÑALES ====================== */
+const SIGNALS = [
+  {
+    id: "atencion",
+    name: "Atención / Señal inicial",
+    desc: "Ambos brazos extendidos por encima de la cabeza, paletas o manos abiertas, para captar la atención del piloto antes de iniciar la guía.",
+    criteria: "Ambos brazos completamente extendidos hacia arriba y ligeramente abiertos en V, palmas/paletas visibles hacia el piloto, postura erguida y estable."
+  },
+  {
+    id: "recto",
+    name: "Continuar recto",
+    desc: "Brazos flexionados con paletas a la altura de los hombros, moviéndose hacia arriba y abajo repetidamente indicando avance en línea recta.",
+    criteria: "Ambos brazos doblados a la altura del hombro moviéndose simétricamente hacia arriba y abajo, paletas visibles, sin desplazamiento lateral del cuerpo."
+  },
+  {
+    id: "izquierda",
+    name: "Giro a la izquierda (perspectiva del piloto)",
+    desc: "Brazo derecho del señalero extendido horizontalmente, brazo izquierdo se mueve hacia arriba y abajo indicando al piloto que gire hacia su izquierda.",
+    criteria: "Un brazo extendido completamente hacia el costado en posición fija, el otro brazo en movimiento de arco hacia arriba y abajo en el lado correspondiente al giro indicado desde la perspectiva del piloto."
+  },
+  {
+    id: "derecha",
+    name: "Giro a la derecha (perspectiva del piloto)",
+    desc: "Brazo izquierdo del señalero extendido horizontalmente, brazo derecho se mueve hacia arriba y abajo indicando al piloto que gire hacia su derecha.",
+    criteria: "Un brazo extendido completamente hacia el costado en posición fija, el otro brazo en movimiento de arco hacia arriba y abajo en el lado opuesto, coherente con giro a la derecha desde la perspectiva del piloto."
+  },
+  {
+    id: "reducir",
+    name: "Reducir velocidad",
+    desc: "Ambos brazos extendidos hacia abajo en ángulo, moviéndose hacia arriba y abajo desde la cintura, palmas hacia el suelo.",
+    criteria: "Ambos brazos extendidos por debajo de la cintura/horizontal, palmas hacia abajo, movimiento de batido suave hacia arriba y abajo simétrico."
+  },
+  {
+    id: "alto",
+    name: "Alto (STOP)",
+    desc: "Ambos brazos cruzados por encima de la cabeza formando una X, indicando detención inmediata de la aeronave.",
+    criteria: "Brazos cruzados claramente sobre la cabeza formando una X visible, paletas o manos visibles, postura firme y estática."
+  },
+  {
+    id: "emergencia",
+    name: "Parada de emergencia",
+    desc: "Brazos cruzados violentamente por encima de la cabeza de forma rápida y repetida, indicando detención inmediata por emergencia.",
+    criteria: "Movimiento rápido y repetido de cruce de brazos sobre la cabeza (no estático como el STOP normal), transmitiendo urgencia."
+  },
+  {
+    id: "colocar_calzos",
+    name: "Colocar calzos",
+    desc: "Brazos extendidos con manos/paletas hacia adentro, moviéndose hacia el centro del cuerpo en señal de 'cerrar' o juntar.",
+    criteria: "Ambos brazos extendidos hacia los lados y luego moviéndose hacia adentro acercando las manos al centro del cuerpo, simulando la acción de cerrar/asegurar."
+  },
+  {
+    id: "calzos_colocados",
+    name: "Calzos colocados",
+    desc: "Manos o paletas juntas frente al cuerpo, confirmando que los calzos ya están puestos.",
+    criteria: "Las dos manos o paletas se unen al frente del cuerpo a la altura del pecho/cintura, gesto estático breve confirmando finalización."
+  },
+  {
+    id: "retirar_calzos",
+    name: "Retirar calzos",
+    desc: "Brazos extendidos con manos juntas al centro, moviéndose hacia afuera, en señal de 'abrir' o separar.",
+    criteria: "Manos/paletas inician juntas al centro del cuerpo y se separan hacia los lados en movimiento horizontal, contrario al gesto de colocar calzos."
+  },
+  {
+    id: "motores_apagados",
+    name: "Motores apagados",
+    desc: "Uno o ambos brazos cruzan horizontalmente frente al cuello, simulando un corte, indicando apagar motores.",
+    criteria: "Movimiento de mano/brazo cruzando horizontalmente frente al cuello o garganta, gesto claro de 'corte', puede repetirse."
+  },
+  {
+    id: "motores_encendidos",
+    name: "Motores encendidos",
+    desc: "Movimiento circular de un brazo por encima de la cabeza, imitando el arranque/giro de una turbina o hélice.",
+    criteria: "Un brazo realiza movimientos circulares claros por encima o cerca de la cabeza, simulando el giro de un motor."
+  },
+  {
+    id: "desconectar_gpu",
+    name: "Desconectar GPU",
+    desc: "Gesto de señalar hacia el conector/GPU y mover la mano indicando retiro o desconexión del equipo de energía en tierra.",
+    criteria: "Señal clara apuntando o indicando hacia el área del GPU/conector con movimiento de retiro o corte, comunicando desconexión del equipo de tierra."
+  },
+  {
+    id: "area_libre",
+    name: "Área libre / Todo despejado",
+    desc: "Pulgar hacia arriba o saludo con la mano, indicando que el área está despejada y segura.",
+    criteria: "Gesto de pulgar hacia arriba claramente visible, o saludo de mano abierta, transmitiendo confirmación positiva de área despejada."
+  }
+];
+
+const STORAGE_KEY = "ojt_senalero_avianca_apikey";
+const PROGRESS_KEY = "ojt_senalero_avianca_progress";
+
+let progress = {}; // {signalId: {status: 'pass'|'fail', score, feedback}}
+let currentSignalId = null;
+let mediaStream = null;
+
+/* ====================== ELEMENTOS DOM ====================== */
+const apiKeyInput = document.getElementById('apiKeyInput');
+const saveKeyBtn = document.getElementById('saveKeyBtn');
+const changeKeyBtn = document.getElementById('changeKeyBtn');
+const clearKeyBtn = document.getElementById('clearKeyBtn');
+const keyStatusRow = document.getElementById('keyStatusRow');
+const keyStatusText = document.getElementById('keyStatusText');
+const cameraSection = document.getElementById('cameraSection');
+const startCamBtn = document.getElementById('startCamBtn');
+const liveToggleBtn = document.getElementById('liveToggleBtn');
+const intervalSelect = document.getElementById('intervalSelect');
+const autoAdvanceChk = document.getElementById('autoAdvanceChk');
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const flash = document.getElementById('flash');
+const camLabel = document.getElementById('camLabel');
+const recDot = document.getElementById('recDot');
+const resultBox = document.getElementById('resultBox');
+const signalListEl = document.getElementById('signalList');
+const currentSignalName = document.getElementById('currentSignalName');
+const currentSignalDesc = document.getElementById('currentSignalDesc');
+const progressFill = document.getElementById('progressFill');
+const progressLabel = document.getElementById('progressLabel');
+const progressScore = document.getElementById('progressScore');
+const resetBtn = document.getElementById('resetBtn');
+const clockEl = document.getElementById('clock');
+
+/* ====================== RELOJ OVERLAY ====================== */
+setInterval(()=>{
+  clockEl.textContent = new Date().toLocaleTimeString('es-CR',{hour12:false});
+},1000);
+
+/* ====================== MANEJO DE API KEY ====================== */
+function getStoredKey(){
+  return localStorage.getItem(STORAGE_KEY) || "";
+}
+function maskKey(k){
+  if(k.length < 10) return "••••••••";
+  return k.slice(0,10) + "…" + k.slice(-4);
+}
+function refreshKeyUI(){
+  const key = getStoredKey();
+  if(key){
+    document.getElementById('setupPanel').querySelector('.row').classList.add('hidden');
+    apiKeyInput.value = "";
+    keyStatusRow.style.display = "flex";
+    keyStatusText.innerHTML = "✅ API Key guardada: <code>" + maskKey(key) + "</code>";
+    cameraSection.classList.remove('hidden');
+  } else {
+    document.getElementById('setupPanel').querySelector('.row').classList.remove('hidden');
+    keyStatusRow.style.display = "none";
+    cameraSection.classList.add('hidden');
+  }
+}
+saveKeyBtn.addEventListener('click', ()=>{
+  const val = apiKeyInput.value.trim();
+  if(!val.startsWith('sk-ant-')){
+    alert("La API Key debe comenzar con 'sk-ant-'. Verifica que la copiaste completa desde console.anthropic.com");
+    return;
+  }
+  localStorage.setItem(STORAGE_KEY, val);
+  refreshKeyUI();
+});
+changeKeyBtn.addEventListener('click', ()=>{
+  document.getElementById('setupPanel').querySelector('.row').classList.remove('hidden');
+  keyStatusRow.style.display = "none";
+});
+clearKeyBtn.addEventListener('click', ()=>{
+  if(confirm("¿Borrar la API Key guardada en este navegador?")){
+    localStorage.removeItem(STORAGE_KEY);
+    refreshKeyUI();
+  }
+});
+refreshKeyUI();
+
+/* ====================== CÁMARA ====================== */
+startCamBtn.addEventListener('click', async ()=>{
+  try{
+    mediaStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"environment", width:{ideal:1280}, height:{ideal:960} }, audio:false });
+    video.srcObject = mediaStream;
+    camLabel.textContent = "Cámara activa";
+    recDot.style.display = "inline-block";
+    liveToggleBtn.disabled = !currentSignalId;
+    startCamBtn.textContent = "✅ Cámara activa";
+    startCamBtn.disabled = true;
+  }catch(err){
+    alert("No se pudo acceder a la cámara: " + err.message);
+  }
+});
+
+/* ====================== LISTA DE SEÑALES ====================== */
+function loadProgress(){
+  try{
+    progress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "{}");
+  }catch(e){ progress = {}; }
+}
+function saveProgress(){
+  localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+}
+function renderSignalList(){
+  signalListEl.innerHTML = "";
+  SIGNALS.forEach((sig, idx)=>{
+    const item = document.createElement('div');
+    item.className = "signalItem" + (sig.id === currentSignalId ? " active" : "");
+    const st = progress[sig.id]?.status;
+    item.innerHTML = `
+      <span class="num">${String(idx+1).padStart(2,'0')}</span>
+      <span class="status-dot ${st === 'pass' ? 'pass' : st === 'fail' ? 'fail' : ''}"></span>
+      <span class="name">${sig.name}</span>
+    `;
+    item.addEventListener('click', ()=> selectSignal(sig.id));
+    signalListEl.appendChild(item);
+  });
+  updateProgressBar();
+}
+function selectSignal(id){
+  if(liveActive) stopLiveEvaluation();
+  currentSignalId = id;
+  const sig = SIGNALS.find(s=>s.id===id);
+  currentSignalName.textContent = sig.name;
+  currentSignalDesc.textContent = sig.desc;
+  liveToggleBtn.disabled = !mediaStream;
+  resultBox.className = "";
+  resultBox.innerHTML = `<small class="hint">Listo para evaluar: <b>${sig.name}</b>. Posiciónate frente a la cámara y presiona "Iniciar evaluación en vivo".</small>`;
+  renderSignalList();
+}
+function updateProgressBar(){
+  const total = SIGNALS.length;
+  const done = Object.keys(progress).length;
+  const passed = Object.values(progress).filter(p=>p.status==='pass').length;
+  progressFill.style.width = (done/total*100) + "%";
+  progressLabel.textContent = `${done} / ${total} completadas`;
+  progressScore.textContent = `Aciertos: ${passed}`;
+}
+
+resetBtn.addEventListener('click', ()=>{
+  if(confirm("¿Reiniciar todo el progreso del entrenamiento?")){
+    progress = {};
+    saveProgress();
+    currentSignalId = null;
+    currentSignalName.textContent = "—";
+    currentSignalDesc.textContent = "Selecciona una señal de la lista de abajo.";
+    resultBox.className = "";
+    resultBox.innerHTML = `<small class="hint">Selecciona una señal de la lista, posiciónate frente a la cámara y presiona "Evaluar señal".</small>`;
+    renderSignalList();
+  }
+});
+
+loadProgress();
+renderSignalList();
+
+/* ====================== EVALUACIÓN EN VIVO (LOOP CONTINUO) ====================== */
+let liveActive = false;
+let liveTimer = null;
+let requestInFlight = false;
+
+liveToggleBtn.addEventListener('click', ()=>{
+  if(!currentSignalId){ alert("Selecciona primero una señal."); return; }
+  if(!getStoredKey()){ alert("Primero guarda tu API Key de Claude."); return; }
+  if(liveActive){
+    stopLiveEvaluation();
+  } else {
+    startLiveEvaluation();
+  }
+});
+
+function startLiveEvaluation(){
+  liveActive = true;
+  liveToggleBtn.textContent = "⏹ Detener evaluación en vivo";
+  liveToggleBtn.classList.add('danger');
+  startCamBtn.disabled = true;
+  resultBox.className = "";
+  resultBox.innerHTML = `<span class="spinner"></span> Analizando video en vivo... mantén la postura de la señal frente a la cámara.`;
+  const intervalMs = parseInt(intervalSelect.value, 10);
+  // primer análisis casi inmediato, luego en el intervalo elegido
+  analyzeCurrentFrame();
+  liveTimer = setInterval(analyzeCurrentFrame, intervalMs);
+}
+
+function stopLiveEvaluation(){
+  liveActive = false;
+  liveToggleBtn.textContent = "🔴 Iniciar evaluación en vivo";
+  liveToggleBtn.classList.remove('danger');
+  startCamBtn.disabled = !!mediaStream ? true : false;
+  if(liveTimer){ clearInterval(liveTimer); liveTimer = null; }
+}
+
+async function analyzeCurrentFrame(){
+  if(!liveActive || requestInFlight) return;
+  if(!currentSignalId || !mediaStream) return;
+  requestInFlight = true;
+
+  flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
+
+  const w = video.videoWidth, h = video.videoHeight;
+  if(!w || !h){ requestInFlight = false; return; }
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, w, h);
+  const base64Image = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+
+  const sig = SIGNALS.find(s=>s.id===currentSignalId);
+  const apiKey = getStoredKey();
+
+  try{
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 300,
+        system: "Eres un instructor experto en señales de marshalling ICAO para personal de rampa (Ground Handler). Estás observando un fotograma extraído de un video en vivo de un señalero en entrenamiento y determinas si la postura/gesto capturado EN ESE INSTANTE corresponde correctamente a la señal indicada. Si la persona aún no ha iniciado el gesto, está en transición, o no es visible con claridad, indícalo como no acierto sin penalizar duramente, ya que es un fotograma de un video continuo. Responde SIEMPRE únicamente en JSON válido, sin texto adicional, sin markdown, con este formato exacto: {\"acierto\": true|false, \"confianza\": 0-100, \"feedback\": \"frase breve en español, máximo 1 frase corta, específica sobre lo observado en este instante\"}.",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: { type: "base64", media_type: "image/jpeg", data: base64Image }
+              },
+              {
+                type: "text",
+                text: `Señal a evaluar (video en vivo, fotograma actual): "${sig.name}".\nDescripción oficial del gesto: ${sig.desc}\nCriterios de aceptación: ${sig.criteria}\n\nResponde solo en el formato JSON indicado.`
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    if(!response.ok){
+      const errData = await response.json().catch(()=>({}));
+      throw new Error(errData?.error?.message || `Error HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const textBlock = data.content.find(b => b.type === "text");
+    let parsed;
+    try{
+      const clean = textBlock.text.replace(/```json|```/g,'').trim();
+      parsed = JSON.parse(clean);
+    }catch(e){
+      throw new Error("No se pudo interpretar la respuesta de la IA.");
+    }
+
+    if(!liveActive){ requestInFlight = false; return; } // se detuvo mientras esperábamos
+    showLiveResult(sig, parsed);
+
+  }catch(err){
+    if(liveActive){
+      resultBox.className = "fail";
+      resultBox.innerHTML = `<div class="verdict">⚠️ Error</div><div>${escapeHtml(err.message)}</div>
+        <small class="hint">Verifica tu API Key, tu conexión, o que tu cuenta tenga créditos disponibles. La evaluación en vivo se detuvo.</small>`;
+      stopLiveEvaluation();
+    }
+  }finally{
+    requestInFlight = false;
+  }
+}
+
+function showLiveResult(sig, parsed){
+  const pass = !!parsed.acierto;
+
+  resultBox.className = pass ? "pass" : "fail";
+  resultBox.innerHTML = `
+    <div class="verdict">${pass ? "✅ Señal detectada correctamente" : "🔄 Analizando..."}
+      <span class="scoreTag">confianza: ${parsed.confianza ?? '—'}%</span>
+    </div>
+    <div>${escapeHtml(parsed.feedback || "")}</div>
+    ${liveActive ? `<small class="hint">Evaluación en vivo activa — siguiente fotograma en breve...</small>` : ``}
+  `;
+
+  if(pass){
+    progress[sig.id] = { status: 'pass', score: parsed.confianza, feedback: parsed.feedback };
+    saveProgress();
+    renderSignalList();
+    stopLiveEvaluation();
+
+    if(Object.keys(progress).length === SIGNALS.length){
+      setTimeout(showFinalSummary, 800);
+    } else if(autoAdvanceChk.checked){
+      const idx = SIGNALS.findIndex(s=>s.id===sig.id);
+      const next = SIGNALS.slice(idx+1).find(s => !progress[s.id]) || SIGNALS.find(s => !progress[s.id]);
+      if(next){
+        setTimeout(()=>{
+          selectSignal(next.id);
+          resultBox.innerHTML += `<br><small class="hint">↪ Avanzando automáticamente a "${next.name}". Presiona "Iniciar evaluación en vivo" cuando estés listo.</small>`;
+        }, 1200);
+      }
+    }
+  } else {
+    // marca como intento fallido más reciente, pero no detiene el loop: el usuario sigue intentando en vivo
+    progress[sig.id] = { status: 'fail', score: parsed.confianza, feedback: parsed.feedback };
+    saveProgress();
+    renderSignalList();
+  }
+}
+
+function showFinalSummary(){
+  const total = SIGNALS.length;
+  const passed = Object.values(progress).filter(p=>p.status==='pass').length;
+  const pct = Math.round(passed/total*100);
+  let verdictColor = pct >= 80 ? 'var(--ok)' : pct >= 50 ? 'var(--warn)' : 'var(--bad)';
+  resultBox.className = "";
+  resultBox.innerHTML = `
+    <div id="finalSummary">
+      <div class="label" style="color:var(--accent2);font-family:var(--mono);letter-spacing:1px;">ENTRENAMIENTO COMPLETADO</div>
+      <div class="bigScore" style="color:${verdictColor};">${passed} / ${total}</div>
+      <p style="color:var(--muted);">Aciertos correctos (${pct}%). ${pct >= 80 ? "Excelente desempeño, listo para revisión del supervisor." : pct >= 50 ? "Desempeño aceptable, se recomienda repasar las señales falladas." : "Se recomienda repetir el entrenamiento antes de la evaluación con supervisor."}</p>
+    </div>
+  `;
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>
