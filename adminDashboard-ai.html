@@ -531,6 +531,31 @@
     // ══════════════════════════════════════════════════════
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzh5GqYE0fWLApWWMNZ4rPYl5vNxXy47qLi-ZBlagoKXmySqbQ-4S346sMTzUlG5qfXzQ/exec';
 
+// DIAGNÓSTICO TEMPORAL — quitar en producción
+function testGAS() {
+    const tests = [
+        SCRIPT_URL + '?action=getHistory&sheet=TURN',
+        SCRIPT_URL + '?action=getAllHistory',
+        SCRIPT_URL,
+    ];
+    tests.forEach((url, i) => {
+        const cbName = 'diagCb' + i;
+        window[cbName] = function(data) {
+            console.log(`Test ${i+1} OK:`, data);
+            document.getElementById('diagLog').innerHTML +=
+                `<div style="color:#10b981">✓ Test ${i+1}: ${JSON.stringify(data).slice(0,120)}...</div>`;
+        };
+        const s = document.createElement('script');
+        s.onerror = () => {
+            console.error(`Test ${i+1} FAILED`);
+            document.getElementById('diagLog').innerHTML +=
+                `<div style="color:#ef4444">✗ Test ${i+1}: script-error (404 o bloqueo CORS)</div>`;
+        };
+        document.body.appendChild(s);
+        s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
+    });
+}
+        
     // ── Checkpoint columns per sheet type ──────────────────
     const CP_COLS_TURN = [
         'Briefing','Inicio FOD','Beacon OFF','Planta Eléctrica','Aire Acondicionado',
@@ -1732,5 +1757,16 @@
         return count;
     }
     </script>
+
+<div id="diagLog" style="position:fixed;bottom:60px;left:10px;right:10px;
+  background:#0f172a;border:1px solid #3b82f6;border-radius:8px;
+  padding:12px;font-family:monospace;font-size:11px;z-index:999;
+  max-height:150px;overflow-y:auto;"></div>
+<button onclick="testGAS()" style="position:fixed;bottom:20px;left:10px;
+  padding:6px 14px;background:#3b82f6;color:#fff;border:none;
+  border-radius:8px;cursor:pointer;z-index:999;font-size:12px;">
+  🔬 Test GAS
+</button>
+    
 </body>
 </html>
