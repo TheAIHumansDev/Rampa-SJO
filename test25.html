@@ -118,7 +118,7 @@ select option{background:#111e3a;color:#fff}
 .bot-btn.cancel-btn:hover{border-color:rgba(239,68,68,0.65);background:rgba(44,8,8,0.9)}
 .bot-btn.cancel-btn .bot-label{color:#fca5a5}
 .bottom-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-width:680px;margin:0 auto}
-.bottom-btns-r2{display:grid;grid-template-columns:1fr 1fr;gap:5px;max-width:680px;margin:4px auto 0}
+.bottom-btns-r2{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-width:680px;margin:4px auto 0}
 
 /* ── SERVICIOS ── */
 .svc-cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:13px}
@@ -483,9 +483,11 @@ textarea.ta:focus{border-color:#3b82f6}
     <button class="bot-btn equip-btn" onclick="openM('mEquip')">
       <span class="bot-icon">🔧</span><span class="bot-label">Equipo</span>
     </button>
-    <button class="bot-btn svc-btn" onclick="openM('mSvc')">
-      <span class="bot-icon">💰</span><span class="bot-label">Servicios <span id="svcBadge" style="display:none;background:#14b8a6;color:#fff;font-size:8px;padding:1px 5px;border-radius:4px;margin-left:2px">0</span></span>
-    </button>
+   <button class="bot-btn svc-btn" onclick="openM('mSvc')" style="position:relative">
+  <span class="bot-icon">💰</span>
+  <span class="bot-label">Servicios</span>
+  <span id="svcBadge" style="display:none;position:absolute;top:4px;right:4px;background:#14b8a6;color:#fff;font-size:8px;padding:1px 5px;border-radius:4px;font-weight:700">0</span>
+</button>
     <button class="bot-btn cancel-btn" onclick="openM('mCancel')">
       <span class="bot-icon">❌</span><span class="bot-label">Vuelo Cancelado</span>
     </button>
