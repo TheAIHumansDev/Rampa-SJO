@@ -489,6 +489,7 @@ textarea.ta:focus{border-color:#3b82f6}
   </div>
 </div>
 
+
 <!-- BOTTOM BAR -->
 <div class="bottom-bar" id="bottomBar" style="display:none">
   <div class="bottom-btns">
@@ -498,17 +499,14 @@ textarea.ta:focus{border-color:#3b82f6}
     <button class="bot-btn seg-btn" onclick="openM('mSeg')">
       <span class="bot-icon">🛡️</span><span class="bot-label">SMS</span>
     </button>
-      <button class="bot-btn chat-btn" onclick="openM('mEquip')">
-      <span class="bot-icon">💬</span><span class="bot-label">Chat Ops</span>
+    <button class="bot-btn chat-btn" onclick="openM('mChat')">
+      <span class="bot-icon">💬</span><span class="bot-label">Chat</span>
     </button>
-     </div>
-
+  </div>
   <div class="bottom-btns-r2">
     <button class="bot-btn equip-btn" onclick="openM('mEquip')">
       <span class="bot-icon">🔧</span><span class="bot-label">Equipo</span>
     </button>
-      </div>
-    
     <button class="bot-btn svc-btn" onclick="openM('mSvc')" style="position:relative">
       <span class="bot-icon">💰</span><span class="bot-label">Servicios</span>
       <span id="svcBadge" style="display:none;position:absolute;top:4px;right:4px;background:#14b8a6;color:#fff;font-size:8px;padding:1px 5px;border-radius:4px;font-weight:700;line-height:1.4">0</span>
@@ -519,7 +517,7 @@ textarea.ta:focus{border-color:#3b82f6}
   </div>
   <div class="bottom-btns-r3">
     <button class="bot-btn final-btn" onclick="openM('mFinal')">
-      <span class="bot-icon">✅</span><span class="bot-label">Finalizar & Facturar</span>
+      <span class="bot-icon">✅</span><span class="bot-label">Finalizar Reporte</span>
     </button>
   </div>
 </div>
@@ -530,7 +528,6 @@ textarea.ta:focus{border-color:#3b82f6}
     <div class="modal-handle"></div>
     <h2 class="modal-title">✅ Finalizar Reporte</h2>
     <p class="modal-sub">Cierre y confirme la inspección completa de este vuelo. Esta acción no se puede deshacer.</p>
-
     <!-- Summary preview -->
     <div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:14px;margin-bottom:14px" id="finalSummaryBox">
       <div style="color:#6ee7b7;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Resumen de la Operación</div>
