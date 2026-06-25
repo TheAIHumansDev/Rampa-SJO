@@ -91,9 +91,47 @@ select option{background:#111e3a;color:#fff}
 @keyframes bab{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* BOTTOM BAR — 4 buttons */
-.bottom-bar{flex-shrink:0;background:rgba(4,7,18,0.97);backdrop-filter:blur(24px);border-top:1px solid rgba(59,130,246,0.16);padding:9px 11px;padding-bottom:max(9px,env(safe-area-inset-bottom))}
-.bottom-btns{display:flex;gap:6px;max-width:680px;margin:0 auto}
-.bot-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px;background:rgba(18,28,52,0.75);border:1px solid rgba(59,130,246,0.13);border-radius:11px;cursor:pointer;transition:all .2s;font-family:inherit}
+.bottom-bar {
+  flex-shrink: 0;
+  background: rgba(4,7,18,0.97);
+  backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(59,130,246,0.16);
+  padding: 9px 11px;
+  padding-bottom: max(9px, env(safe-area-inset-bottom));
+}
+
+.bottom-btns {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.bot-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 7px 2px;
+  background: rgba(22, 33, 58, 0.75);
+  border: 1px solid rgba(59,130,246,0.18);
+  border-radius: 11px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.bot-btn:hover  { background: rgba(30,46,80,0.9); border-color: rgba(59,130,246,0.4); transform: translateY(-1px); }
+.bot-btn:active { transform: translateY(0); }
+
+.bot-icon  { font-size: 18px; }
+.bot-label { font-size: 8.5px; font-weight: 700; color: #64748b; white-space: nowrap; letter-spacing: .3px; }
+
+
+  /* BORRAR BORRAR*/
 .bot-btn:hover{transform:translateY(-1px)}
 .bot-btn:active{transform:translateY(0)}
 .bot-icon{font-size:19px}
@@ -124,6 +162,8 @@ select option{background:#111e3a;color:#fff}
 .bottom-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-width:680px;margin:0 auto}
 .bottom-btns-r2{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-width:680px;margin:4px auto 0}
 .bottom-btns-r3{display:grid;grid-template-columns:1fr;gap:5px;max-width:680px;margin:4px auto 0}
+
+    /* BORRAR BORRAR*/  /* BORRAR BORRAR*/
 
 /* ── SERVICIOS ── */
 .svc-cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:13px}
@@ -489,39 +529,32 @@ textarea.ta:focus{border-color:#3b82f6}
   </div>
 </div>
 
-
-<!-- BOTTOM BAR -->
 <div class="bottom-bar" id="bottomBar" style="display:none">
   <div class="bottom-btns">
-    <button class="bot-btn inc-btn" onclick="openM('mInc')">
+    <button class="bot-btn" onclick="openM('mInc')">
       <span class="bot-icon">⚠️</span><span class="bot-label">Incidente</span>
     </button>
-    <button class="bot-btn seg-btn" onclick="openM('mSeg')">
-      <span class="bot-icon">🛡️</span><span class="bot-label">SMS</span>
+    <button class="bot-btn" onclick="openM('mSeg')">
+      <span class="bot-icon">🛡️</span><span class="bot-label">Seg. Op.</span>
     </button>
-    <button class="bot-btn chat-btn" onclick="openM('mChat')">
+    <button class="bot-btn" onclick="openM('mChat')">
       <span class="bot-icon">💬</span><span class="bot-label">Chat</span>
     </button>
-  </div>
-  <div class="bottom-btns-r2">
-    <button class="bot-btn equip-btn" onclick="openM('mEquip')">
+    <button class="bot-btn" onclick="openM('mEquip')">
       <span class="bot-icon">🔧</span><span class="bot-label">Equipo</span>
     </button>
-    <button class="bot-btn svc-btn" onclick="openM('mSvc')" style="position:relative">
+    <button class="bot-btn" onclick="openM('mSvc')" style="position:relative">
       <span class="bot-icon">💰</span><span class="bot-label">Servicios</span>
       <span id="svcBadge" style="display:none;position:absolute;top:4px;right:4px;background:#14b8a6;color:#fff;font-size:8px;padding:1px 5px;border-radius:4px;font-weight:700;line-height:1.4">0</span>
     </button>
-    <button class="bot-btn cancel-btn" onclick="openM('mCancel')">
+    <button class="bot-btn" onclick="openM('mCancel')">
       <span class="bot-icon">❌</span><span class="bot-label">Cancelado</span>
     </button>
-  </div>
-  <div class="bottom-btns-r3">
-    <button class="bot-btn final-btn" onclick="openM('mFinal')">
-      <span class="bot-icon">✅</span><span class="bot-label">Finalizar Reporte</span>
+    <button class="bot-btn" onclick="openM('mFinal')">
+      <span class="bot-icon">✅</span><span class="bot-label">Finalizar</span>
     </button>
   </div>
 </div>
-
 <!-- FINALIZAR REPORTE -->
 <div class="modal-overlay" id="mFinal" onclick="ovClose(event,'mFinal')">
   <div class="modal-sheet">
