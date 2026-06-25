@@ -93,7 +93,7 @@
         }
         .input-group input::placeholder { color: #475569; }
 
-        .login-btn {
+        .-btn {
             width: 100%; padding: 16px;
             background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
             border: none; border-radius: 12px;
@@ -102,7 +102,7 @@
             margin-top: 8px; overflow: hidden; position: relative;
             font-family: 'Syne', sans-serif;
         }
-        .login-btn:hover:not(:disabled) {
+        .-btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 12px 30px rgba(59,130,246,0.4);
         }
@@ -302,7 +302,7 @@
             document.getElementById('welcomeRole').textContent = role;
             document.getElementById('welcome-screen').classList.add('show');
             // Redirect to HISTORY page (new flow)
-            setTimeout(() => { window.location.href = 'testV27.html'; }, 2000);
+            setTimeout(() => { window.location.href = 'testV28.html'; }, 2000);
         }
 
         function setLoading(on) {
