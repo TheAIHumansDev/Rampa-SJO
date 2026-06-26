@@ -1405,6 +1405,98 @@ const QS={
   else{alert('Inicie sesión primero');location.href='login-P10.html'}
 })();
 
+  function checkResumeSession() {
+  const raw = sessionStorage.getItem('resumeReport');
+  if (!raw) return;
+  let rep;
+  try { rep = JSON.parse(raw); } catch (e) { return; }
+  sessionStorage.removeItem('resumeReport');
+  if (!rep || !rep.airline || !rep.flightType) return;
+
+  // 1. Restaurar variables de vuelo
+  sA        = rep.airline         || '';
+  sT        = rep.flightType      || '';
+  // flightNumber puede venir como "1234/5678" o separado
+  const parts = (rep.flightNumber || '').split('/');
+  sOrigen   = rep.flightOrigen    || parts[0] || rep.flightNumber || '';
+  sDestino  = rep.flightDestino   || parts[1] || '';
+  sPosicion = rep.posicion        || '';
+  sF        = rep.flightNumber    || (sOrigen && sDestino ? `${sOrigen}/${sDestino}` : sOrigen);
+  fTS       = rep.flightTimestamp || new Date().toISOString();
+
+  // 2. Cargar checkpoints del tipo de vuelo
+  CPS = QS[sT] || [];
+
+  // 3. Reconstruir fotos desde los checkpoints guardados en historial
+  photos = {};
+  (rep.checkpoints || []).forEach(cp => {
+    // Buscar la key del CPS que corresponde a este label
+    const def = CPS.find(c => c.label === cp.label) ||
+                CPS.find(c => c.key  === cp.key);
+    const key = def ? def.key : _slugify(cp.label);
+
+    if (!photos[key]) photos[key] = [];
+
+    // Si ya hay una entrada (puede pasar con grupos), no duplicar
+    const alreadyHas = photos[key].some(p => (p.sub||'') === (cp.sub||'') && (p.sub !== undefined));
+    if (!alreadyHas) {
+      photos[key].push({
+        checkpoint: key,
+        label:      cp.label,
+        emoji:      cp.emoji   || def?.emoji || '✅',
+        timestamp:  cp.timestamp || new Date().toISOString(),
+        photo:      null,          // foto ya fue subida a Drive; no tenemos base64
+        photoUrl:   cp.photoUrl || null,
+        sub:        cp.sub     || undefined,
+        restored:   true           // flag para no re-subir a Drive
+      });
+    }
+  });
+
+  // 4. Restaurar Beacon OFF si ya fue registrado
+  const beaconCP = (rep.checkpoints || []).find(c =>
+    c.label === 'Beacon OFF' || c.key === 'beacon_off'
+  );
+  if (beaconCP && beaconCP.timestamp) {
+    beaconOff = new Date(beaconCP.timestamp);
+    startBeaconAlerts();
+  }
+
+  // 5. Restaurar servicios facturables si vienen embebidos
+  if (Array.isArray(rep.billingItems) && rep.billingItems.length > 0) {
+    billingItems = rep.billingItems;
+    updateSvcBadge();
+  }
+
+  // 6. Restaurar incidente / seguridad
+  if (rep.incident)  incData = rep.incident;
+  if (rep.seguridad) segData = rep.seguridad;
+
+  // 7. Ir directo a la pantalla de inspección
+  document.getElementById('bottomBar').style.display = 'flex';
+  document.getElementById('stepLabel').textContent =
+    `${ANAMES[sA] || sA} · ${sT} · ${sF} ✦ RETOMADO`;
+
+  renderFlightBar();
+  renderMissions();
+  showSC('sI');
+
+  // 8. Toast de confirmación
+  const cpCount = (rep.checkpoints || []).length;
+  setTimeout(() => toast(
+    `▶ Retomando ${ANAMES[sA]||sA} ${sF} — ${cpCount} checkpoint(s) ya registrados`
+  ), 400);
+}
+
+// Helper: convierte un label a slug de clave
+function _slugify(str) {
+  return String(str)
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+
 // ── THREE.JS ──
 (()=>{
   const cont=document.getElementById('canvas-container');
@@ -1522,13 +1614,34 @@ function bCapture(){const v=document.getElementById('bVid');const c=document.cre
 function bRetake(){briefPhotoData=null;briefPhotoTS=null;document.getElementById('bPrevV').style.display='none';bStartCam()}
 function bClearPreview(){document.getElementById('bPrevV').style.display='none';document.getElementById('bStartBtn').style.display='block';document.getElementById('bStartBtn').textContent='📷 Cambiar Foto'}
 function bStopCam(){stopCam();document.getElementById('bCamV').style.display='none';document.getElementById('bStartBtn').style.display='block'}
+
+function saveCP(stepIdx, itemLabel, timestamp, photoB64, extra) {
+  extra = extra || {};
+  post(Object.assign({
+    action:          'saveInspection',
+    airline:          sA,
+    flightType:       sT,
+    flightNumber:     sF,
+    flightTimestamp:  fTS,
+    inspector:        U.username,
+    role:             U.role,
+    posicion:         sPosicion,          // ← NUEVO: añade posición al sheet
+    step:             (stepIdx || 0) + 1,
+    item:             itemLabel,
+    timestamp:        timestamp || new Date().toISOString(),
+    status:           'En Proceso',
+    photoBase64:      photoB64 || null
+  }, extra));
+}
+  
 function saveBriefing(idx){
   const cp=CPS[idx];
   const tops=BTOPICS.map(t=>document.getElementById(`bt-${t.id}`)).filter(e=>e&&e.checked).map(e=>e.value);
   const notes=document.getElementById('bNotes').value;
   const ts=briefPhotoTS||new Date().toISOString();
   photos[cp.key]=[{checkpoint:cp.key,label:cp.label,emoji:cp.emoji,timestamp:ts,photo:briefPhotoData||null}];
-  post({action:'saveInspection',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,inspector:U.username,role:U.role,step:idx+1,item:cp.label,timestamp:ts,status:'En Proceso',briefingTopics:tops,briefingNotes:notes,photoBase64:briefPhotoData||null});
+
+  saveCP(idx, cp.label, ts, briefPhotoData, { briefingTopics: tops, briefingNotes: notes });
   stopCam();closeCP();renderMissions();
 }
 
@@ -1585,7 +1698,7 @@ function cargoConfirmSub(idx){
   const cp=CPS[idx];if(!photos[cp.key])photos[cp.key]=[];
   photos[cp.key]=photos[cp.key].filter(p=>p.sub!==cargoCurSub);
   photos[cp.key].push({checkpoint:cp.key,label:cargoCurLbl,emoji:cp.emoji,photo:cargoPhotoData,timestamp:cargoPhotoTS,sub:cargoCurSub});
-  post({action:'saveInspection',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,inspector:U.username,role:U.role,step:idx+1,item:cargoCurLbl,timestamp:cargoPhotoTS,status:'En Proceso',photoBase64:cargoPhotoData});
+  saveCP(idx, cargoCurLbl, cargoPhotoTS, cargoPhotoData, { sub: cargoCurSub });
   cargoPhotoData=null;cargoPhotoTS=null;stopCam();
   document.getElementById('cargoSubCamArea').style.display='none';document.getElementById('cargoPrevArea').style.display='none';
   closeCP();renderMissions();setTimeout(()=>openCP(idx),200);
@@ -1641,7 +1754,7 @@ function wwConfirm(idx){
   const cp=CPS[idx];if(!photos[cp.key])photos[cp.key]=[];
   photos[cp.key]=photos[cp.key].filter(p=>p.sub!==wwCurSub);
   photos[cp.key].push({checkpoint:cp.key,label:wwCurLbl,emoji:cp.emoji,photo:wwPhotoData,timestamp:wwPhotoTS,sub:wwCurSub});
-  post({action:'saveInspection',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,inspector:U.username,role:U.role,step:idx+1,item:wwCurLbl,timestamp:wwPhotoTS,status:'En Proceso',photoBase64:wwPhotoData});
+  saveCP(idx, wwCurLbl, wwPhotoTS, wwPhotoData, { sub: wwCurSub });
   wwPhotoData=null;wwPhotoTS=null;stopCam();
   document.getElementById('wwCamArea').style.display='none';document.getElementById('wwPrevArea').style.display='none';
   closeCP();renderMissions();setTimeout(()=>openCP(idx),200);
@@ -1702,7 +1815,7 @@ function plantaConfirm(idx,sub){
   // remove previous entry for this sub
   photos[cp.key]=photos[cp.key].filter(p=>p.sub!==sub);
   photos[cp.key].push({checkpoint:cp.key,label:`${cp.label} — ${sub==='conecta'?'Conecta':'Desconecta'}`,emoji:cp.emoji,photo:d.photo,timestamp:d.ts,sub});
-  post({action:'saveInspection',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,inspector:U.username,role:U.role,step:idx+1,item:`${cp.label} ${sub}`,timestamp:d.ts,status:'En Proceso',photoBase64:d.photo});
+  saveCP(idx, `${cp.label} — ${sub === 'conecta' ? 'Conecta' : 'Desconecta'}`, d.ts, d.photo, { sub: sub });
   stopCam();closeCP();renderMissions();
   // reopen to show updated state
   setTimeout(()=>openCP(idx),200);
@@ -1735,7 +1848,7 @@ function stConfirm(idx){
   photos[cp.key].push({checkpoint:cp.key,label:cp.label,emoji:cp.emoji,photo:stPD,timestamp:stTS});
   if(cp.key==='beacon_off'&&!beaconOff){beaconOff=new Date(stTS);startBeaconAlerts()}
   if(cp.key==='push_back')autoClosePlanta();
-  post({action:'saveInspection',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,inspector:U.username,role:U.role,step:idx+1,item:cp.label,timestamp:stTS,status:'En Proceso',photoBase64:stPD});
+  saveCP(idx, cp.label, stTS, stPD);
   stPD=null;stTS=null;stopCam();closeCP();renderMissions();checkComplete();
 }
 function stSkip(){stopCam();closeCP();renderMissions()}
@@ -1853,7 +1966,7 @@ function saveSeg(){
   const personas=document.getElementById('segPersonas').value.trim();
   const accion=document.getElementById('segAccion').value.trim();
   segData={categoria:segCat,riesgo:segRisk,descripcion:desc,personas,accion,seguimiento:segFol,timestamp:new Date().toISOString()};
-  post({action:'saveInspection',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,inspector:U.username,role:U.role,item:'Reporte Seguridad Operacional',timestamp:segData.timestamp,status:'En Proceso',seguridad:segData});
+  post({ action:'saveSeguridad', airline:sA, flightType:sT, flightNumber:sF, flightTimestamp:fTS, inspector:U.username, posicion:sPosicion, seguridad:segData });
   closeM('mSeg');toast('🛡️ Reporte de seguridad enviado');
 }
 
@@ -2297,7 +2410,7 @@ function limpSave(idx,photo){
   photos[cp.key]=photos[cp.key].filter(p=>p.sub!==limpCurSub);
   const ts=limpTS||new Date().toISOString();
   photos[cp.key].push({checkpoint:cp.key,label:limpCurLbl,emoji:'🧹',photo:photo||null,timestamp:ts,sub:limpCurSub});
-  post({action:'saveInspection',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,inspector:U.username,role:U.role,step:idx+1,item:limpCurLbl,timestamp:ts,status:'En Proceso',photoBase64:photo||null});
+  saveCP(idx, limpCurLbl, ts, photo, { sub: limpCurSub });
   limpPD=null;limpTS=null;stopCam();
   document.getElementById('limpCamArea').style.display='none';document.getElementById('limpPrevArea').style.display='none';
   closeCP();renderMissions();setTimeout(()=>openCP(idx),150);
@@ -2344,7 +2457,7 @@ function fodConfirm(idx){
   const cp=CPS[idx];if(!photos[cp.key])photos[cp.key]=[];
   photos[cp.key]=photos[cp.key].filter(p=>p.sub!==fodCurSub);
   photos[cp.key].push({checkpoint:cp.key,label:fodCurLbl,emoji:'🔍',photo:fodPD,timestamp:fodTS,sub:fodCurSub});
-  post({action:'saveInspection',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,inspector:U.username,role:U.role,step:idx+1,item:fodCurLbl,timestamp:fodTS,status:'En Proceso',photoBase64:fodPD});
+  saveCP(idx, fodCurLbl, fodTS, fodPD, { sub: fodCurSub });
   fodPD=null;fodTS=null;stopCam();document.getElementById('fodCamArea').style.display='none';document.getElementById('fodPrevArea').style.display='none';
   closeCP();renderMissions();setTimeout(()=>openCP(idx),150);
 }
@@ -2391,7 +2504,7 @@ function binConfirm(idx){
   const cp=CPS[idx];if(!photos[cp.key])photos[cp.key]=[];
   photos[cp.key]=photos[cp.key].filter(p=>p.sub!==binCurSub);
   photos[cp.key].push({checkpoint:cp.key,label:binCurLbl,emoji:'🚪',photo:binPD,timestamp:binTS,sub:binCurSub});
-  post({action:'saveInspection',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,inspector:U.username,role:U.role,step:idx+1,item:binCurLbl,timestamp:binTS,status:'En Proceso',photoBase64:binPD});
+  saveCP(idx, binCurLbl, binTS, binPD, { sub: binCurSub });
   binPD=null;binTS=null;stopCam();document.getElementById('binCamArea').style.display='none';document.getElementById('binPrevArea').style.display='none';
   closeCP();renderMissions();setTimeout(()=>openCP(idx),150);
 }
