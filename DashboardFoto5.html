@@ -394,17 +394,17 @@
 .photo-btn.has-photos { border-color:rgba(139,92,246,0.6); color:#e9d5ff; }
 .photo-btn.no-photos  { opacity:.4; cursor:default; pointer-events:none; }
 
-.lbx-overlay {
+.-overlay {
   position:fixed;inset:0;z-index:900;
   background:rgba(2,5,18,0.96);
   backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
   display:flex;flex-direction:column;
-  animation:lbxFadeIn .22s ease;
+  animation:FadeIn .22s ease;
 }
-.lbx-overlay.hidden { display:none; }
-@keyframes lbxFadeIn { from{opacity:0} to{opacity:1} }
+.-overlay.hidden { display:none; }
+@keyframes FadeIn { from{opacity:0} to{opacity:1} }
 
-.lbx-header {
+.-header {
   display:flex;align-items:center;justify-content:space-between;
   padding:14px 20px;
   border-bottom:1px solid rgba(59,130,246,0.15);
@@ -412,34 +412,34 @@
   flex-shrink:0;
   gap:12px;flex-wrap:wrap;
 }
-.lbx-flight-info { display:flex;align-items:center;gap:12px; }
-.lbx-badge {
+.-flight-info { display:flex;align-items:center;gap:12px; }
+.-badge {
   padding:4px 12px;border-radius:20px;
   background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.35);
   color:#c4b5fd;font-size:11px;font-weight:700;
   font-family:'JetBrains Mono',monospace;
 }
-.lbx-title { font-size:15px;font-weight:800;color:#e2e8f0; }
-.lbx-subtitle { font-size:11px;color:#64748b;font-family:'JetBrains Mono',monospace; }
-.lbx-header-right { display:flex;align-items:center;gap:8px; }
-.lbx-count {
+.-title { font-size:15px;font-weight:800;color:#e2e8f0; }
+.-subtitle { font-size:11px;color:#64748b;font-family:'JetBrains Mono',monospace; }
+.-header-right { display:flex;align-items:center;gap:8px; }
+.-count {
   font-size:11px;color:#64748b;
   font-family:'JetBrains Mono',monospace;
 }
-.lbx-close {
+.-close {
   width:34px;height:34px;border-radius:8px;
   background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);
   color:#fca5a5;font-size:14px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   transition:all .2s;font-family:inherit;
 }
-.lbx-close:hover { background:rgba(239,68,68,0.22); }
+.-close:hover { background:rgba(239,68,68,0.22); }
 
-.lbx-main {
+.-main {
   flex:1;display:flex;min-height:0;
 }
 
-.lbx-filmstrip {
+.-filmstrip {
   width:120px;flex-shrink:0;
   overflow-y:auto;overflow-x:hidden;
   background:rgba(5,8,22,0.8);
@@ -448,18 +448,18 @@
   padding:8px 6px;
   scrollbar-width:thin;scrollbar-color:rgba(59,130,246,0.3) transparent;
 }
-.lbx-filmstrip::-webkit-scrollbar { width:3px; }
-.lbx-filmstrip::-webkit-scrollbar-thumb { background:rgba(59,130,246,0.3);border-radius:3px; }
+.-filmstrip::-webkit-scrollbar { width:3px; }
+.-filmstrip::-webkit-scrollbar-thumb { background:rgba(59,130,246,0.3);border-radius:3px; }
 
-.lbx-thumb {
+.-thumb {
   flex-shrink:0;border-radius:8px;overflow:hidden;cursor:pointer;
   border:2px solid transparent;transition:all .18s;
   background:rgba(15,23,42,0.7);
   position:relative;
 }
-.lbx-thumb:hover { border-color:rgba(139,92,246,0.5); }
-.lbx-thumb.active { border-color:#8b5cf6;box-shadow:0 0 10px rgba(139,92,246,0.4); }
-.lbx-thumb img {
+.-thumb:hover { border-color:rgba(139,92,246,0.5); }
+.-thumb.active { border-color:#8b5cf6;box-shadow:0 0 10px rgba(139,92,246,0.4); }
+.-thumb img {
   width:100%;aspect-ratio:4/3;object-fit:cover;display:block;
 }
 .lbx-thumb .thumb-label {
@@ -2201,78 +2201,107 @@ function lbxRender() {
 }
 
 // ── Mostrar foto en el stage ─────────────────────────────────
-function lbxShowPhoto(idx) {
-  if (!lbxPhotos.length) return;
-  idx = Math.max(0, Math.min(idx, lbxPhotos.length - 1));
-  lbxCurrentIdx = idx;
-
-  var photo = lbxPhotos[idx];
-  var total = lbxPhotos.length;
-
-  // Update filmstrip active
-  document.querySelectorAll('.lbx-thumb').forEach(function(el, i) {
-    el.classList.toggle('active', i === idx);
-  });
-  // Scroll filmstrip to active
-  var activeThumb = document.getElementById('lbxThumb_' + idx);
-  if (activeThumb) activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-  // Navegation buttons
-  document.getElementById('lbxPrev').disabled = idx === 0;
-  document.getElementById('lbxNext').disabled = idx === total - 1;
-
-  // Progress
-  var pct = total > 1 ? Math.round((idx / (total - 1)) * 100) : 100;
-  document.getElementById('lbxProgressFill').style.width  = pct + '%';
-  document.getElementById('lbxProgressLabel').textContent = (idx + 1) + ' / ' + total;
-
-  // Imagen principal
-  var img   = document.getElementById('lbxImgMain');
-  var noImg = document.getElementById('lbxNoImg');
-  var spin  = document.getElementById('lbxSpinner');
-
-  if (photo.photoUrl || photo.thumbUrl) {
-    img.style.display  = 'none';
-    noImg.style.display = 'none';
-    spin.style.display  = 'block';
-    // usar thumbnail de mayor resolución para stage
-    var fullUrl = photo.photoUrl || photo.thumbUrl;
-    // Intentar reemplazar sz=w400 por sz=w1200 para mejor calidad en el stage
-    var bigUrl = fullUrl.indexOf('thumbnail?id=') >= 0
-      ? fullUrl.replace(/sz=w\d+/, 'sz=w1200')
-      : fullUrl;
-    img.src = bigUrl;
-    img.alt = photo.label || '';
-  } else {
-    spin.style.display  = 'none';
-    img.style.display   = 'none';
-    noImg.style.display = 'flex';
-  }
-
-  // Caption
-  var caption = document.getElementById('lbxCaption');
-  caption.style.display = 'block';
-  document.getElementById('lbxCaptionLabel').textContent =
-    (photo.emoji || '📷') + ' ' + (photo.label || '–') +
-    (photo.subItem ? ' — ' + photo.subItem : '');
-  document.getElementById('lbxCaptionTs').textContent =
-    photo.timestamp ? lbxFmtDateTime(photo.timestamp) : '–';
-
-  // Botones de acción
-  var actions = document.getElementById('lbxCaptionActions');
-  var btns = '';
-  if (photo.photoUrl) {
-    btns += '<a class="lbx-action-btn lbx-btn-drive" href="' + photo.photoUrl
-          + '" target="_blank" rel="noopener">🔗 Ver en Drive</a>';
-    btns += '<a class="lbx-action-btn lbx-btn-download" href="'
-          + photo.photoUrl.replace('/view', '') + '&export=download"'
-          + ' target="_blank" rel="noopener">⬇ Descargar</a>';
-  }
-  btns += '<button class="lbx-action-btn" style="background:rgba(30,41,59,0.5);border:1px solid rgba(59,130,246,0.2);color:#64748b;cursor:pointer;font-family:inherit;" onclick="lbxCopyLabel()">'
-        + '📋 Copiar info</button>';
-  actions.innerHTML = btns;
+function lbxShowPhoto(idx){
+    if(!lbxPhotos.length)return;
+    idx=Math.max(0,Math.min(idx,lbxPhotos.length-1));
+    lbxCurrentIdx=idx;
+    const photo=lbxPhotos[idx],total=lbxPhotos.length;
+ 
+    // Filmstrip active
+    document.querySelectorAll('.lbx-thumb').forEach((el,i)=>el.classList.toggle('active',i===idx));
+    const activeThumb=document.getElementById('lbxThumb_'+idx);
+    if(activeThumb)activeThumb.scrollIntoView({behavior:'smooth',block:'nearest'});
+ 
+    // Nav buttons
+    document.getElementById('lbxPrev').disabled=idx===0;
+    document.getElementById('lbxNext').disabled=idx===total-1;
+ 
+    // Progress
+    const pct=total>1?Math.round(idx/(total-1)*100):100;
+    document.getElementById('lbxProgressFill').style.width=pct+'%';
+    document.getElementById('lbxProgressLabel').textContent=(idx+1)+' / '+total;
+ 
+    // ── Construir URL para imagen principal ──────────────────────────────────
+    // Extraer el fileId de cualquier URL de Drive que tengamos
+    function extractDriveFileId(url){
+        if(!url)return null;
+        // Formato thumbnail: drive.google.com/thumbnail?id=FILE_ID
+        var m1=url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        if(m1)return m1[1];
+        // Formato file view: drive.google.com/file/d/FILE_ID/view
+        var m2=url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if(m2)return m2[1];
+        // Formato uc: drive.google.com/uc?...id=FILE_ID
+        var m3=url.match(/uc\?.*id=([a-zA-Z0-9_-]+)/);
+        if(m3)return m3[1];
+        return null;
+    }
+ 
+    // Prioridad: photoUrl > thumbUrl (ambas pueden tener el fileId)
+    var sourceUrl = photo.photoUrl || photo.thumbUrl || photo.url || '';
+    var fileId = photo.fileId || photo.driveFileId || extractDriveFileId(sourceUrl);
+ 
+    // URL óptima para mostrar en <img>: /uc?export=view&id=FILE_ID
+    // Esta URL funciona desde dominios externos sin problemas de CORS/referrer
+    var bigUrl = '';
+    if(fileId){
+        bigUrl = 'https://drive.google.com/uc?export=view&id=' + fileId;
+    } else if(sourceUrl){
+        bigUrl = sourceUrl; // fallback si no hay fileId
+    }
+ 
+    const img   = document.getElementById('lbxImgMain');
+    const noImg = document.getElementById('lbxNoImg');
+    const spin  = document.getElementById('lbxSpinner');
+ 
+    if(bigUrl){
+        img.style.display  = 'none';
+        noImg.style.display = 'none';
+        spin.style.display  = 'block';
+        img.src = bigUrl;
+        img.alt = photo.label || '';
+    } else {
+        spin.style.display  = 'none';
+        img.style.display   = 'none';
+        noImg.style.display = 'flex';
+    }
+ 
+    // Caption
+    document.getElementById('lbxCaption').style.display='block';
+    document.getElementById('lbxCaptionLabel').textContent=
+        (photo.emoji||'📷')+' '+(photo.label||'–')+
+        (photo.subItem?' — '+photo.subItem:'');
+    document.getElementById('lbxCaptionTs').textContent=
+        photo.timestamp?lbxFmtDateTime(photo.timestamp):'–';
+ 
+    // Botones de acción — usar URL de visualización normal para "Ver en Drive"
+    var viewUrl  = fileId ? 'https://drive.google.com/file/d/'+fileId+'/view' : (photo.photoUrl||'');
+    var dlUrl    = fileId ? 'https://drive.google.com/uc?export=download&id='+fileId : '';
+    var btns = '';
+    if(viewUrl){
+        btns += '<a class="lbx-action-btn lbx-btn-drive" href="'+viewUrl+'" target="_blank" rel="noopener">🔗 Ver en Drive</a>';
+    }
+    if(dlUrl){
+        btns += '<a class="lbx-action-btn lbx-btn-download" href="'+dlUrl+'" target="_blank" rel="noopener">⬇ Descargar</a>';
+    }
+    btns += '<button class="lbx-action-btn lbx-btn-copy" onclick="lbxCopyLabel()" style="background:rgba(30,41,59,0.5);border:1px solid rgba(59,130,246,0.2);color:#64748b;cursor:pointer;font-family:inherit;">📋 Copiar info</button>';
+    document.getElementById('lbxCaptionActions').innerHTML=btns;
 }
-
+ 
+// ── También actualizar lbxFmtDateTime si no existe ya en tu archivo ──────────
+// (verificar que esta función ya esté, si no, agregarla)
+function lbxFmtDateTime(ts){
+    if(!ts)return'–';
+    try{
+        var d=new Date(ts);
+        if(isNaN(d.getTime())){
+            var m=String(ts).match(/(\d{1,2}:\d{2}(?::\d{2})?)/);
+            return m?m[1]:String(ts);
+        }
+        return d.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})
+             +' '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    }catch(e){return String(ts);}
+}
 // ── Eventos de imagen ─────────────────────────────────────────
 function lbxImgLoaded() {
   document.getElementById('lbxSpinner').style.display = 'none';
