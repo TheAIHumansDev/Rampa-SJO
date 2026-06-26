@@ -1094,9 +1094,50 @@ function normalizeReport(r){
     const statusRaw=get('Estatus','status')||'';
     if(/complet|done|cerrad/i.test(statusRaw))status='Completado';
     else if(!statusRaw)status=progress>=100?'Completado':'En Proceso';
-    const checkpoints=cpCols.map(label=>{const ts=get(label);return ts?{label,timestamp:ts}:null;}).filter(Boolean);
+ 
+    // FIX #3: checkpoints con photoUrl/thumbUrl + conteo real de fotos
+    let photoCount=0;
+    const checkpoints=[];
+    if(Array.isArray(r.checkpoints)){
+        // GAS v3 devuelve checkpoints ya como array con photoUrl embebido
+        r.checkpoints.forEach(cp=>{
+            if(cp.photoUrl||cp.thumbUrl)photoCount++;
+            checkpoints.push({
+                label:cp.label,
+                timestamp:cp.timestamp,
+                photoUrl:cp.photoUrl||null,
+                thumbUrl:cp.thumbUrl||null
+            });
+        });
+    } else {
+        // Respuesta legacy: campos planos con "timestamp | url" embebido
+        cpCols.forEach(label=>{
+            const ts=get(label);if(!ts)return;
+            const parts=String(ts).split(' | ');
+            const photoUrl=parts.length>1?parts[1].trim():'';
+            let thumbUrl='';
+            if(photoUrl&&photoUrl.indexOf('drive.google.com')>=0){
+                const m=photoUrl.match(/\/d\/([^\/\?]+)/);
+                if(m)thumbUrl='https://drive.google.com/thumbnail?id='+m[1]+'&sz=w400';
+                photoCount++;
+            }
+            checkpoints.push({label,timestamp:parts[0].trim(),photoUrl:photoUrl||null,thumbUrl:thumbUrl||null});
+        });
+    }
+    // photoCount del GAS v3 tiene prioridad sobre el conteo local
+    const gasPhotoCount=parseInt(get('photoCount')||0);
+    if(gasPhotoCount>photoCount)photoCount=gasPhotoCount;
+ 
     const uniqueKey=flightKey?(r._sheetType+'_'+flightKey):(r._sheetType+'_'+flightNumber+'_'+flightTs);
-    return{flightKey:uniqueKey,airline:airlineCode,airlineName,flightNumber,flightType,flightTimestamp:flightTs,inspector,role,aeropuerto,itemsCompletados:itemsDone,itemsTotales:itemsTotal,progress,status,checkpoints,incident:r.incident||null,_sheetType:r._sheetType||'TURN'};
+ 
+    return{
+        flightKey:uniqueKey,
+        flightKeyRaw:flightKey,          // FIX #4: preservar raw key para getFlightPhotos
+        airline:airlineCode,airlineName,flightNumber,flightType,flightTimestamp:flightTs,
+        inspector,role,aeropuerto,itemsCompletados:itemsDone,itemsTotales:itemsTotal,
+        progress,status,checkpoints,photoCount,
+        incident:r.incident||null,_sheetType:r._sheetType||'TURN'
+    };
 }
 
 // ══════════════════════════════════════════════════════
@@ -1212,6 +1253,11 @@ function renderTable(){
         const isHighlighted=!activeInspectorFilter||activeInspectorFilter===inspector;
         const rowOpacity=isHighlighted?'1':'0.2',leftAccent=isHighlighted?`border-left:2px solid ${c.dot};`:'';
         const safeKey=(r.flightKey||'').replace(/'/g,"\\'");
+const pc=r.photoCount||0;
+const embeddedPhotos=(r.checkpoints||[]).filter(cp=>cp.photoUrl||cp.thumbUrl).length;
+const effectiveCount=Math.max(pc,embeddedPhotos);
+const photoBtnClass=effectiveCount>0?'has-photos':'no-photos';
+const photoBtnTitle=effectiveCount>0?(effectiveCount+' foto(s) disponibles'):'Sin fotos registradas';
         return`<div class="rt-row" style="animation-delay:${i*.03}s;opacity:${rowOpacity};transition:opacity .25s;${leftAccent}" onclick="openFlightDetail('${safeKey}')" title="Ver detalle">
             <div class="rt-cell flight">${r.airlineName||r.airline||'–'} ${r.flightNumber||'–'}${incBadge}<span style="margin-left:5px;">${sheetBadge}</span></div>
             <div class="rt-cell"><div class="user-pill" style="--ipill-bg:${c.bg};--ipill-border:${c.border};--ipill-text:${c.text};"><div class="user-avatar" style="--iavatar-bg:${c.grad};--iavatar-glow:${c.glow};">${initials}</div><span class="user-name-text">${inspector}</span></div></div>
@@ -2073,51 +2119,60 @@ function openPhotoViewer(e, flightKey) {
 
 // ── Fetch de fotos desde GAS (CHECKPOINTS_DETALLE) ───────────
 function lbxFetchPhotos(flightKey, report) {
-  // Intentar con flightKeyRaw primero, luego el key completo
-  var keys = [];
-  if (report.flightKeyRaw) keys.push(report.flightKeyRaw);
-  keys.push(flightKey);
-
-  var tried = 0;
-  function tryNext() {
-    if (tried >= keys.length) {
-      // Si no hay fotos en el backend, mostrar checkpoints sin foto
-      lbxPhotos = (report.checkpoints || []).map(function(cp) {
-        return {
-          label:     cp.label || '',
-          emoji:     '📷',
-          timestamp: cp.timestamp || '',
-          photoUrl:  '',
-          thumbUrl:  '',
-          subItem:   ''
+    // FIX #4: usar flightKeyRaw (sin prefijo de hoja) como primera opción
+    var keys = [];
+    if (report.flightKeyRaw) keys.push(report.flightKeyRaw);
+    if (keys.indexOf(flightKey) < 0) keys.push(flightKey);
+ 
+    var tried = 0;
+    function tryNext() {
+        if (tried >= keys.length) {
+            // No hay fotos → mostrar checkpoints sin foto
+            lbxPhotos = (report.checkpoints || []).map(function(cp) {
+                return {label:cp.label||'',emoji:'📷',timestamp:cp.timestamp||'',photoUrl:'',thumbUrl:'',subItem:''};
+            });
+            lbxRender();
+            return;
+        }
+        var key = keys[tried++];
+        var cbName = 'lbxCb_' + Date.now() + '_' + tried;
+        var url = SCRIPT_URL + '?action=getFlightPhotos&flightKey=' + encodeURIComponent(key)
+                  + '&callback=' + cbName;
+ 
+        // Limpiar script anterior
+        var oldScript = document.getElementById('_sc_lbx');
+        if (oldScript) oldScript.remove();
+ 
+        var timer = setTimeout(function() {
+            if (window[cbName]) delete window[cbName];
+            var s = document.getElementById('_sc_lbx'); if(s) s.remove();
+            tryNext();
+        }, 8000);
+ 
+        window[cbName] = function(data) {
+            clearTimeout(timer);
+            delete window[cbName];
+            var s = document.getElementById('_sc_lbx'); if(s) s.remove();
+            if (data && data.success && Array.isArray(data.photos) && data.photos.length > 0) {
+                lbxPhotos = data.photos;
+                lbxRender();
+            } else {
+                tryNext();
+            }
         };
-      });
-      lbxRender();
-      return;
+ 
+        var script = document.createElement('script');
+        script.id = '_sc_lbx';
+        script.onerror = function() {
+            clearTimeout(timer);
+            if(window[cbName]) delete window[cbName];
+            this.remove();
+            tryNext();
+        };
+        document.body.appendChild(script);
+        script.src = url;
     }
-    var key = keys[tried++];
-    var cbName = 'lbxCb_' + Date.now();
-    var url = SCRIPT_URL + '?action=getFlightPhotos&flightKey=' + encodeURIComponent(key)
-              + '&callback=' + cbName;
-    window[cbName] = function(data) {
-      delete window[cbName];
-      var s = document.getElementById('_sc_lbx'); if (s) s.remove();
-      if (data && data.success && data.photos && data.photos.length > 0) {
-        lbxPhotos = data.photos;
-        lbxRender();
-      } else {
-        tryNext();
-      }
-    };
-    var s = document.createElement('script');
-    s.id = '_sc_lbx'; s.src = url;
-    s.onerror = function() { delete window[cbName]; s.remove(); tryNext(); };
-    document.body.appendChild(s);
-    setTimeout(function() {
-      if (window[cbName]) { delete window[cbName]; var e = document.getElementById('_sc_lbx'); if(e)e.remove(); tryNext(); }
-    }, 8000);
-  }
-  tryNext();
+    tryNext();
 }
 
 // ── Renderizar galería una vez que tenemos las fotos ─────────
