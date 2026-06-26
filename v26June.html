@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Mi Historial — Turnaround Check</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{overflow-x:hidden}
+body{font-family:'Syne',sans-serif;background:#050816;color:#e2e8f0;min-height:100dvh;overflow-x:hidden}
+#canvas-container{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none}
+.shell{position:relative;z-index:2;display:flex;flex-direction:column;min-height:100dvh;max-width:520px;margin:0 auto}
+
+/* HEADER */
+.hdr{background:rgba(5,8,22,0.93);backdrop-filter:blur(24px);border-bottom:1px solid rgba(59,130,246,0.18);padding:12px 14px 10px;position:sticky;top:0;z-index:20;flex-shrink:0}
+.hdr-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.brand{display:flex;align-items:center;gap:9px}
+.brand-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.brand-name{font-size:16px;font-weight:800;background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brand-sub{font-size:9px;color:#475569;font-family:'JetBrains Mono',monospace;letter-spacing:2px;text-transform:uppercase}
+.hdr-right{display:flex;align-items:center;gap:7px}
+.user-pill{display:flex;align-items:center;gap:6px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.18);border-radius:20px;padding:4px 10px 4px 4px}
+.user-av{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.user-name{font-size:12px;font-weight:600;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-role{font-size:9px;color:#475569;font-family:'JetBrains Mono',monospace}
+.btn-logout{padding:5px 11px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.28);border-radius:8px;color:#fca5a5;font-size:11px;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif;white-space:nowrap;transition:all .2s}
+.btn-new{width:100%;padding:12px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border:none;border-radius:11px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 4px 18px rgba(59,130,246,0.3);transition:all .18s}
+.btn-new:active{transform:scale(0.97)}
+
+/* MAIN */
+.main{flex:1;padding:14px 13px 28px;overflow-y:auto}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:14px}
+.stat-card{background:rgba(10,17,35,0.88);border:1px solid rgba(59,130,246,0.15);border-radius:12px;padding:11px 8px;backdrop-filter:blur(12px);text-align:center}
+.stat-lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#475569;font-family:'JetBrains Mono',monospace;margin-bottom:3px}
+.stat-val{font-size:22px;font-weight:800;line-height:1}
+.sv-blue{background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sv-green{background:linear-gradient(135deg,#10b981,#059669);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sv-amber{background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sv-teal{background:linear-gradient(135deg,#14b8a6,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+/* TABS */
+.tabs-wrap{display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.tabs-wrap::-webkit-scrollbar{display:none}
+.tab-btn{flex-shrink:0;padding:7px 14px;background:rgba(18,28,52,0.6);border:1px solid rgba(59,130,246,0.13);border-radius:20px;font-size:11px;font-weight:600;color:#64748b;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .2s;white-space:nowrap}
+.tab-btn.active{background:rgba(59,130,246,0.15);border-color:#3b82f6;color:#60a5fa}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px}
+.toolbar-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px}
+.live-wrap{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:600;color:#10b981;font-family:'JetBrains Mono',monospace}
+.live-dot{width:5px;height:5px;border-radius:50%;background:#10b981;animation:ld 1.5s ease-in-out infinite}
+@keyframes ld{0%,100%{opacity:1}50%{opacity:.3}}
+.refresh-btn{width:32px;height:32px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);border-radius:9px;color:#60a5fa;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .2s;flex-shrink:0}
+.refresh-btn.spin{animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* FILTER PILLS */
+.filter-pills{display:flex;gap:5px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.filter-pills::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;padding:5px 12px;background:rgba(18,28,52,0.5);border:1px solid rgba(59,130,246,0.12);border-radius:16px;font-size:11px;font-weight:600;color:#64748b;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.pill.active{background:rgba(59,130,246,0.15);border-color:#3b82f6;color:#60a5fa}
+
+/* SEARCH */
+.search-bar{width:100%;padding:10px 13px;margin-bottom:11px;background:rgba(18,28,52,0.7);border:1px solid rgba(59,130,246,0.15);border-radius:10px;color:#fff;font-size:13px;outline:none;font-family:'Syne',sans-serif;transition:border-color .2s}
+.search-bar:focus{border-color:#3b82f6}
+.search-bar::placeholder{color:#475569}
+
+/* BANNER */
+.ip-banner{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.28);border-radius:10px;padding:9px 12px;margin-bottom:11px;font-size:11px;color:#fcd34d;line-height:1.5;display:none}
+.ip-banner.vis{display:block}
+
+/* REPORT CARD */
+.report-card{background:rgba(10,17,35,0.88);border:1px solid rgba(59,130,246,0.15);border-radius:15px;margin-bottom:9px;overflow:hidden;cursor:pointer;transition:all .22s;backdrop-filter:blur(12px);animation:cardIn .3s ease both}
+@keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.report-card:active{transform:scale(0.985)}
+.rc-completado{border-left:3px solid #10b981}
+.rc-proceso{border-left:3px solid #f59e0b}
+.rc-cancelado{border-left:3px solid #ef4444}
+
+.card-head{padding:12px 13px;display:flex;align-items:center;gap:10px;justify-content:space-between}
+.card-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.al-badge{width:40px;height:40px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(139,92,246,0.2));border:1px solid rgba(59,130,246,0.28);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#60a5fa;font-family:'JetBrains Mono',monospace}
+.card-info{flex:1;min-width:0}
+.card-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.type-tag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;flex-shrink:0}
+.tt-turn{background:rgba(59,130,246,0.15);color:#60a5fa}
+.tt-arr{background:rgba(16,185,129,0.15);color:#34d399}
+.tt-dep{background:rgba(245,158,11,0.15);color:#fbbf24}
+.tt-canc{background:rgba(239,68,68,0.15);color:#fca5a5}
+.card-meta{font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-right{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.status-chip{padding:3px 9px;border-radius:16px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;text-transform:uppercase}
+.sc-done{background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.28)}
+.sc-proc{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.28)}
+.sc-canc{background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.28)}
+.prog-mini{width:52px;height:3px;background:rgba(30,41,59,.7);border-radius:10px;overflow:hidden;margin-top:4px}
+.prog-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#3b82f6,#8b5cf6);transition:width .4s}
+.pf-done{background:linear-gradient(90deg,#10b981,#059669)}
+.pf-canc{background:linear-gradient(90deg,#ef4444,#dc2626)}
+.prog-pct{font-size:8px;color:#475569;font-family:'JetBrains Mono',monospace;margin-top:1px;text-align:right}
+.chevron{color:#475569;font-size:17px;transition:transform .25s}
+.report-card.expanded .chevron{transform:rotate(90deg)}
+
+/* DETAIL PANEL */
+.card-detail{max-height:0;overflow:hidden;transition:max-height .38s ease;border-top:0 solid transparent}
+.report-card.expanded .card-detail{max-height:3000px;border-top:1px solid rgba(59,130,246,0.12);padding:0 13px 13px}
+
+.det-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding-top:11px;margin-bottom:12px}
+.det-item{background:rgba(18,28,52,0.5);border:1px solid rgba(59,130,246,0.1);border-radius:9px;padding:8px 10px}
+.det-lbl{font-size:8px;color:#475569;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}
+.det-val{font-size:12px;font-weight:600}
+
+/* ACTION BUTTONS ROW */
+.action-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:11px;margin-bottom:2px}
+.act-btn{padding:10px 4px;border:none;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:3px;line-height:1.2}
+.act-btn .act-icon{font-size:18px}
+.btn-resume{background:linear-gradient(135deg,rgba(59,130,246,0.25),rgba(139,92,246,0.25));border:1px solid rgba(59,130,246,0.45)!important;color:#93c5fd}
+.btn-resume:active{transform:scale(0.96);background:rgba(59,130,246,0.38)}
+.btn-finish{background:linear-gradient(135deg,rgba(16,185,129,0.22),rgba(5,150,105,0.22));border:1px solid rgba(16,185,129,0.42)!important;color:#6ee7b7}
+.btn-finish:active{transform:scale(0.96)}
+.btn-delete{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.28)!important;color:#fca5a5}
+.btn-delete:active{transform:scale(0.96);background:rgba(239,68,68,0.22)}
+/* Full-width resume for in-progress */
+.btn-resume-full{width:100%;padding:12px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;transition:all .2s;margin-top:3px;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-resume-full:active{transform:scale(0.97)}
+
+/* Checkpoints */
+.sec-title{font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:6px}
+.cp-grid{display:flex;flex-direction:column;gap:4px;margin-bottom:11px}
+.cp-row{display:flex;align-items:center;gap:7px;padding:6px 9px;background:rgba(18,28,52,0.4);border:1px solid rgba(59,130,246,0.08);border-radius:8px}
+.cp-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:#10b981}
+.cp-label{font-size:11px;color:#cbd5e1;flex:1;font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cp-time{font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.cp-photo-lnk{font-size:9px;color:#60a5fa;text-decoration:none;flex-shrink:0;padding:2px 6px;background:rgba(59,130,246,0.1);border-radius:4px;border:1px solid rgba(59,130,246,0.2)}
+
+/* Photos gallery */
+.photo-gallery{display:flex;gap:7px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px;scrollbar-width:none}
+.photo-gallery::-webkit-scrollbar{display:none}
+.ph-thumb{flex-shrink:0;width:78px}
+.ph-thumb a{display:block;width:78px;aspect-ratio:4/3;border-radius:8px;overflow:hidden;border:1px solid rgba(59,130,246,0.22);text-decoration:none;background:rgba(18,28,52,0.7);display:flex;align-items:center;justify-content:center}
+.ph-thumb a img{width:100%;height:100%;object-fit:cover}
+.ph-lbl{font-size:8px;color:#475569;font-family:'JetBrains Mono',monospace;margin-top:2px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Services block */
+.svc-block{background:rgba(20,184,166,0.06);border:1px solid rgba(20,184,166,0.18);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.svc-block-title{font-size:10px;font-weight:700;color:#2dd4bf;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.svc-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(20,184,166,0.08);font-size:11px;font-family:'JetBrains Mono',monospace}
+.svc-row:last-child{border-bottom:none}
+.svc-name{color:#94a3b8;flex:1}.svc-amt{color:#2dd4bf;font-weight:700;flex-shrink:0}
+
+/* Incident block */
+.inc-block{background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.22);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.inc-title{font-size:10px;font-weight:700;color:#fca5a5;font-family:'JetBrains Mono',monospace;text-transform:uppercase;margin-bottom:5px}
+.inc-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;font-family:'JetBrains Mono',monospace}
+.inc-lab{color:#64748b}.inc-val{color:#e2e8f0;font-weight:600;text-align:right;max-width:65%;word-break:break-word}
+
+/* SECONDARY TAB CARDS */
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+.fac-card{background:rgba(10,17,35,0.88);border:1px solid rgba(20,184,166,0.18);border-radius:13px;padding:12px 13px;margin-bottom:8px;animation:cardIn .3s ease both}
+.fac-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.fac-fk{font-size:11px;font-weight:700;color:#2dd4bf}
+.fac-date{font-size:9px;color:#475569;font-family:'JetBrains Mono',monospace}
+.fac-item-row{display:flex;align-items:center;gap:8px;padding:5px 8px;background:rgba(18,28,52,0.5);border-radius:7px;margin-bottom:3px}
+.fac-icon{font-size:14px;width:22px;text-align:center;flex-shrink:0}
+.fac-name{font-size:11px;color:#e2e8f0;font-weight:600;flex:1}
+.fac-detail{font-size:9px;color:#64748b;font-family:'JetBrains Mono',monospace}
+.fac-amt{font-size:12px;font-weight:800;color:#2dd4bf;font-family:'JetBrains Mono',monospace;flex-shrink:0}
+.fac-total{display:flex;justify-content:space-between;padding:7px 8px;background:rgba(20,184,166,0.1);border:1px solid rgba(20,184,166,0.22);border-radius:8px;margin-top:7px}
+.fac-total span:first-child{font-size:11px;color:#64748b;font-weight:600}
+.fac-total span:last-child{font-size:14px;font-weight:800;color:#2dd4bf;font-family:'JetBrains Mono',monospace}
+
+.inc-card{background:rgba(10,17,35,0.88);border:1px solid rgba(239,68,68,0.18);border-radius:13px;padding:12px 13px;margin-bottom:8px;animation:cardIn .3s ease both}
+.sev-baja{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.28)}
+.sev-media{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.28)}
+.sev-alta{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.38)}
+.sev-badge{padding:3px 9px;border-radius:14px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace}
+
+.seg-card{background:rgba(10,17,35,0.88);border:1px solid rgba(245,158,11,0.18);border-radius:13px;padding:12px 13px;margin-bottom:8px;animation:cardIn .3s ease both}
+.rsk-badge{padding:3px 9px;border-radius:14px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.rsk-bajo{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.28)}
+.rsk-medio{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.28)}
+.rsk-alto{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.38)}
+.rsk-critico{background:rgba(139,0,0,.2);color:#fca5a5;border:1px solid rgba(239,68,68,.5);animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+
+.can-card{background:rgba(10,17,35,0.88);border:1px solid rgba(239,68,68,0.22);border-left:3px solid #ef4444;border-radius:13px;padding:12px 13px;margin-bottom:8px;animation:cardIn .3s ease both}
+
+/* CONFIRM MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(7px);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-sheet{width:100%;max-width:520px;background:rgba(7,13,28,0.99);border:1px solid rgba(59,130,246,0.22);border-radius:20px 20px 0 0;padding:18px 18px max(18px,env(safe-area-inset-bottom));max-height:80dvh;overflow-y:auto;transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1)}
+.modal-overlay.open .modal-sheet{transform:translateY(0)}
+.modal-handle{width:36px;height:4px;background:rgba(71,85,105,0.5);border-radius:2px;margin:0 auto 15px}
+.modal-title{color:#fff;font-size:17px;font-weight:700;margin-bottom:6px}
+.modal-sub{color:#475569;font-size:12px;margin-bottom:16px;line-height:1.5}
+.modal-btns{display:flex;gap:8px;margin-top:4px}
+.mbtn-confirm{flex:2;padding:13px;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif}
+.mbtn-cancel{flex:1;padding:13px;background:rgba(51,65,85,.3);border:1px solid rgba(51,65,85,.45);border-radius:10px;color:#94a3b8;font-size:13px;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif}
+.del-reason-group{margin-bottom:12px}
+.del-reason-lbl{color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
+.del-reason-opts{display:flex;flex-direction:column;gap:6px}
+.del-opt{padding:9px 12px;background:rgba(18,28,52,.6);border:2px solid rgba(59,130,246,.12);border-radius:9px;cursor:pointer;font-size:12px;color:#cbd5e1;transition:all .2s}
+.del-opt:hover{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.07);color:#fca5a5}
+.del-opt.sel{border-color:#ef4444;background:rgba(239,68,68,.12);color:#fca5a5}
+.del-notes{width:100%;padding:10px 12px;background:rgba(18,28,52,.7);border:1px solid rgba(59,130,246,.15);border-radius:9px;color:#fff;font-size:12px;resize:vertical;font-family:'Syne',sans-serif;outline:none;min-height:60px;margin-top:8px;transition:border-color .2s}
+.del-notes:focus{border-color:#3b82f6}
+
+/* EMPTY / SKEL */
+.empty{text-align:center;padding:38px 20px;background:rgba(10,17,35,0.7);border:1px solid rgba(59,130,246,0.12);border-radius:14px}
+.empty-icon{font-size:38px;margin-bottom:9px}
+.empty-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.empty-sub{color:#475569;font-size:11px}
+.skeleton{background:rgba(10,17,35,0.7);border:1px solid rgba(59,130,246,0.1);border-radius:13px;padding:14px;margin-bottom:8px;animation:shim 1.4s ease-in-out infinite}
+@keyframes shim{0%,100%{opacity:1}50%{opacity:.4}}
+.skel-l{height:11px;border-radius:5px;background:rgba(59,130,246,0.1);margin-bottom:7px}
+.skel-l.s{width:38%}.skel-l.m{width:62%}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(60px);background:rgba(16,185,129,0.95);backdrop-filter:blur(10px);color:#fff;padding:10px 20px;border-radius:22px;font-size:12px;font-weight:600;z-index:300;opacity:0;transition:all .3s;font-family:'JetBrains Mono',monospace;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.err{background:rgba(239,68,68,0.95)}
+.toast.warn{background:rgba(245,158,11,0.95)}
+
+@media(max-width:380px){.stats-grid{grid-template-columns:repeat(2,1fr)}.stat-val{font-size:20px}.action-row{grid-template-columns:1fr 1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div class="shell">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="hdr-row">
+      <div class="brand">
+        <div class="brand-icon">✈️</div>
+        <div>
+          <div class="brand-name">Historial</div>
+          <div class="brand-sub">Turnaround Check</div>
+        </div>
+      </div>
+      <div class="hdr-right">
+        <div class="user-pill">
+          <div class="user-av" id="uAv">?</div>
+          <div>
+            <div class="user-name" id="uName">–</div>
+            <div class="user-role" id="uRole">–</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()">Salir</button>
+      </div>
+    </div>
+    <button class="btn-new" onclick="goNew()">✈️ + Nueva Inspección</button>
+  </header>
+
+  <main class="main">
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-lbl">Total</div><div class="stat-val sv-blue" id="sTotal">–</div></div>
+      <div class="stat-card"><div class="stat-lbl">Completados</div><div class="stat-val sv-green" id="sDone">–</div></div>
+      <div class="stat-card"><div class="stat-lbl">En Proceso</div><div class="stat-val sv-amber" id="sProc">–</div></div>
+      <div class="stat-card"><div class="stat-lbl">Hoy</div><div class="stat-val sv-teal" id="sHoy">–</div></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-wrap">
+      <button class="tab-btn active" onclick="switchTab('reportes',this)">📋 Reportes</button>
+      <button class="tab-btn" onclick="switchTab('facturables',this)">💰 Facturables</button>
+      <button class="tab-btn" onclick="switchTab('incidentes',this)">⚠️ Incidentes</button>
+      <button class="tab-btn" onclick="switchTab('seguridad',this)">🛡️ Seguridad</button>
+      <button class="tab-btn" onclick="switchTab('cancelados',this)">❌ Cancelados</button>
+    </div>
+
+    <!-- TAB REPORTES -->
+    <div class="tab-content active" id="tab-reportes">
+      <div class="ip-banner" id="ipBanner"></div>
+      <div class="toolbar">
+        <div class="toolbar-title">Mis Reportes <div class="live-wrap"><div class="live-dot"></div>LIVE</div></div>
+        <div class="refresh-btn" id="refreshBtn" onclick="load(true)">↻</div>
+      </div>
+      <div class="filter-pills">
+        <button class="pill active" onclick="setFilter('all',this)">Todos</button>
+        <button class="pill" onclick="setFilter('Completado',this)">Completados</button>
+        <button class="pill" onclick="setFilter('En Proceso',this)">En Proceso</button>
+        <button class="pill" onclick="setFilter('Cancelado',this)">Cancelados</button>
+      </div>
+      <input class="search-bar" id="searchBar" placeholder="🔍 Buscar vuelo, aerolínea, posición..." oninput="renderReports()">
+      <div id="reportsList">
+        <div class="skeleton"><div class="skel-l m"></div><div class="skel-l s"></div></div>
+        <div class="skeleton"><div class="skel-l m"></div><div class="skel-l s"></div></div>
+        <div class="skeleton"><div class="skel-l m"></div><div class="skel-l s"></div></div>
+      </div>
+    </div>
+
+    <!-- TAB FACTURABLES -->
+    <div class="tab-content" id="tab-facturables">
+      <div class="toolbar"><div class="toolbar-title">💰 Servicios Facturables</div><div class="refresh-btn" onclick="load(true)">↻</div></div>
+      <div id="facturablesList"><div class="empty"><div class="empty-icon">💰</div><div class="empty-title">Cargando…</div></div></div>
+    </div>
+
+    <!-- TAB INCIDENTES -->
+    <div class="tab-content" id="tab-incidentes">
+      <div class="toolbar"><div class="toolbar-title">⚠️ Incidentes</div><div class="refresh-btn" onclick="load(true)">↻</div></div>
+      <div id="incidentesList"><div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Cargando…</div></div></div>
+    </div>
+
+    <!-- TAB SEGURIDAD -->
+    <div class="tab-content" id="tab-seguridad">
+      <div class="toolbar"><div class="toolbar-title">🛡️ Seguridad Operacional</div><div class="refresh-btn" onclick="load(true)">↻</div></div>
+      <div id="seguridadList"><div class="empty"><div class="empty-icon">🛡️</div><div class="empty-title">Cargando…</div></div></div>
+    </div>
+
+    <!-- TAB CANCELADOS -->
+    <div class="tab-content" id="tab-cancelados">
+      <div class="toolbar"><div class="toolbar-title">❌ Vuelos Cancelados</div><div class="refresh-btn" onclick="load(true)">↻</div></div>
+      <div id="canceladosList"><div class="empty"><div class="empty-icon">❌</div><div class="empty-title">Cargando…</div></div></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL: FINALIZAR -->
+<div class="modal-overlay" id="mFinish" onclick="ovClose(event,'mFinish')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✅ Finalizar Reporte</div>
+    <p class="modal-sub">Marca este reporte como <strong style="color:#6ee7b7">Completado</strong>. Útil cuando la inspección está terminada pero no fue cerrada desde la app.</p>
+    <div style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.2);border-radius:11px;padding:13px;margin-bottom:14px" id="finishSummary"></div>
+    <div class="modal-btns">
+      <button class="mbtn-confirm" style="background:linear-gradient(135deg,#10b981,#059669)" onclick="confirmFinish()">✅ Confirmar Completado</button>
+      <button class="mbtn-cancel" onclick="closeModal('mFinish')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: SOLICITAR ELIMINACIÓN -->
+<div class="modal-overlay" id="mDelete" onclick="ovClose(event,'mDelete')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🗑️ Solicitar Eliminación</div>
+    <p class="modal-sub">Los reportes no se eliminan automáticamente. Un administrador revisará tu solicitud. Selecciona el motivo:</p>
+    <div class="del-reason-group">
+      <span class="del-reason-lbl">Motivo de eliminación</span>
+      <div class="del-reason-opts" id="delReasonOpts">
+        <div class="del-opt" onclick="pickDelReason(this,'Vuelo duplicado')">🔁 Vuelo duplicado / ingresado dos veces</div>
+        <div class="del-opt" onclick="pickDelReason(this,'Datos incorrectos')">❌ Datos incorrectos (aerolínea, vuelo, tipo)</div>
+        <div class="del-opt" onclick="pickDelReason(this,'Prueba / test')">🧪 Registro de prueba / test</div>
+        <div class="del-opt" onclick="pickDelReason(this,'Inspector equivocado')">👤 Inspector equivocado</div>
+        <div class="del-opt" onclick="pickDelReason(this,'Otro')">📝 Otro motivo</div>
+      </div>
+      <textarea class="del-notes" id="delNotes" placeholder="Notas adicionales para el administrador (opcional)…"></textarea>
+    </div>
+    <div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:11px 13px;margin-bottom:13px;font-size:11px;color:#fca5a5;line-height:1.5">
+      ⚠️ Esta solicitud quedará registrada. El administrador puede aprobarla o rechazarla. No se elimina inmediatamente.
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn-confirm" style="background:linear-gradient(135deg,#ef4444,#dc2626)" onclick="confirmDelete()">🗑️ Enviar Solicitud</button>
+      <button class="mbtn-cancel" onclick="closeModal('mDelete')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbys2mnkHmGMRUJmuvb3CY54QCkk7WlVqVkAWF-Ep9flPGS5_J_YDZfe2Xmr2zICUIEJ/exec';
+const APP_URL    = 'index.html';   // ← adjust if your main app has a different filename
+const LOGIN_URL  = 'login-testV27.html';
+const REFRESH_MS = 30000;
+
+const AL = {'DL':'Delta','WN':'Southwest','UA':'United','NK':'Spirit','AA':'American Airlines',
+  'WS':'Westjet','E9':'Iberojet','PO':'Porter','AV':'Avianca','IB':'Iberia',
+  'TS':'Air Transat','B6':'Jetblue','D0':'DHL','CG':'Cargo'};
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let U = null;
+let allReports     = [];
+let allFacturables = [];
+let allIncidentes  = [];
+let allSeguridad   = [];
+let allCancelados  = [];
+let filterStatus   = 'all';
+let autoTimer      = null;
+
+// Modal state
+let modalReport     = null;   // report currently targeted by modal
+let delReasonVal    = '';
+
+// ── AUTH ─────────────────────────────────────────────────────────────────────
+(()=>{
+  const raw = sessionStorage.getItem('user');
+  if(!raw){ alert('Inicie sesión primero'); location.href=LOGIN_URL; return; }
+  try{
+    U = JSON.parse(raw);
+    document.getElementById('uName').textContent = U.username;
+    document.getElementById('uRole').textContent = U.role;
+    document.getElementById('uAv').textContent   = (U.username||'?').slice(0,2).toUpperCase();
+  } catch(e){ location.href=LOGIN_URL; return; }
+  load();
+  autoTimer = setInterval(()=>load(false), REFRESH_MS);
+})();
+
+// ── THREE.JS BG ──────────────────────────────────────────────────────────────
+(()=>{
+  const c=document.getElementById('canvas-container');
+  const sc=new THREE.Scene(), cam=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,1000);
+  const rn=new THREE.WebGLRenderer({alpha:true,antialias:true});
+  rn.setSize(innerWidth,innerHeight); c.appendChild(rn.domElement);
+  const geo=new THREE.BufferGeometry();
+  const pos=new Float32Array(2200*3);
+  for(let i=0;i<pos.length;i++) pos[i]=(Math.random()-.5)*100;
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const mat=new THREE.PointsMaterial({size:.07,color:0x3b82f6,transparent:true,opacity:.5,blending:THREE.AdditiveBlending});
+  const pts=new THREE.Points(geo,mat);
+  sc.add(pts); cam.position.z=30;
+  (function a(){ requestAnimationFrame(a); pts.rotation.y+=.0008; rn.render(sc,cam); })();
+  window.addEventListener('resize',()=>{ cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); rn.setSize(innerWidth,innerHeight); });
+})();
+
+// ── LOAD ─────────────────────────────────────────────────────────────────────
+function load(manual=false){
+  if(manual){
+    const rb=document.getElementById('refreshBtn');
+    rb.classList.add('spin');
+    setTimeout(()=>rb.classList.remove('spin'),700);
+    toast('↻ Actualizando…');
+  }
+  jsonp('getHistory',   d=>{ allReports=parseReports(d.reports||[]); renderReports(); updateStats(); checkInProgress(); });
+  jsonp('getFacturables',d=>{ allFacturables=d.rows||[];  renderFacturables(); });
+  jsonp('getIncidentes', d=>{ allIncidentes=d.rows||[];   renderIncidentes(); });
+  jsonp('getSeguridad',  d=>{ allSeguridad=d.rows||[];    renderSeguridad(); });
+  jsonp('getCancelados', d=>{ allCancelados=d.rows||[];   renderCancelados(); });
+}
+
+function jsonp(action, cb){
+  const name = 'cb_'+action+'_'+Date.now();
+  const url  = `${SCRIPT_URL}?action=${action}&inspector=${encodeURIComponent(U.username)}&callback=${name}`;
+  window[name] = function(data){
+    delete window[name];
+    const s=document.getElementById('_sc_'+action); if(s)s.remove();
+    if(data&&data.success) cb(data);
+  };
+  const s=document.createElement('script');
+  s.id='_sc_'+action; s.src=url;
+  s.onerror=()=>{ delete window[name]; s.remove(); };
+  document.body.appendChild(s);
+  setTimeout(()=>{ if(window[name]){ delete window[name]; const e=document.getElementById('_sc_'+action); if(e)e.remove(); } },14000);
+}
+
+function parseReports(rows){
+  return rows.map(r=>{
+    if(!r.status||r.status.trim()==='')
+      r.status=(r.progress>=100)?'Completado':'En Proceso';
+    return r;
+  });
+}
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(name,el){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── STATS ────────────────────────────────────────────────────────────────────
+function updateStats(){
+  const today=new Date().toDateString();
+  document.getElementById('sTotal').textContent = allReports.length;
+  document.getElementById('sDone').textContent  = allReports.filter(r=>r.status==='Completado').length;
+  document.getElementById('sProc').textContent  = allReports.filter(r=>r.status==='En Proceso').length;
+  document.getElementById('sHoy').textContent   = allReports.filter(r=>{
+    try{ return new Date(parseDate(r)).toDateString()===today; }catch{ return false; }
+  }).length;
+}
+
+function checkInProgress(){
+  const ip=allReports.filter(r=>r.status==='En Proceso');
+  const b=document.getElementById('ipBanner');
+  if(ip.length>0){
+    b.classList.add('vis');
+    const names=ip.map(r=>`<strong>${AL[r.airline]||r.airline||'?'} ${r.flightNumber||''}</strong>`).join(', ');
+    b.innerHTML=`⚠️ Tienes ${ip.length} reporte(s) en proceso: ${names}. Abre el reporte y toca <strong>▶ Retomar</strong>.`;
+  } else { b.classList.remove('vis'); }
+}
+
+// ── FILTER / SEARCH ──────────────────────────────────────────────────────────
+function setFilter(f,el){
+  filterStatus=f;
+  document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  renderReports();
+}
+
+// ── RENDER REPORTES ───────────────────────────────────────────────────────────
+function renderReports(){
+  const list  = document.getElementById('reportsList');
+  const q     = (document.getElementById('searchBar').value||'').toLowerCase().trim();
+  let data    = allReports.filter(r=>{
+    if(filterStatus!=='all'&&r.status!==filterStatus) return false;
+    if(q){
+      const hay=[r.airline,r.airlineName,r.flightNumber,r.flightType,r.status,r.posicion,r.flightTimestamp].join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  data.sort((a,b)=>parseDate(b)-parseDate(a));
+
+  if(data.length===0){
+    list.innerHTML=`<div class="empty"><div class="empty-icon">📭</div>
+      <div class="empty-title">${allReports.length===0?'Sin reportes aún':'Sin resultados'}</div>
+      <div class="empty-sub">Tus inspecciones aparecen aquí en tiempo real.</div></div>`;
+    return;
+  }
+  list.innerHTML=data.map((r,i)=>buildCard(r,i)).join('');
+}
+
+function buildCard(r,i){
+  const code   = r.airline||'–';
+  const name   = r.airlineName||AL[code]||code;
+  const status = r.status||'En Proceso';
+  const isProc = status==='En Proceso';
+  const isCanc = status==='Cancelado';
+  const isDone = status==='Completado';
+
+  const rcCls   = isDone?'rc-completado':isCanc?'rc-cancelado':'rc-proceso';
+  const scCls   = isDone?'sc-done':isCanc?'sc-canc':'sc-proc';
+  const progress= isDone?100:(r.progress||0);
+  const pfCls   = isDone?'pf-done':isCanc?'pf-canc':'';
+  const dt      = r.flightTimestamp?fmtDT(new Date(r.flightTimestamp)):'–';
+  const typeTag = buildTypeTag(r.flightType,isCanc);
+  const pos     = r.posicion?`📍 ${r.posicion} · `:'';
+
+  const cps    = dedupeByLabel(r.checkpoints||[]);
+  const photos = cps.filter(cp=>cp.photoUrl);
+
+  // Facturable data embedded from allFacturables
+  const facs   = allFacturables.filter(row=>row.flightKey===r.flightKey);
+  const facTot = facs.reduce((s,row)=>s+(parseFloat(row.monto)||0),0);
+
+  // Incident block
+  const incBlock = r.incident?`
+    <div class="inc-block">
+      <div class="inc-title">⚠ Incidente: ${r.incident.type||''}</div>
+      <div class="inc-row"><span class="inc-lab">Severidad</span><span class="inc-val">${r.incident.severity||'–'}</span></div>
+      <div class="inc-row"><span class="inc-lab">Descripción</span><span class="inc-val">${esc(r.incident.description||'–')}</span></div>
+    </div>`:'';
+
+  // Services block
+  const svcBlock = facs.length>0?`
+    <div class="svc-block">
+      <div class="svc-block-title">💰 Servicios Facturables</div>
+      ${facs.map(row=>`<div class="svc-row"><span class="svc-name">${row.icono||''} ${esc(row.servicio||'Servicio')}</span><span class="svc-amt">$${parseFloat(row.monto||0).toFixed(2)}</span></div>`).join('')}
+      <div class="svc-row" style="border-top:1px solid rgba(20,184,166,0.18);margin-top:4px;padding-top:6px">
+        <span class="svc-name" style="color:#94a3b8;font-weight:700">Total estimado</span>
+        <span class="svc-amt" style="font-size:14px">$${facTot.toFixed(2)}</span>
+      </div>
+    </div>`:'';
+
+  // Photos gallery
+  const galBlock = photos.length>0?`
+    <div class="sec-title" style="margin-top:10px">📸 Fotos (${photos.length})</div>
+    <div class="photo-gallery">
+      ${photos.map(cp=>{
+        const thumbUrl = cp.photoUrl.includes('drive.google.com')
+          ? 'https://drive.google.com/thumbnail?id='+cp.photoUrl.replace(/.*\/d\//,'').replace(/\/view.*/,'')+'&sz=w200'
+          : cp.photoUrl;
+        return `<div class="ph-thumb">
+          <a href="${cp.photoUrl}" target="_blank" rel="noopener">
+            <img src="${thumbUrl}" alt="${esc(cp.label)}" onerror="this.parentElement.innerHTML='<span style=font-size:20px>📷</span>'">
+          </a>
+          <div class="ph-lbl">${esc(cp.label)}</div>
+        </div>`;
+      }).join('')}
+    </div>`:'';
+
+  // Checkpoints list
+  const cpBlock = cps.length>0?`
+    <div class="sec-title">✅ Checkpoints (${cps.length})</div>
+    <div class="cp-grid">
+      ${cps.map(cp=>`
+        <div class="cp-row">
+          <div class="cp-dot"></div>
+          <div class="cp-label">${cp.emoji||''} ${esc(cp.label)}</div>
+          <div class="cp-time">${normTS(cp.timestamp)}</div>
+          ${cp.photoUrl?`<a class="cp-photo-lnk" href="${cp.photoUrl}" target="_blank" rel="noopener">📷</a>`:''}
+        </div>`).join('')}
+    </div>`:'<div style="color:#475569;font-size:11px;padding:8px 0;font-family:JetBrains Mono,monospace">Sin checkpoints aún.</div>';
+
+  // ── ACTION BUTTONS ────────────────────────────────────────────────────────
+  // In-process: full-width Resume + compact Finish + compact Delete
+  // Completed:  compact Delete only (already finished)
+  // Cancelled:  compact Delete only
+  const rIdx = JSON.stringify(r).replace(/"/g,'&quot;');
+
+  let actionHtml = '';
+  if(isProc){
+    actionHtml = `
+      <button class="btn-resume-full" onclick="resumeReport(event,'${encodeURIComponent(JSON.stringify(r))}')">
+        ▶ Retomar Inspección
+      </button>
+      <div class="action-row" style="margin-top:7px;grid-template-columns:1fr 1fr">
+        <button class="act-btn btn-finish" onclick="openFinish(event,'${encodeURIComponent(JSON.stringify(r))}')">
+          <span class="act-icon">✅</span>Finalizar
+        </button>
+        <button class="act-btn btn-delete" onclick="openDelete(event,'${encodeURIComponent(JSON.stringify(r))}')">
+          <span class="act-icon">🗑️</span>Solicitar Eliminación
+        </button>
+      </div>`;
+  } else {
+    actionHtml = `
+      <div class="action-row" style="grid-template-columns:1fr">
+        <button class="act-btn btn-delete" onclick="openDelete(event,'${encodeURIComponent(JSON.stringify(r))}')">
+          <span class="act-icon">🗑️</span>Solicitar Eliminación
+        </button>
+      </div>`;
+  }
+
+  return `
+    <div class="report-card ${rcCls}" style="animation-delay:${i*.05}s" onclick="toggleCard(this)">
+      <div class="card-head">
+        <div class="card-left">
+          <div class="al-badge">${code}</div>
+          <div class="card-info">
+            <div class="card-title">${esc(name)} · ${r.flightNumber||'–'} ${typeTag}</div>
+            <div class="card-meta">${pos}📅 ${dt}${r.incident?' · ⚠ Incidente':''}</div>
+          </div>
+        </div>
+        <div class="card-right">
+          <div>
+            <span class="status-chip ${scCls}">${status}</span>
+            <div class="prog-mini"><div class="prog-fill ${pfCls}" style="width:${progress}%"></div></div>
+            <div class="prog-pct">${Math.round(progress)}%</div>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+      </div>
+      <div class="card-detail">
+        <div class="det-grid">
+          <div class="det-item"><div class="det-lbl">Aerolínea</div><div class="det-val">${esc(name)}</div></div>
+          <div class="det-item"><div class="det-lbl">Tipo</div><div class="det-val">${r.flightType||'–'}</div></div>
+          <div class="det-item"><div class="det-lbl">Vuelo</div><div class="det-val">${r.flightNumber||'–'}</div></div>
+          <div class="det-item"><div class="det-lbl">Posición</div><div class="det-val">${r.posicion||'–'}</div></div>
+          <div class="det-item"><div class="det-lbl">Inspector</div><div class="det-val">${r.inspector||U.username}</div></div>
+          <div class="det-item"><div class="det-lbl">Checkpoints</div><div class="det-val">${cps.length} / ${r.itemsTotales||'–'}</div></div>
+          <div class="det-item"><div class="det-lbl">Fotos</div><div class="det-val">${photos.length}</div></div>
+          <div class="det-item"><div class="det-lbl">Avance</div><div class="det-val" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:17px">${Math.round(progress)}%</div></div>
+        </div>
+        ${incBlock}
+        ${svcBlock}
+        ${galBlock}
+        ${cpBlock}
+        ${actionHtml}
+      </div>
+    </div>`;
+}
+
+function buildTypeTag(type,cancelado=false){
+  if(cancelado) return `<span class="type-tag tt-canc">CANC</span>`;
+  const m={'TURN':['tt-turn','TURN'],'RON-ARRIVAL':['tt-arr','ARRIVAL'],'RON-DEPARTURE':['tt-dep','DEPART']};
+  const [cls,lbl]=m[type]||['tt-turn',type||'–'];
+  return `<span class="type-tag ${cls}">${lbl}</span>`;
+}
+
+function toggleCard(el){ el.classList.toggle('expanded'); }
+
+// ── RENDER SECONDARY TABS ─────────────────────────────────────────────────────
+
+function renderFacturables(){
+  const el=document.getElementById('facturablesList');
+  const grouped={};
+  allFacturables.forEach(row=>{
+    const k=row.flightKey||'–';
+    if(!grouped[k]) grouped[k]={flightKey:k,aerolinea:row.aerolinea||'',vuelo:row.vuelo||'',fecha:row.fechaHora||'',items:[]};
+    grouped[k].items.push(row);
+  });
+  const keys=Object.keys(grouped);
+  if(!keys.length){el.innerHTML=`<div class="empty"><div class="empty-icon">💰</div><div class="empty-title">Sin servicios registrados</div><div class="empty-sub">Los servicios facturables aparecerán aquí.</div></div>`;return;}
+  el.innerHTML=keys.map((k,i)=>{
+    const g=grouped[k];
+    const tot=g.items.reduce((s,r)=>s+(parseFloat(r.monto)||0),0);
+    const dt=g.fecha?fmtDT(new Date(g.fecha)):'–';
+    return `<div class="fac-card" style="animation-delay:${i*.05}s">
+      <div class="fac-head">
+        <div><div class="fac-fk">✈️ ${esc(g.aerolinea)} · ${esc(g.vuelo)}</div><div class="fac-date">📅 ${dt}</div></div>
+        <div style="font-size:10px;color:#2dd4bf;font-family:'JetBrains Mono',monospace">${g.items.length} servicio(s)</div>
+      </div>
+      ${g.items.map(row=>`<div class="fac-item-row"><div class="fac-icon">${row.icono||'📋'}</div><div style="flex:1;min-width:0"><div class="fac-name">${esc(row.servicio||'Servicio')}</div><div class="fac-detail">${esc(row.detalle||'')}</div></div><div class="fac-amt">$${parseFloat(row.monto||0).toFixed(2)}</div></div>`).join('')}
+      <div class="fac-total"><span>Total facturado</span><span>$${tot.toFixed(2)}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderIncidentes(){
+  const el=document.getElementById('incidentesList');
+  if(!allIncidentes.length){el.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Sin incidentes</div><div class="empty-sub">No hay incidentes operacionales registrados.</div></div>`;return;}
+  el.innerHTML=allIncidentes.map((inc,i)=>{
+    const sevCls=inc.severidad==='Alta'?'sev-alta':inc.severidad==='Media'?'sev-media':'sev-baja';
+    const dt=inc.fechaHora?fmtDT(new Date(inc.fechaHora)):'–';
+    return `<div class="inc-card" style="animation-delay:${i*.05}s">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div><div style="font-size:12px;font-weight:700;color:#fca5a5">⚠️ ${esc(inc.tipoIncidente||'Incidente')}</div>
+        <div style="font-size:9px;color:#64748b;font-family:'JetBrains Mono',monospace;margin-top:2px">✈️ ${esc(inc.aerolinea||'')} ${esc(inc.vuelo||'')} · 📅 ${dt}</div></div>
+        <span class="sev-badge ${sevCls}">${inc.severidad||'–'}</span>
+      </div>
+      <div style="font-size:12px;color:#e2e8f0;line-height:1.5">${esc(inc.descripcion||'–')}</div>
+      <div style="font-size:10px;color:#64748b;margin-top:5px;font-family:'JetBrains Mono',monospace">📍 ${esc(inc.posicion||'–')} · 👤 ${esc(inc.inspector||'–')}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderSeguridad(){
+  const el=document.getElementById('seguridadList');
+  if(!allSeguridad.length){el.innerHTML=`<div class="empty"><div class="empty-icon">🛡️</div><div class="empty-title">Sin reportes SMS</div><div class="empty-sub">Los reportes de seguridad operacional aparecerán aquí.</div></div>`;return;}
+  const rmap={'Bajo':'rsk-bajo','Medio':'rsk-medio','Alto':'rsk-alto','Crítico':'rsk-critico'};
+  el.innerHTML=allSeguridad.map((seg,i)=>{
+    const rCls=rmap[seg.nivelRiesgo]||'rsk-bajo';
+    const dt=seg.fechaHora?fmtDT(new Date(seg.fechaHora)):'–';
+    return `<div class="seg-card" style="animation-delay:${i*.05}s">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div><div style="font-size:12px;font-weight:700;color:#fbbf24">🛡️ ${esc(seg.categoria||'Evento')}</div>
+        <div style="font-size:9px;color:#64748b;font-family:'JetBrains Mono',monospace;margin-top:1px">✈️ ${esc(seg.aerolinea||'')} ${esc(seg.vuelo||'')} · 📅 ${dt}</div></div>
+        <span class="rsk-badge ${rCls}">${seg.nivelRiesgo||'–'}</span>
+      </div>
+      <div style="font-size:12px;color:#e2e8f0;line-height:1.5;margin-bottom:5px">${esc(seg.descripcion||'–')}</div>
+      ${seg.accionTomada?`<div style="font-size:11px;color:#94a3b8;font-family:'JetBrains Mono',monospace">🔧 ${esc(seg.accionTomada)}</div>`:''}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+        <div style="font-size:10px;color:#64748b;font-family:'JetBrains Mono',monospace">👤 ${esc(seg.inspector||'–')} · 📍 ${esc(seg.posicion||'–')}</div>
+        ${seg.requiereSeguimiento==='Sí'?`<span style="font-size:9px;background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);padding:2px 7px;border-radius:5px;font-family:'JetBrains Mono',monospace">Seguimiento</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderCancelados(){
+  const el=document.getElementById('canceladosList');
+  if(!allCancelados.length){el.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Sin cancelaciones</div><div class="empty-sub">Los vuelos cancelados aparecerán aquí.</div></div>`;return;}
+  el.innerHTML=allCancelados.map((c,i)=>{
+    const dt=c.fechaHora?fmtDT(new Date(c.fechaHora)):'–';
+    const tot=parseFloat(c.totalFacturar||0);
+    return `<div class="can-card" style="animation-delay:${i*.05}s">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div><div style="font-size:13px;font-weight:700;color:#fca5a5">❌ ${esc(c.aerolinea||'')} · Vuelo ${esc(c.vuelo||'–')}</div>
+        <div style="font-size:9px;color:#64748b;font-family:'JetBrains Mono',monospace;margin-top:2px">📅 ${dt} · 📍 ${esc(c.posicion||'–')}</div></div>
+        <div style="font-size:15px;font-weight:800;color:#2dd4bf;font-family:'JetBrains Mono',monospace">$${tot.toFixed(2)}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+        <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.15);border-radius:8px;padding:7px 9px">
+          <div style="font-size:8px;color:#64748b;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Motivo</div>
+          <div style="font-size:11px;color:#fca5a5;font-weight:600">${esc(c.motivoCancelacion||'–')}</div>
+        </div>
+        <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.15);border-radius:8px;padding:7px 9px">
+          <div style="font-size:8px;color:#64748b;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Tiempo posición</div>
+          <div style="font-size:11px;color:#fbbf24;font-weight:700;font-family:'JetBrains Mono',monospace">${esc(c.tiempoEnPosicion||'–')}</div>
+        </div>
+      </div>
+      ${c.observaciones?`<div style="font-size:11px;color:#94a3b8;line-height:1.4">${esc(c.observaciones)}</div>`:''}
+      <div style="display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid rgba(239,68,68,.1);font-size:10px;color:#64748b;font-family:'JetBrains Mono',monospace">
+        <span>👤 ${esc(c.inspector||'–')}</span><span>Notificado: ${esc(c.horaNotificacion||'–')}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── RESUME ────────────────────────────────────────────────────────────────────
+function resumeReport(e, rEncoded){
+  e.stopPropagation();
+  try{
+    const r = JSON.parse(decodeURIComponent(rEncoded));
+    // Build a rich resume payload for the main app
+    sessionStorage.setItem('resumeReport', JSON.stringify(r));
+    toast('▶ Abriendo inspección…');
+    setTimeout(()=>{ location.href = APP_URL; }, 600);
+  } catch(err){ toast('Error al retomar reporte', true); }
+}
+
+// ── FINALIZAR ────────────────────────────────────────────────────────────────
+function openFinish(e, rEncoded){
+  e.stopPropagation();
+  try{
+    modalReport = JSON.parse(decodeURIComponent(rEncoded));
+    const name  = AL[modalReport.airline]||modalReport.airline||'';
+    const cps   = dedupeByLabel(modalReport.checkpoints||[]);
+    document.getElementById('finishSummary').innerHTML=`
+      <div style="font-size:12px;color:#6ee7b7;font-weight:700;margin-bottom:8px">✈️ ${name} · ${modalReport.flightNumber||'–'} · ${modalReport.flightType||''}</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;font-family:'JetBrains Mono',monospace"><span style="color:#64748b">Checkpoints registrados</span><span style="color:#e2e8f0;font-weight:700">${cps.length} / ${modalReport.itemsTotales||'?'}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;font-family:'JetBrains Mono',monospace"><span style="color:#64748b">Avance actual</span><span style="color:#fbbf24;font-weight:700">${Math.round(modalReport.progress||0)}%</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;font-family:'JetBrains Mono',monospace"><span style="color:#64748b">Inspector</span><span style="color:#e2e8f0;font-weight:700">${modalReport.inspector||U.username}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;font-family:'JetBrains Mono',monospace"><span style="color:#64748b">Posición</span><span style="color:#e2e8f0;font-weight:700">${modalReport.posicion||'–'}</span></div>
+      </div>
+      <div style="margin-top:9px;padding-top:9px;border-top:1px solid rgba(16,185,129,0.18);font-size:11px;color:#94a3b8;line-height:1.5">
+        ⚠️ Se marcará como <strong style="color:#6ee7b7">Completado</strong> aunque algunos checkpoints estén pendientes. Asegúrate de que la operación efectivamente concluyó.
+      </div>`;
+    openModal('mFinish');
+  } catch(err){ toast('Error al abrir modal',true); }
+}
+
+function confirmFinish(){
+  if(!modalReport){ closeModal('mFinish'); return; }
+  const r = modalReport;
+  // Optimistic UI update
+  const idx = allReports.findIndex(x=>x.flightKey===r.flightKey);
+  if(idx>=0){ allReports[idx].status='Completado'; allReports[idx].progress=100; }
+  renderReports(); updateStats();
+  closeModal('mFinish');
+  toast('✅ Marcado como Completado');
+  // POST to GAS
+  postGAS({ action:'updateStatus', airline:r.airline, flightNumber:r.flightNumber,
+    flightType:r.flightType, flightTimestamp:r.flightTimestamp,
+    status:'Completado', inspector:U.username,
+    observaciones:'Finalizado manualmente desde Historial por '+U.username+' el '+fmtDT(new Date())
+  });
+  // Reload after 2s to confirm
+  setTimeout(()=>load(false), 2200);
+}
+
+// ── SOLICITAR ELIMINACIÓN ─────────────────────────────────────────────────────
+function openDelete(e, rEncoded){
+  e.stopPropagation();
+  try{
+    modalReport  = JSON.parse(decodeURIComponent(rEncoded));
+    delReasonVal = '';
+    document.querySelectorAll('.del-opt').forEach(o=>o.classList.remove('sel'));
+    document.getElementById('delNotes').value = '';
+    openModal('mDelete');
+  } catch(err){ toast('Error al abrir modal',true); }
+}
+
+function pickDelReason(el, val){
+  document.querySelectorAll('.del-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  delReasonVal = val;
+}
+
+function confirmDelete(){
+  if(!delReasonVal){ toast('⚠ Selecciona un motivo',true); return; }
+  const r = modalReport;
+  const notes = document.getElementById('delNotes').value.trim();
+  closeModal('mDelete');
+  toast('🗑️ Solicitud enviada al administrador');
+  // POST deletion request to GAS
+  postGAS({ action:'requestDelete', airline:r.airline, flightNumber:r.flightNumber,
+    flightType:r.flightType, flightTimestamp:r.flightTimestamp,
+    flightKey:r.flightKey, inspector:U.username,
+    motivo:delReasonVal, notas:notes,
+    timestamp:new Date().toISOString()
+  });
+  // Locally flag card with a pending-delete badge (cosmetic)
+  const idx = allReports.findIndex(x=>x.flightKey===r.flightKey);
+  if(idx>=0) allReports[idx]._deletePending = true;
+  renderReports();
+}
+
+// ── GAS POST ──────────────────────────────────────────────────────────────────
+function postGAS(payload){
+  fetch(SCRIPT_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  }).catch(e=>console.warn('GAS POST error:',e));
+}
+
+// ── MODAL UTILS ───────────────────────────────────────────────────────────────
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function ovClose(e,id){ if(e.target===document.getElementById(id)) closeModal(id); }
+
+// ── HELPERS ────────────────────────────────────────────────────────────────────
+function parseDate(r){
+  try{ const d=new Date(r.flightTimestamp||''); return isNaN(d)?0:d.getTime(); }catch{return 0;}
+}
+function fmtDT(d){
+  return d.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})
+    +' '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+}
+function normTS(ts){
+  if(!ts||ts==='–') return '–';
+  try{
+    const raw=String(ts).split('|')[0].trim();
+    if(/^\d{1,2}:\d{2}/.test(raw)) return raw;
+    const d=new Date(raw);
+    if(isNaN(d.getTime())) return raw.substring(0,16);
+    return d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }catch{return String(ts).substring(0,16)}
+}
+function dedupeByLabel(arr){
+  const s=new Set();
+  return arr.filter(cp=>{ if(s.has(cp.label))return false; s.add(cp.label); return true; });
+}
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg,err=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(err?' err':'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+function goNew(){ sessionStorage.removeItem('resumeReport'); location.href=APP_URL; }
+function logout(){ if(confirm('¿Cerrar sesión?')){ sessionStorage.clear(); location.href=LOGIN_URL; } }
+</script>
+</body>
+</html>
