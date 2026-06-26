@@ -266,7 +266,7 @@
         .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
         .toast.error{background:rgba(239,68,68,0.92)}
 
-        /* FLIGHT DETAIL MODAL */
+
         .fdm-overlay{position:fixed;inset:0;z-index:500;background:rgba(2,5,18,0.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px 40px;overflow-y:auto;animation:fdmFadeIn .22s ease}
         @keyframes fdmFadeIn{from{opacity:0}to{opacity:1}}
         .fdm-overlay.hidden{display:none}
@@ -365,7 +365,7 @@
         .fdm-ring-bg{fill:none;stroke:rgba(59,130,246,0.12)}
         .fdm-ring-fill{fill:none;stroke-linecap:round;transition:stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)}
 
-        /* Responsive */
+     
         @media(max-width:768px){
             .analytics-grid{grid-template-columns:1fr!important}
             .rt-head,.rt-row{grid-template-columns:2fr 1fr 1fr .8fr}
@@ -394,7 +394,6 @@
 .photo-btn.has-photos { border-color:rgba(139,92,246,0.6); color:#e9d5ff; }
 .photo-btn.no-photos  { opacity:.4; cursor:default; pointer-events:none; }
 
-── Lightbox overlay ─────────────────────────────────────────
 .lbx-overlay {
   position:fixed;inset:0;z-index:900;
   background:rgba(2,5,18,0.96);
@@ -405,7 +404,6 @@
 .lbx-overlay.hidden { display:none; }
 @keyframes lbxFadeIn { from{opacity:0} to{opacity:1} }
 
-── Header del lightbox ──────────────────────────────────────
 .lbx-header {
   display:flex;align-items:center;justify-content:space-between;
   padding:14px 20px;
@@ -437,12 +435,10 @@
 }
 .lbx-close:hover { background:rgba(239,68,68,0.22); }
 
-── Área principal ───────────────────────────────────────────
 .lbx-main {
   flex:1;display:flex;min-height:0;
 }
 
-── Carril de miniaturas (izquierda) ─────────────────────────
 .lbx-filmstrip {
   width:120px;flex-shrink:0;
   overflow-y:auto;overflow-x:hidden;
@@ -489,7 +485,6 @@
   border-radius:8px;color:#475569;
 }
 
-── Imagen central ───────────────────────────────────────────
 .lbx-stage {
   flex:1;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
@@ -514,7 +509,6 @@
 }
 .lbx-img-placeholder .big-icon { font-size:56px; }
 
-── Controles de navegación ───────────────────────────────────
 .lbx-nav {
   position:absolute;top:50%;transform:translateY(-50%);
   width:40px;height:40px;border-radius:50%;
@@ -529,7 +523,6 @@
 .lbx-nav.prev { left:8px; }
 .lbx-nav.next { right:8px; }
 
-── Info del checkpoint ───────────────────────────────────────
 .lbx-caption {
   flex-shrink:0;padding:10px 0 0;width:100%;max-width:600px;
   text-align:center;
@@ -557,7 +550,6 @@
 }
 .lbx-btn-download:hover { background:rgba(16,185,129,0.22); }
 
-── Barra de progreso ─────────────────────────────────────────
 .lbx-progress {
   flex-shrink:0;
   display:flex;align-items:center;gap:8px;
@@ -579,7 +571,6 @@
   font-family:'JetBrains Mono',monospace;white-space:nowrap;
 }
 
-── Loading spinner ───────────────────────────────────────────
 .lbx-spinner {
   width:40px;height:40px;border-radius:50%;
   border:3px solid rgba(139,92,246,0.2);
@@ -588,7 +579,6 @@
 }
 @keyframes lbxSpin { to { transform:rotate(360deg); } }
 
-── Responsive ───────────────────────────────────────────────
 @media(max-width:600px) {
   .lbx-filmstrip { width:80px; }
   .lbx-stage { padding:10px; }
