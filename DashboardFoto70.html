@@ -2201,91 +2201,76 @@ function lbxRender() {
 }
 
 // ── Mostrar foto en el stage ─────────────────────────────────
-function lbxShowPhoto(idx){
-    if(!lbxPhotos.length)return;
-    idx=Math.max(0,Math.min(idx,lbxPhotos.length-1));
-    lbxCurrentIdx=idx;
-    const photo=lbxPhotos[idx],total=lbxPhotos.length;
- 
-    // Filmstrip active
-    document.querySelectorAll('.lbx-thumb').forEach((el,i)=>el.classList.toggle('active',i===idx));
-    const activeThumb=document.getElementById('lbxThumb_'+idx);
-    if(activeThumb)activeThumb.scrollIntoView({behavior:'smooth',block:'nearest'});
- 
-    // Nav buttons
-    document.getElementById('lbxPrev').disabled=idx===0;
-    document.getElementById('lbxNext').disabled=idx===total-1;
- 
-    // Progress
-    const pct=total>1?Math.round(idx/(total-1)*100):100;
-    document.getElementById('lbxProgressFill').style.width=pct+'%';
-    document.getElementById('lbxProgressLabel').textContent=(idx+1)+' / '+total;
- 
-    // ── Construir URL para imagen principal ──────────────────────────────────
-    // Extraer el fileId de cualquier URL de Drive que tengamos
-    function extractDriveFileId(url){
-        if(!url)return null;
-        // Formato thumbnail: drive.google.com/thumbnail?id=FILE_ID
-        var m1=url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-        if(m1)return m1[1];
-        // Formato file view: drive.google.com/file/d/FILE_ID/view
-        var m2=url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        if(m2)return m2[1];
-        // Formato uc: drive.google.com/uc?...id=FILE_ID
-        var m3=url.match(/uc\?.*id=([a-zA-Z0-9_-]+)/);
-        if(m3)return m3[1];
-        return null;
-    }
- 
-    // Prioridad: photoUrl > thumbUrl (ambas pueden tener el fileId)
-    var sourceUrl = photo.photoUrl || photo.thumbUrl || photo.url || '';
-    var fileId = photo.fileId || photo.driveFileId || extractDriveFileId(sourceUrl);
- 
-    // URL óptima para mostrar en <img>: /uc?export=view&id=FILE_ID
-    // Esta URL funciona desde dominios externos sin problemas de CORS/referrer
-    var bigUrl = '';
-    if(fileId){
-        bigUrl = 'https://drive.google.com/uc?export=view&id=' + fileId;
-    } else if(sourceUrl){
-        bigUrl = sourceUrl; // fallback si no hay fileId
-    }
- 
-    const img   = document.getElementById('lbxImgMain');
-    const noImg = document.getElementById('lbxNoImg');
-    const spin  = document.getElementById('lbxSpinner');
- 
-    if(bigUrl){
-        img.style.display  = 'none';
-        noImg.style.display = 'none';
-        spin.style.display  = 'block';
-        img.src = bigUrl;
-        img.alt = photo.label || '';
-    } else {
-        spin.style.display  = 'none';
-        img.style.display   = 'none';
-        noImg.style.display = 'flex';
-    }
- 
-    // Caption
-    document.getElementById('lbxCaption').style.display='block';
-    document.getElementById('lbxCaptionLabel').textContent=
-        (photo.emoji||'📷')+' '+(photo.label||'–')+
-        (photo.subItem?' — '+photo.subItem:'');
-    document.getElementById('lbxCaptionTs').textContent=
-        photo.timestamp?lbxFmtDateTime(photo.timestamp):'–';
- 
-    // Botones de acción — usar URL de visualización normal para "Ver en Drive"
-    var viewUrl  = fileId ? 'https://drive.google.com/file/d/'+fileId+'/view' : (photo.photoUrl||'');
-    var dlUrl    = fileId ? 'https://drive.google.com/uc?export=download&id='+fileId : '';
-    var btns = '';
-    if(viewUrl){
-        btns += '<a class="lbx-action-btn lbx-btn-drive" href="'+viewUrl+'" target="_blank" rel="noopener">🔗 Ver en Drive</a>';
-    }
-    if(dlUrl){
-        btns += '<a class="lbx-action-btn lbx-btn-download" href="'+dlUrl+'" target="_blank" rel="noopener">⬇ Descargar</a>';
-    }
-    btns += '<button class="lbx-action-btn lbx-btn-copy" onclick="lbxCopyLabel()" style="background:rgba(30,41,59,0.5);border:1px solid rgba(59,130,246,0.2);color:#64748b;cursor:pointer;font-family:inherit;">📋 Copiar info</button>';
-    document.getElementById('lbxCaptionActions').innerHTML=btns;
+unction lbxShowPhoto(idx) {
+  if (!lbxPhotos.length) return;
+  idx = Math.max(0, Math.min(idx, lbxPhotos.length - 1));
+  lbxCurrentIdx = idx;
+
+  var photo = lbxPhotos[idx];
+  var total = lbxPhotos.length;
+
+  // Update filmstrip active
+  document.querySelectorAll('.lbx-thumb').forEach(function(el, i) {
+    el.classList.toggle('active', i === idx);
+  });
+  // Scroll filmstrip to active
+  var activeThumb = document.getElementById('lbxThumb_' + idx);
+  if (activeThumb) activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // Navegation buttons
+  document.getElementById('lbxPrev').disabled = idx === 0;
+  document.getElementById('lbxNext').disabled = idx === total - 1;
+
+  // Progress
+  var pct = total > 1 ? Math.round((idx / (total - 1)) * 100) : 100;
+  document.getElementById('lbxProgressFill').style.width  = pct + '%';
+  document.getElementById('lbxProgressLabel').textContent = (idx + 1) + ' / ' + total;
+
+  // Imagen principal
+  var img   = document.getElementById('lbxImgMain');
+  var noImg = document.getElementById('lbxNoImg');
+  var spin  = document.getElementById('lbxSpinner');
+
+  if (photo.photoUrl || photo.thumbUrl) {
+    img.style.display  = 'none';
+    noImg.style.display = 'none';
+    spin.style.display  = 'block';
+    // usar thumbnail de mayor resolución para stage
+    var fullUrl = photo.photoUrl || photo.thumbUrl;
+    // Intentar reemplazar sz=w400 por sz=w1200 para mejor calidad en el stage
+    var bigUrl = fullUrl.indexOf('thumbnail?id=') >= 0
+      ? fullUrl.replace(/sz=w\d+/, 'sz=w1200')
+      : fullUrl;
+    img.src = bigUrl;
+    img.alt = photo.label || '';
+  } else {
+    spin.style.display  = 'none';
+    img.style.display   = 'none';
+    noImg.style.display = 'flex';
+  }
+
+  // Caption
+  var caption = document.getElementById('lbxCaption');
+  caption.style.display = 'block';
+  document.getElementById('lbxCaptionLabel').textContent =
+    (photo.emoji || '📷') + ' ' + (photo.label || '–') +
+    (photo.subItem ? ' — ' + photo.subItem : '');
+  document.getElementById('lbxCaptionTs').textContent =
+    photo.timestamp ? lbxFmtDateTime(photo.timestamp) : '–';
+
+  // Botones de acción
+  var actions = document.getElementById('lbxCaptionActions');
+  var btns = '';
+  if (photo.photoUrl) {
+    btns += '<a class="lbx-action-btn lbx-btn-drive" href="' + photo.photoUrl
+          + '" target="_blank" rel="noopener">🔗 Ver en Drive</a>';
+    btns += '<a class="lbx-action-btn lbx-btn-download" href="'
+          + photo.photoUrl.replace('/view', '') + '&export=download"'
+          + ' target="_blank" rel="noopener">⬇ Descargar</a>';
+  }
+  btns += '<button class="lbx-action-btn" style="background:rgba(30,41,59,0.5);border:1px solid rgba(59,130,246,0.2);color:#64748b;cursor:pointer;font-family:inherit;" onclick="lbxCopyLabel()">'
+        + '📋 Copiar info</button>';
+  actions.innerHTML = btns;
 }
  
 // ── También actualizar lbxFmtDateTime si no existe ya en tu archivo ──────────
