@@ -378,6 +378,222 @@
             .filter-select{max-width:140px;font-size:10px}
             .shift-grid{grid-template-columns:1fr}
         }
+
+.photo-btn {
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 8px;
+  background:rgba(139,92,246,0.12);
+  border:1px solid rgba(139,92,246,0.3);
+  border-radius:6px;
+  color:#c4b5fd;font-size:10px;font-weight:700;
+  cursor:pointer;transition:all .18s;
+  font-family:'JetBrains Mono',monospace;
+  white-space:nowrap;flex-shrink:0;
+}
+.photo-btn:hover { background:rgba(139,92,246,0.25); transform:translateY(-1px); }
+.photo-btn.has-photos { border-color:rgba(139,92,246,0.6); color:#e9d5ff; }
+.photo-btn.no-photos  { opacity:.4; cursor:default; pointer-events:none; }
+
+── Lightbox overlay ─────────────────────────────────────────
+.lbx-overlay {
+  position:fixed;inset:0;z-index:900;
+  background:rgba(2,5,18,0.96);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  display:flex;flex-direction:column;
+  animation:lbxFadeIn .22s ease;
+}
+.lbx-overlay.hidden { display:none; }
+@keyframes lbxFadeIn { from{opacity:0} to{opacity:1} }
+
+── Header del lightbox ──────────────────────────────────────
+.lbx-header {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;
+  border-bottom:1px solid rgba(59,130,246,0.15);
+  background:rgba(7,13,28,0.95);
+  flex-shrink:0;
+  gap:12px;flex-wrap:wrap;
+}
+.lbx-flight-info { display:flex;align-items:center;gap:12px; }
+.lbx-badge {
+  padding:4px 12px;border-radius:20px;
+  background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.35);
+  color:#c4b5fd;font-size:11px;font-weight:700;
+  font-family:'JetBrains Mono',monospace;
+}
+.lbx-title { font-size:15px;font-weight:800;color:#e2e8f0; }
+.lbx-subtitle { font-size:11px;color:#64748b;font-family:'JetBrains Mono',monospace; }
+.lbx-header-right { display:flex;align-items:center;gap:8px; }
+.lbx-count {
+  font-size:11px;color:#64748b;
+  font-family:'JetBrains Mono',monospace;
+}
+.lbx-close {
+  width:34px;height:34px;border-radius:8px;
+  background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);
+  color:#fca5a5;font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;font-family:inherit;
+}
+.lbx-close:hover { background:rgba(239,68,68,0.22); }
+
+── Área principal ───────────────────────────────────────────
+.lbx-main {
+  flex:1;display:flex;min-height:0;
+}
+
+── Carril de miniaturas (izquierda) ─────────────────────────
+.lbx-filmstrip {
+  width:120px;flex-shrink:0;
+  overflow-y:auto;overflow-x:hidden;
+  background:rgba(5,8,22,0.8);
+  border-right:1px solid rgba(59,130,246,0.1);
+  display:flex;flex-direction:column;gap:4px;
+  padding:8px 6px;
+  scrollbar-width:thin;scrollbar-color:rgba(59,130,246,0.3) transparent;
+}
+.lbx-filmstrip::-webkit-scrollbar { width:3px; }
+.lbx-filmstrip::-webkit-scrollbar-thumb { background:rgba(59,130,246,0.3);border-radius:3px; }
+
+.lbx-thumb {
+  flex-shrink:0;border-radius:8px;overflow:hidden;cursor:pointer;
+  border:2px solid transparent;transition:all .18s;
+  background:rgba(15,23,42,0.7);
+  position:relative;
+}
+.lbx-thumb:hover { border-color:rgba(139,92,246,0.5); }
+.lbx-thumb.active { border-color:#8b5cf6;box-shadow:0 0 10px rgba(139,92,246,0.4); }
+.lbx-thumb img {
+  width:100%;aspect-ratio:4/3;object-fit:cover;display:block;
+}
+.lbx-thumb .thumb-label {
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(0,0,0,0.82);
+  color:#e2e8f0;font-size:8px;padding:3px 4px;
+  font-family:'JetBrains Mono',monospace;
+  line-height:1.2;text-align:center;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.lbx-thumb .thumb-num {
+  position:absolute;top:3px;left:3px;
+  background:rgba(139,92,246,0.9);
+  color:#fff;width:16px;height:16px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;
+  font-family:'JetBrains Mono',monospace;
+}
+.lbx-no-photo {
+  width:100%;aspect-ratio:4/3;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;background:rgba(15,23,42,0.5);
+  border-radius:8px;color:#475569;
+}
+
+── Imagen central ───────────────────────────────────────────
+.lbx-stage {
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  position:relative;padding:20px;
+  background:rgba(5,8,22,0.6);
+  min-width:0;
+}
+.lbx-img-wrap {
+  flex:1;display:flex;align-items:center;justify-content:center;
+  width:100%;min-height:0;
+  position:relative;
+}
+.lbx-img-main {
+  max-width:100%;max-height:100%;
+  object-fit:contain;border-radius:12px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.7);
+  transition:opacity .2s;
+}
+.lbx-img-placeholder {
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  color:#475569;font-size:13px;
+}
+.lbx-img-placeholder .big-icon { font-size:56px; }
+
+── Controles de navegación ───────────────────────────────────
+.lbx-nav {
+  position:absolute;top:50%;transform:translateY(-50%);
+  width:40px;height:40px;border-radius:50%;
+  background:rgba(30,41,59,0.85);border:1px solid rgba(59,130,246,0.25);
+  color:#e2e8f0;font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .18s;z-index:10;
+  font-family:inherit;
+}
+.lbx-nav:hover { background:rgba(59,130,246,0.25);transform:translateY(-50%) scale(1.08); }
+.lbx-nav:disabled { opacity:.2;cursor:default;pointer-events:none; }
+.lbx-nav.prev { left:8px; }
+.lbx-nav.next { right:8px; }
+
+── Info del checkpoint ───────────────────────────────────────
+.lbx-caption {
+  flex-shrink:0;padding:10px 0 0;width:100%;max-width:600px;
+  text-align:center;
+}
+.lbx-caption-label {
+  font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:3px;
+}
+.lbx-caption-ts {
+  font-size:10px;color:#64748b;font-family:'JetBrains Mono',monospace;
+}
+.lbx-caption-actions {
+  display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;
+}
+.lbx-action-btn {
+  padding:5px 14px;border-radius:8px;font-size:11px;font-weight:700;
+  cursor:pointer;transition:all .18s;font-family:'JetBrains Mono',monospace;
+  text-decoration:none;display:inline-flex;align-items:center;gap:5px;
+}
+.lbx-btn-drive {
+  background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.35);color:#93c5fd;
+}
+.lbx-btn-drive:hover { background:rgba(59,130,246,0.28); }
+.lbx-btn-download {
+  background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:#6ee7b7;
+}
+.lbx-btn-download:hover { background:rgba(16,185,129,0.22); }
+
+── Barra de progreso ─────────────────────────────────────────
+.lbx-progress {
+  flex-shrink:0;
+  display:flex;align-items:center;gap:8px;
+  padding:8px 20px;
+  background:rgba(7,13,28,0.9);
+  border-top:1px solid rgba(59,130,246,0.1);
+}
+.lbx-progress-bar {
+  flex:1;height:3px;border-radius:3px;
+  background:rgba(30,41,59,0.7);overflow:hidden;
+}
+.lbx-progress-fill {
+  height:100%;border-radius:3px;
+  background:linear-gradient(90deg,#8b5cf6,#3b82f6);
+  transition:width .3s ease;
+}
+.lbx-progress-label {
+  font-size:10px;color:#64748b;
+  font-family:'JetBrains Mono',monospace;white-space:nowrap;
+}
+
+── Loading spinner ───────────────────────────────────────────
+.lbx-spinner {
+  width:40px;height:40px;border-radius:50%;
+  border:3px solid rgba(139,92,246,0.2);
+  border-top-color:#8b5cf6;
+  animation:lbxSpin .7s linear infinite;
+}
+@keyframes lbxSpin { to { transform:rotate(360deg); } }
+
+── Responsive ───────────────────────────────────────────────
+@media(max-width:600px) {
+  .lbx-filmstrip { width:80px; }
+  .lbx-stage { padding:10px; }
+}
+        
     </style>
 </head>
 <body>
@@ -1014,7 +1230,19 @@ function renderTable(){
             <div class="rt-cell">${typeTag}</div>
             <div class="rt-cell">${r.aeropuerto||'–'}</div>
             <div class="rt-cell"><div class="pct-bar-wrap"><div class="pct-bar-bg"><div class="pct-bar-fill ${done?'done':''}" style="width:${prog}%"></div></div><span class="pct-text">${Math.round(prog)}%</span></div></div>
-            <div class="rt-cell"><div class="status-dot-wrap"><div class="status-dot ${done?'dot-done':'dot-pending'}"></div><span style="font-size:11px;">${done?'Listo':'En proceso'}</span></div></div>
+
+<div class="rt-cell" style="gap:6px;">
+        <div class="status-dot-wrap">
+          <div class="status-dot ${done?'dot-done':'dot-pending'}"></div>
+          <span style="font-size:11px;">${done?'Listo':'En proceso'}</span>
+        </div>
+        <button class="photo-btn ${r.photoCount>0?'has-photos':'no-photos'}"
+                onclick="openPhotoViewer(event,'${safeKey}')"
+                title="${r.photoCount>0?r.photoCount+' foto(s) disponibles':'Sin fotos registradas'}">
+          📸 ${r.photoCount>0?r.photoCount:'–'}
+        </button>
+      </div>
+        
         </div>`;
     }).join('');
     renderInspectorLegend();
@@ -1804,6 +2032,337 @@ function fdmFmtTime(val){if(!val||val==='null')return'–';const s=String(val).t
 function fdmFmtDate(r){const ts=parseFlightDate(r);if(!ts)return'–';return new Date(ts).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})+' '+new Date(ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});}
 function fdmElapsedMin(r){const cps=r.checkpoints||[],briefingCp=cps.find(c=>c.label==='Briefing'),startMin=briefingCp?fdmParseTimeMin(briefingCp.timestamp):null;if(startMin===null)return null;if(r.status==='Completado'){const sorted=[...cps].map(c=>fdmParseTimeMin(c.timestamp)).filter(m=>m!==null).sort((a,b)=>b-a);if(sorted.length)return+(sorted[0]-startMin).toFixed(0);}const now=new Date();return+(now.getHours()*60+now.getMinutes()-startMin).toFixed(0);}
 function fdmCountSLAViolations(r){const cps=r.checkpoints||[],beaconMin=fdmParseTimeMin(cps.find(c=>c.label==='Beacon OFF')?.timestamp);if(beaconMin===null)return 0;let count=0;const FDM_SLA=getSLAMap(r.flightType);for(const cp of cps){const meta=FDM_SLA[cp.label];if(!meta?.sla)continue;const cpMin=fdmParseTimeMin(cp.timestamp);if(cpMin!==null&&(cpMin-beaconMin)>meta.sla)count++;}return count;}
+
+var lbxPhotos      = [];
+var lbxCurrentIdx  = 0;
+var lbxCurrentReport = null;
+
+// ── Abrir lightbox para un reporte ───────────────────────────
+function openPhotoViewer(e, flightKey) {
+  e.stopPropagation(); // no abrir el FDM
+  var report = allReports.find(function(r){ return r.flightKey === flightKey; });
+  if (!report) { showToast('Reporte no encontrado', true); return; }
+  lbxCurrentReport = report;
+
+  // Mostrar overlay de inmediato en loading
+  document.getElementById('lbxOverlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  // Info del vuelo en header
+  document.getElementById('lbxBadge').textContent    = '✈️ ' + (report.airlineName || report.airline || '–') + ' ' + (report.flightNumber || '–');
+  document.getElementById('lbxTitle').textContent    = 'Galería de Fotos — ' + (report.flightType || '');
+  document.getElementById('lbxSubtitle').textContent = (report.inspector || '–') + ' · ' + (report.posicion || report.aeropuerto || '–') + ' · ' + lbxFmtDate(report.flightTimestamp);
+  document.getElementById('lbxLoading').style.display = 'flex';
+  document.getElementById('lbxImgMain').style.display = 'none';
+  document.getElementById('lbxNoImg').style.display   = 'none';
+  document.getElementById('lbxCaption').style.display  = 'none';
+  document.getElementById('lbxFilmstrip').innerHTML    = '';
+  document.getElementById('lbxCount').textContent      = 'Cargando…';
+
+  // Primero usar fotos ya embebidas en los checkpoints del reporte
+  var embedded = (report.checkpoints || []).filter(function(cp){ return cp.photoUrl || cp.thumbUrl; });
+
+  if (embedded.length > 0) {
+    // Tenemos fotos directas desde la respuesta de getHistory
+    lbxPhotos = embedded.map(function(cp) {
+      return {
+        label:     cp.label || '',
+        emoji:     cp.emoji || '📷',
+        timestamp: cp.timestamp || '',
+        photoUrl:  cp.photoUrl  || '',
+        thumbUrl:  cp.thumbUrl  || cp.photoUrl || '',
+        subItem:   cp.subItem   || ''
+      };
+    });
+    lbxRender();
+  } else {
+    // Pedir al GAS las fotos de este vuelo
+    lbxFetchPhotos(flightKey, report);
+  }
+}
+
+// ── Fetch de fotos desde GAS (CHECKPOINTS_DETALLE) ───────────
+function lbxFetchPhotos(flightKey, report) {
+  // Intentar con flightKeyRaw primero, luego el key completo
+  var keys = [];
+  if (report.flightKeyRaw) keys.push(report.flightKeyRaw);
+  keys.push(flightKey);
+
+  var tried = 0;
+  function tryNext() {
+    if (tried >= keys.length) {
+      // Si no hay fotos en el backend, mostrar checkpoints sin foto
+      lbxPhotos = (report.checkpoints || []).map(function(cp) {
+        return {
+          label:     cp.label || '',
+          emoji:     '📷',
+          timestamp: cp.timestamp || '',
+          photoUrl:  '',
+          thumbUrl:  '',
+          subItem:   ''
+        };
+      });
+      lbxRender();
+      return;
+    }
+    var key = keys[tried++];
+    var cbName = 'lbxCb_' + Date.now();
+    var url = SCRIPT_URL + '?action=getFlightPhotos&flightKey=' + encodeURIComponent(key)
+              + '&callback=' + cbName;
+    window[cbName] = function(data) {
+      delete window[cbName];
+      var s = document.getElementById('_sc_lbx'); if (s) s.remove();
+      if (data && data.success && data.photos && data.photos.length > 0) {
+        lbxPhotos = data.photos;
+        lbxRender();
+      } else {
+        tryNext();
+      }
+    };
+    var s = document.createElement('script');
+    s.id = '_sc_lbx'; s.src = url;
+    s.onerror = function() { delete window[cbName]; s.remove(); tryNext(); };
+    document.body.appendChild(s);
+    setTimeout(function() {
+      if (window[cbName]) { delete window[cbName]; var e = document.getElementById('_sc_lbx'); if(e)e.remove(); tryNext(); }
+    }, 8000);
+  }
+  tryNext();
+}
+
+// ── Renderizar galería una vez que tenemos las fotos ─────────
+function lbxRender() {
+  document.getElementById('lbxLoading').style.display = 'none';
+
+  var total = lbxPhotos.length;
+  document.getElementById('lbxCount').textContent = total + ' foto' + (total !== 1 ? 's' : '');
+
+  // Filmstrip
+  var strip = document.getElementById('lbxFilmstrip');
+  strip.innerHTML = lbxPhotos.map(function(p, i) {
+    var hasPhoto = !!(p.photoUrl || p.thumbUrl);
+    var imgOrPlaceholder = hasPhoto
+      ? '<img src="' + (p.thumbUrl || p.photoUrl) + '" alt="' + (p.label||'') + '" loading="lazy" onerror="this.parentElement.innerHTML=\'<div class=lbx-no-photo>📷</div>\'">'
+      : '<div class="lbx-no-photo">📷</div>';
+    return '<div class="lbx-thumb' + (i===0?' active':'') + '" id="lbxThumb_'+i+'" onclick="lbxGoTo('+i+')">'
+      + imgOrPlaceholder
+      + '<div class="thumb-num">' + (i+1) + '</div>'
+      + '<div class="thumb-label">' + (p.label || '–') + '</div>'
+      + '</div>';
+  }).join('');
+
+  lbxCurrentIdx = 0;
+  lbxShowPhoto(0);
+}
+
+// ── Mostrar foto en el stage ─────────────────────────────────
+function lbxShowPhoto(idx) {
+  if (!lbxPhotos.length) return;
+  idx = Math.max(0, Math.min(idx, lbxPhotos.length - 1));
+  lbxCurrentIdx = idx;
+
+  var photo = lbxPhotos[idx];
+  var total = lbxPhotos.length;
+
+  // Update filmstrip active
+  document.querySelectorAll('.lbx-thumb').forEach(function(el, i) {
+    el.classList.toggle('active', i === idx);
+  });
+  // Scroll filmstrip to active
+  var activeThumb = document.getElementById('lbxThumb_' + idx);
+  if (activeThumb) activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // Navegation buttons
+  document.getElementById('lbxPrev').disabled = idx === 0;
+  document.getElementById('lbxNext').disabled = idx === total - 1;
+
+  // Progress
+  var pct = total > 1 ? Math.round((idx / (total - 1)) * 100) : 100;
+  document.getElementById('lbxProgressFill').style.width  = pct + '%';
+  document.getElementById('lbxProgressLabel').textContent = (idx + 1) + ' / ' + total;
+
+  // Imagen principal
+  var img   = document.getElementById('lbxImgMain');
+  var noImg = document.getElementById('lbxNoImg');
+  var spin  = document.getElementById('lbxSpinner');
+
+  if (photo.photoUrl || photo.thumbUrl) {
+    img.style.display  = 'none';
+    noImg.style.display = 'none';
+    spin.style.display  = 'block';
+    // usar thumbnail de mayor resolución para stage
+    var fullUrl = photo.photoUrl || photo.thumbUrl;
+    // Intentar reemplazar sz=w400 por sz=w1200 para mejor calidad en el stage
+    var bigUrl = fullUrl.indexOf('thumbnail?id=') >= 0
+      ? fullUrl.replace(/sz=w\d+/, 'sz=w1200')
+      : fullUrl;
+    img.src = bigUrl;
+    img.alt = photo.label || '';
+  } else {
+    spin.style.display  = 'none';
+    img.style.display   = 'none';
+    noImg.style.display = 'flex';
+  }
+
+  // Caption
+  var caption = document.getElementById('lbxCaption');
+  caption.style.display = 'block';
+  document.getElementById('lbxCaptionLabel').textContent =
+    (photo.emoji || '📷') + ' ' + (photo.label || '–') +
+    (photo.subItem ? ' — ' + photo.subItem : '');
+  document.getElementById('lbxCaptionTs').textContent =
+    photo.timestamp ? lbxFmtDateTime(photo.timestamp) : '–';
+
+  // Botones de acción
+  var actions = document.getElementById('lbxCaptionActions');
+  var btns = '';
+  if (photo.photoUrl) {
+    btns += '<a class="lbx-action-btn lbx-btn-drive" href="' + photo.photoUrl
+          + '" target="_blank" rel="noopener">🔗 Ver en Drive</a>';
+    btns += '<a class="lbx-action-btn lbx-btn-download" href="'
+          + photo.photoUrl.replace('/view', '') + '&export=download"'
+          + ' target="_blank" rel="noopener">⬇ Descargar</a>';
+  }
+  btns += '<button class="lbx-action-btn" style="background:rgba(30,41,59,0.5);border:1px solid rgba(59,130,246,0.2);color:#64748b;cursor:pointer;font-family:inherit;" onclick="lbxCopyLabel()">'
+        + '📋 Copiar info</button>';
+  actions.innerHTML = btns;
+}
+
+// ── Eventos de imagen ─────────────────────────────────────────
+function lbxImgLoaded() {
+  document.getElementById('lbxSpinner').style.display = 'none';
+  document.getElementById('lbxImgMain').style.display = 'block';
+}
+function lbxImgError() {
+  document.getElementById('lbxSpinner').style.display = 'none';
+  document.getElementById('lbxImgMain').style.display = 'none';
+  document.getElementById('lbxNoImg').style.display   = 'flex';
+}
+
+// ── Navegación ────────────────────────────────────────────────
+function lbxNav(dir) { lbxGoTo(lbxCurrentIdx + dir); }
+function lbxGoTo(idx) { lbxShowPhoto(idx); }
+
+// ── Teclado ───────────────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  var overlay = document.getElementById('lbxOverlay');
+  if (!overlay || overlay.classList.contains('hidden')) return;
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); lbxNav(-1); }
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  { e.preventDefault(); lbxNav(+1); }
+  if (e.key === 'Escape') { e.preventDefault(); closeLightbox(); }
+});
+
+// ── Cerrar ────────────────────────────────────────────────────
+function closeLightbox() {
+  document.getElementById('lbxOverlay').classList.add('hidden');
+  document.body.style.overflow = '';
+  var img = document.getElementById('lbxImgMain');
+  img.src = ''; // liberar memoria
+}
+
+// ── Copiar info del checkpoint ────────────────────────────────
+function lbxCopyLabel() {
+  var photo  = lbxPhotos[lbxCurrentIdx];
+  var report = lbxCurrentReport;
+  if (!photo || !report) return;
+  var text = [
+    'Vuelo: ' + (report.airlineName || report.airline) + ' ' + report.flightNumber,
+    'Tipo: '  + report.flightType,
+    'Checkpoint: ' + photo.label + (photo.subItem ? ' — ' + photo.subItem : ''),
+    'Timestamp: '  + (photo.timestamp ? lbxFmtDateTime(photo.timestamp) : '–'),
+    'Inspector: '  + (report.inspector || '–'),
+    'URL Drive: '  + (photo.photoUrl || '(sin foto)')
+  ].join('\n');
+  navigator.clipboard.writeText(text).then(function() {
+    showToast('✓ Copiado al portapapeles');
+  }).catch(function() {
+    showToast('No se pudo copiar', true);
+  });
+}
+
+// ── Helpers de fecha ─────────────────────────────────────────
+function lbxFmtDate(ts) {
+  if (!ts) return '–';
+  try {
+    return new Date(ts).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
+  } catch(e) { return ts; }
+}
+function lbxFmtDateTime(ts) {
+  if (!ts) return '–';
+  try {
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) {
+      // intentar parsear como HH:MM:SS
+      var m = String(ts).match(/(\d{1,2}:\d{2}(?::\d{2})?)/);
+      return m ? m[1] : ts;
+    }
+    return d.toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' })
+         + ' ' + d.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  } catch(e) { return String(ts); }
+}
+
 </script>
+
+<div id="lbxOverlay" class="lbx-overlay hidden">
+  <!-- Header -->
+  <div class="lbx-header">
+    <div class="lbx-flight-info">
+      <div class="lbx-badge" id="lbxBadge">✈️ –</div>
+      <div>
+        <div class="lbx-title" id="lbxTitle">Galería de Fotos</div>
+        <div class="lbx-subtitle" id="lbxSubtitle">–</div>
+      </div>
+    </div>
+    <div class="lbx-header-right">
+      <span class="lbx-count" id="lbxCount">0 fotos</span>
+      <button class="lbx-close" onclick="closeLightbox()">✕</button>
+    </div>
+  </div>
+
+  <!-- Main area -->
+  <div class="lbx-main">
+
+    <!-- Filmstrip (miniaturas) -->
+    <div class="lbx-filmstrip" id="lbxFilmstrip"></div>
+
+    <!-- Stage (foto principal) -->
+    <div class="lbx-stage">
+      <button class="lbx-nav prev" id="lbxPrev" onclick="lbxNav(-1)">‹</button>
+      <button class="lbx-nav next" id="lbxNext" onclick="lbxNav(+1)">›</button>
+
+      <div class="lbx-img-wrap" id="lbxImgWrap">
+        <div class="lbx-spinner" id="lbxSpinner" style="display:none"></div>
+        <img class="lbx-img-main" id="lbxImgMain" src="" alt="" style="display:none"
+             onload="lbxImgLoaded()" onerror="lbxImgError()">
+        <div id="lbxNoImg" class="lbx-img-placeholder" style="display:none">
+          <div class="big-icon">📷</div>
+          <div>Sin foto disponible para este checkpoint</div>
+          <div style="font-size:11px;color:#475569;font-family:'JetBrains Mono',monospace;margin-top:4px;">
+            El checkpoint fue registrado sin imagen
+          </div>
+        </div>
+        <div id="lbxLoading" class="lbx-img-placeholder">
+          <div class="lbx-spinner"></div>
+          <div style="color:#64748b;font-size:12px;margin-top:8px;">Cargando fotos…</div>
+        </div>
+      </div>
+
+      <div class="lbx-caption" id="lbxCaption" style="display:none">
+        <div class="lbx-caption-label" id="lbxCaptionLabel"></div>
+        <div class="lbx-caption-ts" id="lbxCaptionTs"></div>
+        <div class="lbx-caption-actions" id="lbxCaptionActions"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="lbx-progress">
+    <div class="lbx-progress-bar">
+      <div class="lbx-progress-fill" id="lbxProgressFill" style="width:0%"></div>
+    </div>
+    <span class="lbx-progress-label" id="lbxProgressLabel">– / –</span>
+  </div>
+</div>
+    
 </body>
 </html>
