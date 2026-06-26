@@ -883,12 +883,12 @@
         function resumeReport(e, report) {
             e.stopPropagation();
             sessionStorage.setItem('resumeReport', JSON.stringify(report));
-            window.location.href = 'T07.html';
+            window.location.href = 'index.html';
         }
 
         function goToNewInspection() {
             sessionStorage.removeItem('resumeReport');
-            window.location.href = 'T07.html';
+            window.location.href = 'index.html';
         }
 
         function logout() {
