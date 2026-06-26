@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Mi Historial — Turnaround Check</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{overflow-x:hidden}
+
+body{
+  font-family:'Syne',sans-serif;
+  background:#050816;
+  color:#e2e8f0;
+  min-height:100dvh;
+  overflow-x:hidden;
+}
+
+#canvas-container{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none}
+
+/* ── SHELL ── */
+.shell{position:relative;z-index:2;display:flex;flex-direction:column;min-height:100dvh;max-width:520px;margin:0 auto}
+
+/* ── HEADER ── */
+.hdr{
+  background:rgba(5,8,22,0.92);
+  backdrop-filter:blur(24px);
+  border-bottom:1px solid rgba(59,130,246,0.18);
+  padding:12px 14px 10px;
+  position:sticky;top:0;z-index:20;
+  flex-shrink:0;
+}
+.hdr-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.brand{display:flex;align-items:center;gap:9px}
+.brand-icon{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0
+}
+.brand-name{font-size:16px;font-weight:800;background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brand-sub{font-size:9px;color:#475569;font-family:'JetBrains Mono',monospace;letter-spacing:2px;text-transform:uppercase}
+.hdr-right{display:flex;align-items:center;gap:7px}
+.user-pill{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.18);
+  border-radius:20px;padding:4px 10px 4px 4px
+}
+.user-av{
+  width:24px;height:24px;border-radius:50%;
+  background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:#fff;flex-shrink:0
+}
+.user-name{font-size:12px;font-weight:600;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-role{font-size:9px;color:#475569;font-family:'JetBrains Mono',monospace}
+.btn-logout{
+  padding:5px 11px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.28);
+  border-radius:8px;color:#fca5a5;font-size:11px;font-weight:600;cursor:pointer;
+  font-family:'Syne',sans-serif;white-space:nowrap;transition:all .2s
+}
+.btn-logout:active{background:rgba(239,68,68,0.25)}
+.btn-new{
+  width:100%;padding:12px;
+  background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+  border:none;border-radius:11px;color:#fff;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:'Syne',sans-serif;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  box-shadow:0 4px 18px rgba(59,130,246,0.32);transition:all .18s
+}
+.btn-new:active{transform:scale(0.97)}
+
+/* ── MAIN ── */
+.main{flex:1;padding:14px 13px 24px;overflow-y:auto}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:14px}
+.stat-card{
+  background:rgba(10,17,35,0.88);border:1px solid rgba(59,130,246,0.15);
+  border-radius:12px;padding:11px 10px;
+  backdrop-filter:blur(12px);text-align:center
+}
+.stat-lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#475569;font-family:'JetBrains Mono',monospace;margin-bottom:3px}
+.stat-val{font-size:22px;font-weight:800;line-height:1}
+.stat-val.blue{background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-val.green{background:linear-gradient(135deg,#10b981,#059669);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-val.amber{background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-val.teal{background:linear-gradient(135deg,#14b8a6,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+/* ── TABS (Historial / Facturables / Incidentes / Seguridad / Cancelados) ── */
+.tabs-wrap{display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.tabs-wrap::-webkit-scrollbar{display:none}
+.tab-btn{
+  flex-shrink:0;padding:7px 14px;
+  background:rgba(18,28,52,0.6);border:1px solid rgba(59,130,246,0.13);
+  border-radius:20px;font-size:11px;font-weight:600;color:#64748b;
+  cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .2s;white-space:nowrap
+}
+.tab-btn.active{background:rgba(59,130,246,0.15);border-color:#3b82f6;color:#60a5fa}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px}
+.toolbar-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px}
+.live-dot-wrap{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:600;color:#10b981;font-family:'JetBrains Mono',monospace}
+.live-dot{width:5px;height:5px;border-radius:50%;background:#10b981;animation:ld 1.5s ease-in-out infinite}
+@keyframes ld{0%,100%{opacity:1}50%{opacity:.3}}
+.refresh-btn{
+  width:32px;height:32px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);
+  border-radius:9px;color:#60a5fa;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:16px;transition:all .2s;flex-shrink:0
+}
+.refresh-btn.spin{animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ── FILTER PILLS ── */
+.filter-pills{display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.filter-pills::-webkit-scrollbar{display:none}
+.pill{
+  flex-shrink:0;padding:5px 12px;
+  background:rgba(18,28,52,0.5);border:1px solid rgba(59,130,246,0.12);
+  border-radius:16px;font-size:11px;font-weight:600;color:#64748b;
+  cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace;white-space:nowrap
+}
+.pill.active{background:rgba(59,130,246,0.15);border-color:#3b82f6;color:#60a5fa}
+
+/* ── SEARCH ── */
+.search-bar{
+  width:100%;padding:10px 13px;margin-bottom:11px;
+  background:rgba(18,28,52,0.7);border:1px solid rgba(59,130,246,0.15);
+  border-radius:10px;color:#fff;font-size:13px;outline:none;font-family:'Syne',sans-serif;
+  transition:border-color .2s
+}
+.search-bar:focus{border-color:#3b82f6}
+.search-bar::placeholder{color:#475569}
+
+/* ── REPORT CARDS ── */
+.report-card{
+  background:rgba(10,17,35,0.88);border:1px solid rgba(59,130,246,0.15);
+  border-radius:15px;margin-bottom:9px;overflow:hidden;cursor:pointer;
+  transition:all .22s;backdrop-filter:blur(12px);
+  animation:cardIn .3s ease both
+}
+@keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.report-card:active{transform:scale(0.985)}
+.report-card.status-completado{border-left:3px solid #10b981}
+.report-card.status-en-proceso{border-left:3px solid #f59e0b}
+.report-card.status-cancelado{border-left:3px solid #ef4444}
+
+.card-head{padding:12px 13px;display:flex;align-items:center;gap:10px;justify-content:space-between}
+.card-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.al-badge{
+  width:40px;height:40px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(139,92,246,0.2));
+  border:1px solid rgba(59,130,246,0.28);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;color:#60a5fa;font-family:'JetBrains Mono',monospace
+}
+.card-info{flex:1;min-width:0}
+.card-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.type-tag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;flex-shrink:0}
+.tag-turn{background:rgba(59,130,246,0.15);color:#60a5fa}
+.tag-arrival{background:rgba(16,185,129,0.15);color:#34d399}
+.tag-departure{background:rgba(245,158,11,0.15);color:#fbbf24}
+.tag-cancelado{background:rgba(239,68,68,0.15);color:#fca5a5}
+.card-meta{font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-right{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.status-chip{padding:3px 9px;border-radius:16px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.3px}
+.chip-done{background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.28)}
+.chip-proc{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.28)}
+.chip-canc{background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.28)}
+.prog-mini{width:54px;height:3px;background:rgba(30,41,59,.7);border-radius:10px;overflow:hidden;margin-top:4px}
+.prog-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#3b82f6,#8b5cf6);transition:width .4s}
+.prog-fill.done{background:linear-gradient(90deg,#10b981,#059669)}
+.prog-fill.canc{background:linear-gradient(90deg,#ef4444,#dc2626)}
+.prog-pct{font-size:8px;color:#475569;font-family:'JetBrains Mono',monospace;margin-top:1px;text-align:right}
+.chevron{color:#475569;font-size:17px;transition:transform .25s}
+.report-card.expanded .chevron{transform:rotate(90deg)}
+
+/* ── DETAIL PANEL ── */
+.card-detail{
+  max-height:0;overflow:hidden;
+  transition:max-height .38s ease;
+  border-top:0px solid transparent;
+}
+.report-card.expanded .card-detail{
+  max-height:2400px;
+  border-top:1px solid rgba(59,130,246,0.12);
+  padding:0 13px 13px;
+}
+
+/* detail grid */
+.det-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding-top:11px;margin-bottom:12px}
+.det-item{background:rgba(18,28,52,0.5);border:1px solid rgba(59,130,246,0.1);border-radius:9px;padding:8px 10px}
+.det-lbl{font-size:8px;color:#475569;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}
+.det-val{font-size:12px;font-weight:600}
+
+/* checkpoints table */
+.cp-section-title{font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:7px}
+.cp-grid{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.cp-row{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 9px;background:rgba(18,28,52,0.4);
+  border:1px solid rgba(59,130,246,0.08);border-radius:8px
+}
+.cp-dot2{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.cp-done2{background:#10b981}
+.cp-pend2{background:#475569}
+.cp-label{font-size:11px;color:#cbd5e1;flex:1;font-family:'JetBrains Mono',monospace}
+.cp-time{font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.cp-photo-link{font-size:9px;color:#60a5fa;text-decoration:none;flex-shrink:0;padding:2px 6px;background:rgba(59,130,246,0.1);border-radius:4px;border:1px solid rgba(59,130,246,0.2)}
+
+/* photos gallery */
+.photos-gallery{display:flex;gap:7px;overflow-x:auto;margin-bottom:11px;padding-bottom:2px;scrollbar-width:none}
+.photos-gallery::-webkit-scrollbar{display:none}
+.photo-thumb{flex-shrink:0;width:80px}
+.photo-thumb a{display:block;width:80px;aspect-ratio:4/3;border-radius:8px;overflow:hidden;border:1px solid rgba(59,130,246,0.22);text-decoration:none}
+.photo-thumb img{width:100%;height:100%;object-fit:cover}
+.photo-thumb .ph-lbl{font-size:8px;color:#475569;font-family:'JetBrains Mono',monospace;margin-top:2px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* incidente block */
+.inc-block{background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.22);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.inc-title{font-size:10px;font-weight:700;color:#fca5a5;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+.inc-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;font-family:'JetBrains Mono',monospace}
+.inc-lab{color:#64748b}.inc-val{color:#e2e8f0;font-weight:600;text-align:right;max-width:65%;word-break:break-word}
+
+/* facturable & seg blocks in detail */
+.svc-block{background:rgba(20,184,166,0.06);border:1px solid rgba(20,184,166,0.18);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.svc-block-title{font-size:10px;font-weight:700;color:#2dd4bf;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.svc-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(20,184,166,0.08);font-size:11px;font-family:'JetBrains Mono',monospace}
+.svc-row:last-child{border-bottom:none}
+.svc-name{color:#94a3b8;flex:1}.svc-amt{color:#2dd4bf;font-weight:700;flex-shrink:0}
+
+/* seg block */
+.seg-block{background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.seg-block-title{font-size:10px;font-weight:700;color:#fbbf24;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+
+/* resume button */
+.btn-resume{
+  width:100%;margin-top:10px;padding:12px;
+  background:linear-gradient(135deg,#3b82f6,#8b5cf6);border:none;border-radius:10px;
+  color:#fff;font-size:13px;font-weight:700;cursor:pointer;
+  font-family:'Syne',sans-serif;transition:all .2s
+}
+.btn-resume:active{transform:scale(0.97)}
+
+/* ── SECONDARY TABS CONTENT ── */
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* facturable list cards */
+.fac-card{background:rgba(10,17,35,0.88);border:1px solid rgba(20,184,166,0.18);border-radius:13px;padding:12px 13px;margin-bottom:8px;animation:cardIn .3s ease both}
+.fac-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.fac-fk{font-size:10px;color:#2dd4bf;font-family:'JetBrains Mono',monospace;font-weight:700}
+.fac-date{font-size:9px;color:#475569;font-family:'JetBrains Mono',monospace}
+.fac-items-list{display:flex;flex-direction:column;gap:4px}
+.fac-item-row{display:flex;align-items:center;gap:8px;padding:5px 8px;background:rgba(18,28,52,0.5);border-radius:7px}
+.fac-item-icon{font-size:14px;flex-shrink:0;width:22px;text-align:center}
+.fac-item-name{font-size:11px;color:#e2e8f0;flex:1;font-weight:600}
+.fac-item-detail{font-size:9px;color:#64748b;font-family:'JetBrains Mono',monospace}
+.fac-item-amt{font-size:12px;font-weight:800;color:#2dd4bf;font-family:'JetBrains Mono',monospace;flex-shrink:0}
+.fac-total-bar{display:flex;justify-content:space-between;padding:7px 8px;background:rgba(20,184,166,0.1);border:1px solid rgba(20,184,166,0.22);border-radius:8px;margin-top:7px}
+.fac-total-lbl{font-size:11px;color:#64748b;font-weight:600}
+.fac-total-val{font-size:14px;font-weight:800;color:#2dd4bf;font-family:'JetBrains Mono',monospace}
+
+/* incidentes tab */
+.inc-card{background:rgba(10,17,35,0.88);border:1px solid rgba(239,68,68,0.18);border-radius:13px;padding:12px 13px;margin-bottom:8px;animation:cardIn .3s ease both}
+.inc-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.inc-badge{padding:3px 9px;border-radius:14px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.sev-baja{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.28)}
+.sev-media{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.28)}
+.sev-alta{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.28)}
+
+/* seguridad tab */
+.seg-card{background:rgba(10,17,35,0.88);border:1px solid rgba(245,158,11,0.18);border-radius:13px;padding:12px 13px;margin-bottom:8px;animation:cardIn .3s ease both}
+.riesgo-badge{padding:3px 9px;border-radius:14px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.riesgo-bajo{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.28)}
+.riesgo-medio{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.28)}
+.riesgo-alto{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.28)}
+.riesgo-critico{background:rgba(139,0,0,.2);color:#fca5a5;border:1px solid rgba(239,68,68,.5);animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* cancelados tab */
+.can-card{background:rgba(10,17,35,0.88);border:1px solid rgba(239,68,68,0.22);border-left:3px solid #ef4444;border-radius:13px;padding:12px 13px;margin-bottom:8px;animation:cardIn .3s ease both}
+
+/* EMPTY / LOADING */
+.empty{text-align:center;padding:40px 20px;background:rgba(10,17,35,0.7);border:1px solid rgba(59,130,246,0.12);border-radius:15px}
+.empty-icon{font-size:40px;margin-bottom:10px}
+.empty-title{font-size:16px;font-weight:700;margin-bottom:4px}
+.empty-sub{color:#475569;font-size:12px}
+
+.skeleton{background:rgba(10,17,35,0.7);border:1px solid rgba(59,130,246,0.1);border-radius:13px;padding:14px;margin-bottom:8px;animation:shim 1.4s ease-in-out infinite}
+@keyframes shim{0%,100%{opacity:1}50%{opacity:.4}}
+.skel-l{height:11px;border-radius:5px;background:rgba(59,130,246,0.1);margin-bottom:7px}
+.skel-l.s{width:38%}.skel-l.m{width:62%}
+
+/* banner */
+.in-progress-banner{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.28);border-radius:10px;padding:9px 12px;margin-bottom:11px;font-size:11px;color:#fcd34d;line-height:1.5;display:none}
+.in-progress-banner.vis{display:block}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(60px);
+  background:rgba(16,185,129,0.95);backdrop-filter:blur(10px);
+  color:#fff;padding:10px 20px;border-radius:22px;font-size:12px;font-weight:600;
+  z-index:300;opacity:0;transition:all .3s;font-family:'JetBrains Mono',monospace;white-space:nowrap
+}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.err{background:rgba(239,68,68,0.95)}
+
+@media(max-width:380px){
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .stat-val{font-size:20px}
+}
+</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+
+<div class="shell">
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="hdr-row">
+      <div class="brand">
+        <div class="brand-icon">✈️</div>
+        <div>
+          <div class="brand-name">Historial</div>
+          <div class="brand-sub">Turnaround Check</div>
+        </div>
+      </div>
+      <div class="hdr-right">
+        <div class="user-pill">
+          <div class="user-av" id="uAv">?</div>
+          <div>
+            <div class="user-name" id="uName">–</div>
+            <div class="user-role" id="uRole">–</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()">Salir</button>
+      </div>
+    </div>
+    <button class="btn-new" onclick="goNew()">✈️ + Nueva Inspección</button>
+  </header>
+
+  <main class="main">
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-lbl">Total</div><div class="stat-val blue" id="sTotal">–</div></div>
+      <div class="stat-card"><div class="stat-lbl">Completados</div><div class="stat-val green" id="sDone">–</div></div>
+      <div class="stat-card"><div class="stat-lbl">En Proceso</div><div class="stat-val amber" id="sProc">–</div></div>
+      <div class="stat-card"><div class="stat-lbl">Hoy</div><div class="stat-val teal" id="sHoy">–</div></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-wrap">
+      <button class="tab-btn active" onclick="switchTab('reportes',this)">📋 Reportes</button>
+      <button class="tab-btn" onclick="switchTab('facturables',this)">💰 Facturables</button>
+      <button class="tab-btn" onclick="switchTab('incidentes',this)">⚠️ Incidentes</button>
+      <button class="tab-btn" onclick="switchTab('seguridad',this)">🛡️ Seguridad</button>
+      <button class="tab-btn" onclick="switchTab('cancelados',this)">❌ Cancelados</button>
+    </div>
+
+    <!-- ══ TAB: REPORTES ══════════════════════════════════════ -->
+    <div class="tab-content active" id="tab-reportes">
+      <div class="in-progress-banner" id="ipBanner"></div>
+      <div class="toolbar">
+        <div class="toolbar-title">
+          Mis Reportes
+          <div class="live-dot-wrap"><div class="live-dot"></div>LIVE</div>
+        </div>
+        <div class="refresh-btn" id="refreshBtn" onclick="load(true)">↻</div>
+      </div>
+      <div class="filter-pills">
+        <button class="pill active" onclick="setFilter('all',this)">Todos</button>
+        <button class="pill" onclick="setFilter('Completado',this)">Completados</button>
+        <button class="pill" onclick="setFilter('En Proceso',this)">En Proceso</button>
+        <button class="pill" onclick="setFilter('Cancelado',this)">Cancelados</button>
+      </div>
+      <input class="search-bar" id="searchBar" placeholder="🔍 Buscar vuelo, aerolínea, fecha..." oninput="renderReports()">
+      <div id="reportsList">
+        <div class="skeleton"><div class="skel-l m"></div><div class="skel-l s"></div></div>
+        <div class="skeleton"><div class="skel-l m"></div><div class="skel-l s"></div></div>
+        <div class="skeleton"><div class="skel-l m"></div><div class="skel-l s"></div></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: FACTURABLES ══════════════════════════════════ -->
+    <div class="tab-content" id="tab-facturables">
+      <div class="toolbar">
+        <div class="toolbar-title">💰 Servicios Facturables</div>
+        <div class="refresh-btn" onclick="load(true)">↻</div>
+      </div>
+      <div id="facturablesList">
+        <div class="empty"><div class="empty-icon">💰</div><div class="empty-title">Cargando…</div></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: INCIDENTES ═══════════════════════════════════ -->
+    <div class="tab-content" id="tab-incidentes">
+      <div class="toolbar">
+        <div class="toolbar-title">⚠️ Incidentes Registrados</div>
+        <div class="refresh-btn" onclick="load(true)">↻</div>
+      </div>
+      <div id="incidentesList">
+        <div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Cargando…</div></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: SEGURIDAD ════════════════════════════════════ -->
+    <div class="tab-content" id="tab-seguridad">
+      <div class="toolbar">
+        <div class="toolbar-title">🛡️ Reportes de Seguridad</div>
+        <div class="refresh-btn" onclick="load(true)">↻</div>
+      </div>
+      <div id="seguridadList">
+        <div class="empty"><div class="empty-icon">🛡️</div><div class="empty-title">Cargando…</div></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: CANCELADOS ═══════════════════════════════════ -->
+    <div class="tab-content" id="tab-cancelados">
+      <div class="toolbar">
+        <div class="toolbar-title">❌ Vuelos Cancelados</div>
+        <div class="refresh-btn" onclick="load(true)">↻</div>
+      </div>
+      <div id="canceladosList">
+        <div class="empty"><div class="empty-icon">❌</div><div class="empty-title">Cargando…</div></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ════════════════ SCRIPTS ════════════════ -->
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbys2mnkHmGMRUJmuvb3CY54QCkk7WlVqVkAWF-Ep9flPGS5_J_YDZfe2Xmr2zICUIEJ/exec';
+const REFRESH_MS = 30000;
+
+const AIRLINE_NAMES = {
+  'DL':'Delta','WN':'Southwest','UA':'United','NK':'Spirit','AA':'American Airlines',
+  'WS':'Westjet','E9':'Iberojet','PO':'Porter','AV':'Avianca','IB':'Iberia',
+  'TS':'Air Transat','B6':'Jetblue','D0':'DHL','CG':'Cargo'
+};
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let U = null;
+let allReports = [];
+let allFacturables = [];   // {flightKey, items[], total}
+let allIncidentes = [];
+let allSeguridad = [];
+let allCancelados = [];
+let filterStatus = 'all';
+let currentTab = 'reportes';
+let autoTimer = null;
+
+// ── AUTH ─────────────────────────────────────────────────────────────────────
+(()=>{
+  const raw = sessionStorage.getItem('user');
+  if(!raw){ alert('Inicie sesión primero'); location.href='login-testV27.html'; return; }
+  try{ U = JSON.parse(raw); initUI(); }
+  catch(e){ location.href='login-testV27.html'; }
+})();
+
+function initUI(){
+  document.getElementById('uName').textContent = U.username;
+  document.getElementById('uRole').textContent = U.role;
+  document.getElementById('uAv').textContent   = (U.username||'?').slice(0,2).toUpperCase();
+  load();
+  autoTimer = setInterval(()=>load(false), REFRESH_MS);
+}
+
+// ── THREE.JS BG ──────────────────────────────────────────────────────────────
+(()=>{
+  const c = document.getElementById('canvas-container');
+  const sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, .1, 1000);
+  const rn = new THREE.WebGLRenderer({alpha:true,antialias:true});
+  rn.setSize(innerWidth,innerHeight); c.appendChild(rn.domElement);
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(2200*3);
+  for(let i=0;i<pos.length;i++) pos[i]=(Math.random()-.5)*100;
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const mat = new THREE.PointsMaterial({size:.07,color:0x3b82f6,transparent:true,opacity:.5,blending:THREE.AdditiveBlending});
+  const pts = new THREE.Points(geo,mat);
+  sc.add(pts); cam.position.z=30;
+  (function a(){ requestAnimationFrame(a); pts.rotation.y+=.0008; rn.render(sc,cam); })();
+  window.addEventListener('resize',()=>{ cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); rn.setSize(innerWidth,innerHeight); });
+})();
+
+// ── LOAD ALL DATA ─────────────────────────────────────────────────────────────
+function load(manual=false){
+  if(manual){
+    const rb=document.getElementById('refreshBtn');
+    rb.classList.add('spin');
+    setTimeout(()=>rb.classList.remove('spin'),700);
+  }
+  loadReportsJSONP();
+  loadSheetData('getFacturables',  data=>{ allFacturables  = data.rows||[]; renderFacturables(); });
+  loadSheetData('getIncidentes',   data=>{ allIncidentes   = data.rows||[]; renderIncidentes(); });
+  loadSheetData('getSeguridad',    data=>{ allSeguridad    = data.rows||[]; renderSeguridad(); });
+  loadSheetData('getCancelados',   data=>{ allCancelados   = data.rows||[]; renderCancelados(); });
+  if(manual) toast('↻ Actualizando datos…');
+}
+
+// Main reports (existing getHistory)
+function loadReportsJSONP(){
+  const cb = 'hcb'+Date.now();
+  const url = `${SCRIPT_URL}?action=getHistory&inspector=${encodeURIComponent(U.username)}&callback=${cb}`;
+  window[cb] = function(data){
+    delete window[cb];
+    const s=document.getElementById('_sc_hist'); if(s)s.remove();
+    if(data&&data.success){
+      allReports=(data.reports||[]).map(r=>{
+        if(!r.status||r.status.trim()==='')
+          r.status = (r.progress>=100)?'Completado':'En Proceso';
+        return r;
+      });
+      renderReports();
+      updateStats();
+      checkInProgress();
+    } else {
+      allReports=[];
+      renderReports();
+    }
+  };
+  const s=document.createElement('script');
+  s.id='_sc_hist'; s.src=url;
+  s.onerror=()=>{ delete window[cb]; s.remove(); renderReports(); };
+  document.body.appendChild(s);
+  setTimeout(()=>{ if(window[cb]){ delete window[cb]; const e=document.getElementById('_sc_hist'); if(e)e.remove(); renderReports(); } },12000);
+}
+
+// Generic sheet tab loader
+function loadSheetData(action, cb){
+  const name = 'cb'+action+Date.now();
+  const url  = `${SCRIPT_URL}?action=${action}&inspector=${encodeURIComponent(U.username)}&callback=${name}`;
+  window[name] = function(data){
+    delete window[name];
+    const s=document.getElementById('_sc_'+action); if(s)s.remove();
+    if(data&&data.success) cb(data);
+    // silently ignore errors for secondary tabs
+  };
+  const s=document.createElement('script');
+  s.id='_sc_'+action; s.src=url;
+  s.onerror=()=>{ delete window[name]; s.remove(); };
+  document.body.appendChild(s);
+  setTimeout(()=>{ if(window[name]){ delete window[name]; const e=document.getElementById('_sc_'+action); if(e)e.remove(); } },12000);
+}
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(name, el){
+  currentTab = name;
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── STATS ────────────────────────────────────────────────────────────────────
+function updateStats(){
+  const today = new Date().toDateString();
+  document.getElementById('sTotal').textContent = allReports.length;
+  document.getElementById('sDone').textContent  = allReports.filter(r=>r.status==='Completado').length;
+  document.getElementById('sProc').textContent  = allReports.filter(r=>r.status==='En Proceso').length;
+  document.getElementById('sHoy').textContent   = allReports.filter(r=>{
+    try{ return new Date(parseDate(r)).toDateString()===today; }catch{ return false; }
+  }).length;
+}
+
+function checkInProgress(){
+  const ip = allReports.filter(r=>r.status==='En Proceso');
+  const banner = document.getElementById('ipBanner');
+  if(ip.length>0){
+    banner.classList.add('vis');
+    banner.innerHTML = `⚠️ Tienes <strong>${ip.length}</strong> reporte(s) en proceso: ${ip.map(r=>`${AIRLINE_NAMES[r.airline]||r.airline} ${r.flightNumber}`).join(', ')}. Toca el reporte para <strong>Retomar</strong>.`;
+  } else {
+    banner.classList.remove('vis');
+  }
+}
+
+// ── RENDER REPORTES ──────────────────────────────────────────────────────────
+function setFilter(f, el){
+  filterStatus=f;
+  document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  renderReports();
+}
+
+function renderReports(){
+  const list  = document.getElementById('reportsList');
+  const query = (document.getElementById('searchBar').value||'').toLowerCase().trim();
+
+  let data = allReports.filter(r=>{
+    if(filterStatus!=='all' && r.status!==filterStatus) return false;
+    if(query){
+      const hay = [r.airline,r.airlineName,r.flightNumber,r.flightType,r.status,r.posicion,
+        r.flightTimestamp].join(' ').toLowerCase();
+      if(!hay.includes(query)) return false;
+    }
+    return true;
+  });
+  data.sort((a,b)=>parseDate(b)-parseDate(a));
+
+  if(data.length===0){
+    list.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">${allReports.length===0?'Sin reportes aún':'Sin resultados'}</div><div class="empty-sub">Tus inspecciones aparecen aquí en tiempo real.</div></div>`;
+    return;
+  }
+  list.innerHTML = data.map((r,i)=>buildReportCard(r,i)).join('');
+}
+
+function buildReportCard(r, i){
+  const code     = r.airline||'–';
+  const name     = r.airlineName||AIRLINE_NAMES[code]||code;
+  const status   = r.status||'En Proceso';
+  const sc       = status==='Completado'?'completado':status==='Cancelado'?'cancelado':'en-proceso';
+  const chip     = status==='Completado'?'chip-done':status==='Cancelado'?'chip-canc':'chip-proc';
+  const progress = status==='Completado'?100:(r.progress||0);
+  const pfill    = status==='Completado'?'done':status==='Cancelado'?'canc':'';
+  const dt       = r.flightTimestamp?fmtDT(new Date(r.flightTimestamp)):'–';
+  const typeTag  = buildTypeTag(r.flightType, status==='Cancelado');
+  const posText  = r.posicion?`📍 ${r.posicion} · `:'';
+
+  // dedupe checkpoints
+  const cps = dedupeByLabel(r.checkpoints||[]);
+  // photos from checkpoints
+  const photos = cps.filter(cp=>cp.photoUrl);
+
+  // facturable data for THIS flight from allFacturables
+  const facData = allFacturables.filter(row=>row.flightKey===r.flightKey);
+  const facTotal= facData.reduce((s,row)=>s+(parseFloat(row.monto)||0),0);
+
+  // incident
+  const incBlock = r.incident?`
+    <div class="inc-block">
+      <div class="inc-title">⚠ Incidente: ${r.incident.type||''}</div>
+      <div class="inc-row"><span class="inc-lab">Severidad</span><span class="inc-val">${r.incident.severity||'–'}</span></div>
+      <div class="inc-row"><span class="inc-lab">Descripción</span><span class="inc-val">${r.incident.description||'–'}</span></div>
+    </div>`:'';
+
+  // services summary (from facturables)
+  const facBlock = facData.length>0?`
+    <div class="svc-block">
+      <div class="svc-block-title">💰 Servicios Facturables</div>
+      ${facData.map(row=>`<div class="svc-row"><span class="svc-name">${row.icono||''} ${row.servicio||'Servicio'}</span><span class="svc-amt">$${parseFloat(row.monto||0).toFixed(2)}</span></div>`).join('')}
+      <div class="svc-row" style="border-top:1px solid rgba(20,184,166,0.18);margin-top:4px;padding-top:6px">
+        <span class="svc-name" style="color:#94a3b8;font-weight:700">Total estimado</span>
+        <span class="svc-amt" style="font-size:14px">$${facTotal.toFixed(2)}</span>
+      </div>
+    </div>`:'';
+
+  // photos gallery
+  const galBlock = photos.length>0?`
+    <div class="cp-section-title" style="margin-top:10px">📸 Fotos (${photos.length})</div>
+    <div class="photos-gallery">
+      ${photos.map(cp=>`
+        <div class="photo-thumb">
+          <a href="${cp.photoUrl}" target="_blank" rel="noopener">
+            <img src="${cp.photoUrl.replace('/view','').replace('file/d/','uc?id=').replace('drive.google.com/uc','drive.google.com/thumbnail?id=')}&sz=w200" alt="${cp.label}" onerror="this.parentElement.innerHTML='<div style=width:100%;height:100%;background:rgba(59,130,246,0.1);display:flex;align-items:center;justify-content:center;font-size:18px>📷</div>'">
+          </a>
+          <div class="ph-lbl">${cp.label}</div>
+        </div>`).join('')}
+    </div>`:'';
+
+  // checkpoints grid
+  const cpBlock = cps.length>0?`
+    <div class="cp-section-title">✅ Checkpoints (${cps.length})</div>
+    <div class="cp-grid">
+      ${cps.map(cp=>`
+        <div class="cp-row">
+          <div class="cp-dot2 cp-done2"></div>
+          <div class="cp-label">${cp.emoji||''} ${cp.label}</div>
+          <div class="cp-time">${normTS(cp.timestamp)}</div>
+          ${cp.photoUrl?`<a class="cp-photo-link" href="${cp.photoUrl}" target="_blank" rel="noopener">📷</a>`:''}
+        </div>`).join('')}
+    </div>`:`<div style="color:#475569;font-size:11px;padding:8px 0;font-family:'JetBrains Mono',monospace">Sin checkpoints registrados aún.</div>`;
+
+  const resumeBtn = status!=='Completado'&&status!=='Cancelado'?`<button class="btn-resume" onclick="resumeReport(event,${i})">▶ Retomar Inspección</button>`:'';
+
+  return `
+    <div class="report-card status-${sc}" style="animation-delay:${i*.05}s" onclick="toggleCard(this)" data-idx="${i}">
+      <div class="card-head">
+        <div class="card-left">
+          <div class="al-badge">${code}</div>
+          <div class="card-info">
+            <div class="card-title">${name} · ${r.flightNumber||'–'} ${typeTag}</div>
+            <div class="card-meta">${posText}📅 ${dt}${r.incident?' · ⚠ Incidente':''}</div>
+          </div>
+        </div>
+        <div class="card-right">
+          <div>
+            <div><span class="status-chip ${chip}">${status}</span></div>
+            <div class="prog-mini"><div class="prog-fill ${pfill}" style="width:${progress}%"></div></div>
+            <div class="prog-pct">${Math.round(progress)}%</div>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+      </div>
+      <div class="card-detail">
+        <div class="det-grid">
+          <div class="det-item"><div class="det-lbl">Aerolínea</div><div class="det-val">${name}</div></div>
+          <div class="det-item"><div class="det-lbl">Tipo</div><div class="det-val">${r.flightType||'–'}</div></div>
+          <div class="det-item"><div class="det-lbl">Vuelo</div><div class="det-val">${r.flightNumber||'–'}</div></div>
+          <div class="det-item"><div class="det-lbl">Posición</div><div class="det-val">${r.posicion||'–'}</div></div>
+          <div class="det-item"><div class="det-lbl">Inspector</div><div class="det-val">${r.inspector||U.username}</div></div>
+          <div class="det-item"><div class="det-lbl">Checkpoints</div><div class="det-val">${cps.length} / ${r.itemsTotales||'–'}</div></div>
+          <div class="det-item"><div class="det-lbl">Fotos</div><div class="det-val">${photos.length}</div></div>
+          <div class="det-item"><div class="det-lbl">Completitud</div><div class="det-val" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:17px">${Math.round(progress)}%</div></div>
+        </div>
+        ${incBlock}
+        ${facBlock}
+        ${galBlock}
+        ${cpBlock}
+        ${resumeBtn}
+      </div>
+    </div>`;
+}
+
+function buildTypeTag(type, cancelado=false){
+  if(cancelado) return `<span class="type-tag tag-cancelado">CANC</span>`;
+  const map={'TURN':['tag-turn','TURN'],'RON-ARRIVAL':['tag-arrival','ARRIVAL'],'RON-DEPARTURE':['tag-departure','DEPART']};
+  const [cls,lbl]=map[type]||['tag-turn',type||'–'];
+  return `<span class="type-tag ${cls}">${lbl}</span>`;
+}
+
+function toggleCard(el){ el.classList.toggle('expanded'); }
+
+// ── RENDER FACTURABLES ───────────────────────────────────────────────────────
+function renderFacturables(){
+  const el = document.getElementById('facturablesList');
+  // Group by flightKey
+  const grouped = {};
+  allFacturables.forEach(row=>{
+    const k = row.flightKey||'–';
+    if(!grouped[k]) grouped[k]={flightKey:k,airline:row.aerolinea||'',vuelo:row.vuelo||'',fecha:row.fechaHora||'',items:[]};
+    grouped[k].items.push(row);
+  });
+  const keys = Object.keys(grouped);
+  if(keys.length===0){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">💰</div><div class="empty-title">Sin servicios registrados</div><div class="empty-sub">Los servicios facturables aparecerán aquí.</div></div>`;
+    return;
+  }
+  el.innerHTML = keys.map((k,i)=>{
+    const g   = grouped[k];
+    const tot = g.items.reduce((s,r)=>s+(parseFloat(r.monto)||0),0);
+    const dt  = g.fecha?fmtDT(new Date(g.fecha)):'–';
+    return `
+      <div class="fac-card" style="animation-delay:${i*.05}s">
+        <div class="fac-card-head">
+          <div>
+            <div class="fac-fk">✈️ ${g.airline} · ${g.vuelo}</div>
+            <div class="fac-date">📅 ${dt}</div>
+          </div>
+          <div style="font-size:10px;color:#2dd4bf;font-family:'JetBrains Mono',monospace">${g.items.length} servicio(s)</div>
+        </div>
+        <div class="fac-items-list">
+          ${g.items.map(row=>`
+            <div class="fac-item-row">
+              <div class="fac-item-icon">${row.icono||'📋'}</div>
+              <div style="flex:1;min-width:0">
+                <div class="fac-item-name">${row.servicio||'Servicio'}</div>
+                <div class="fac-item-detail">${row.detalle||''}</div>
+              </div>
+              <div class="fac-item-amt">$${parseFloat(row.monto||0).toFixed(2)}</div>
+            </div>`).join('')}
+        </div>
+        <div class="fac-total-bar">
+          <span class="fac-total-lbl">Total facturado</span>
+          <span class="fac-total-val">$${tot.toFixed(2)}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── RENDER INCIDENTES ────────────────────────────────────────────────────────
+function renderIncidentes(){
+  const el = document.getElementById('incidentesList');
+  if(allIncidentes.length===0){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Sin incidentes</div><div class="empty-sub">No hay incidentes operacionales registrados.</div></div>`;
+    return;
+  }
+  el.innerHTML = allIncidentes.map((inc,i)=>{
+    const sevCls = inc.severidad==='Alta'?'sev-alta':inc.severidad==='Media'?'sev-media':'sev-baja';
+    const dt = inc.fechaHora?fmtDT(new Date(inc.fechaHora)):'–';
+    return `
+      <div class="inc-card" style="animation-delay:${i*.05}s">
+        <div class="inc-card-head">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#fca5a5">⚠️ ${inc.tipoIncidente||'Incidente'}</div>
+            <div style="font-size:9px;color:#64748b;font-family:'JetBrains Mono',monospace;margin-top:2px">✈️ ${inc.aerolinea||''} ${inc.vuelo||''} · 📅 ${dt}</div>
+          </div>
+          <span class="inc-badge ${sevCls}">${inc.severidad||'–'}</span>
+        </div>
+        <div style="font-size:12px;color:#e2e8f0;line-height:1.5">${inc.descripcion||'–'}</div>
+        <div style="font-size:10px;color:#64748b;margin-top:5px;font-family:'JetBrains Mono',monospace">📍 ${inc.posicion||'–'} · 👤 ${inc.inspector||'–'}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── RENDER SEGURIDAD ─────────────────────────────────────────────────────────
+function renderSeguridad(){
+  const el = document.getElementById('seguridadList');
+  if(allSeguridad.length===0){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">🛡️</div><div class="empty-title">Sin reportes SMS</div><div class="empty-sub">Los reportes de seguridad operacional aparecerán aquí.</div></div>`;
+    return;
+  }
+  el.innerHTML = allSeguridad.map((seg,i)=>{
+    const rmap={'Bajo':'riesgo-bajo','Medio':'riesgo-medio','Alto':'riesgo-alto','Crítico':'riesgo-critico'};
+    const rCls = rmap[seg.nivelRiesgo]||'riesgo-bajo';
+    const dt = seg.fechaHora?fmtDT(new Date(seg.fechaHora)):'–';
+    return `
+      <div class="seg-card" style="animation-delay:${i*.05}s">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#fbbf24">🛡️ ${seg.categoria||'Evento'}</div>
+            <div style="font-size:9px;color:#64748b;font-family:'JetBrains Mono',monospace;margin-top:1px">✈️ ${seg.aerolinea||''} ${seg.vuelo||''} · 📅 ${dt}</div>
+          </div>
+          <span class="riesgo-badge ${rCls}">${seg.nivelRiesgo||'–'}</span>
+        </div>
+        <div style="font-size:12px;color:#e2e8f0;line-height:1.5;margin-bottom:5px">${seg.descripcion||'–'}</div>
+        ${seg.accionTomada?`<div style="font-size:11px;color:#94a3b8;font-family:'JetBrains Mono',monospace">🔧 Acción: ${seg.accionTomada}</div>`:''}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+          <div style="font-size:10px;color:#64748b;font-family:'JetBrains Mono',monospace">👤 ${seg.inspector||'–'} · 📍 ${seg.posicion||'–'}</div>
+          ${seg.requiereSeguimiento==='Sí'?`<span style="font-size:9px;background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);padding:2px 7px;border-radius:5px;font-family:'JetBrains Mono',monospace">Seguimiento pendiente</span>`:''}
+        </div>
+        ${seg.personasInvolucradas?`<div style="font-size:10px;color:#64748b;margin-top:3px;font-family:'JetBrains Mono',monospace">👥 ${seg.personasInvolucradas}</div>`:''}
+      </div>`;
+  }).join('');
+}
+
+// ── RENDER CANCELADOS ─────────────────────────────────────────────────────────
+function renderCancelados(){
+  const el = document.getElementById('canceladosList');
+  if(allCancelados.length===0){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Sin cancelaciones</div><div class="empty-sub">Los vuelos cancelados aparecerán aquí.</div></div>`;
+    return;
+  }
+  el.innerHTML = allCancelados.map((c,i)=>{
+    const dt = c.fechaHora?fmtDT(new Date(c.fechaHora)):'–';
+    const tot = parseFloat(c.totalFacturar||0);
+    return `
+      <div class="can-card" style="animation-delay:${i*.05}s">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fca5a5">❌ ${c.aerolinea||''} · Vuelo ${c.vuelo||'–'}</div>
+            <div style="font-size:9px;color:#64748b;font-family:'JetBrains Mono',monospace;margin-top:2px">📅 ${dt} · 📍 ${c.posicion||'–'}</div>
+          </div>
+          <div style="font-size:15px;font-weight:800;color:#2dd4bf;font-family:'JetBrains Mono',monospace">$${tot.toFixed(2)}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+          <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.15);border-radius:8px;padding:7px 9px">
+            <div style="font-size:8px;color:#64748b;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Motivo</div>
+            <div style="font-size:11px;color:#fca5a5;font-weight:600">${c.motivoCancelacion||'–'}</div>
+          </div>
+          <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.15);border-radius:8px;padding:7px 9px">
+            <div style="font-size:8px;color:#64748b;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Tiempo posición</div>
+            <div style="font-size:11px;color:#fbbf24;font-weight:700;font-family:'JetBrains Mono',monospace">${c.tiempoEnPosicion||'–'}</div>
+          </div>
+        </div>
+        ${c.personalDisponible?`<div style="font-size:10px;color:#94a3b8;font-family:'JetBrains Mono',monospace;margin-bottom:3px">👥 ${c.personalDisponible}</div>`:''}
+        ${c.observaciones?`<div style="font-size:11px;color:#94a3b8;line-height:1.4">${c.observaciones}</div>`:''}
+        <div style="display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid rgba(239,68,68,.1);font-size:10px;color:#64748b;font-family:'JetBrains Mono',monospace">
+          <span>👤 ${c.inspector||'–'}</span>
+          <span>Notificado: ${c.horaNotificacion||'–'}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function resumeReport(e, idx){
+  e.stopPropagation();
+  const sorted = [...allReports].sort((a,b)=>parseDate(b)-parseDate(a));
+  sessionStorage.setItem('resumeReport', JSON.stringify(sorted[idx]));
+  location.href='index.html';
+}
+
+function parseDate(r){
+  try{
+    const ts=r.flightTimestamp||'';
+    if(!ts)return 0;
+    const d=new Date(ts);
+    return isNaN(d.getTime())?0:d.getTime();
+  }catch{return 0}
+}
+
+function fmtDT(d){
+  return d.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})
+    +' '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+}
+
+function normTS(ts){
+  if(!ts||ts==='–')return'–';
+  try{
+    const raw=String(ts).split('|')[0].trim();
+    if(/^\d{1,2}:\d{2}/.test(raw))return raw;
+    const d=new Date(raw);
+    if(isNaN(d.getTime()))return raw.substring(0,16);
+    return d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }catch{return String(ts).substring(0,16)}
+}
+
+function dedupeByLabel(arr){
+  const seen=new Set();
+  return arr.filter(cp=>{ if(seen.has(cp.label))return false; seen.add(cp.label); return true; });
+}
+
+function toast(msg,err=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(err?' err':'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+function goNew(){ sessionStorage.removeItem('resumeReport'); location.href='index.html'; }
+function logout(){ if(confirm('¿Cerrar sesión?')){ sessionStorage.clear(); location.href='login-testV27.html'; } }
+</script>
+</body>
+</html>
