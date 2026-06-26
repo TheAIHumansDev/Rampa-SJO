@@ -1403,6 +1403,7 @@ const QS={
   const r=sessionStorage.getItem('user');
   if(r){try{const u=JSON.parse(r);U={username:u.username,role:u.role};document.getElementById('usernameDisplay').textContent=U.username;document.getElementById('userRole').textContent=U.role}catch(e){alert('Sesión inválida');location.href='login-testV27.html'}}
   else{alert('Inicie sesión primero');location.href='login-P10.html'}
+  checkResumeSession();  // ← ÚNICA LÍNEA AÑADIDA
 })();
 
   function checkResumeSession() {
@@ -2390,7 +2391,7 @@ async function limpSubCapture(idx,si){
   limpIdx=idx;limpCurSub=sub.key;limpCurLbl=sub.label;limpPD=null;limpTS=null;
   document.getElementById('limpCamArea').style.display='block';
   document.getElementById('limpPrevArea').style.display='none';
-  document.getElementById('limpLbl').textContent=lbl;
+  document.getElementById('limpLbl').textContent=limpCurLbl;
   try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});document.getElementById('limpVid').srcObject=camStream;camTSint=setInterval(()=>{const e=document.getElementById('limpTs');if(e)e.textContent=fmt(new Date())},1000)}
   catch(e){alert('Error cámara: '+e.message)}
 }
