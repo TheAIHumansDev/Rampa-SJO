@@ -2247,8 +2247,8 @@ if(photo.photoUrl||photo.thumbUrl||photo.url){
  
         // /uc?export=view&id=XXX es la única URL que funciona en <img> desde dominio propio
         img.src = fileId
-            ? 'https://drive.google.com/uc?export=view&id=' + fileId
-            : sourceUrl;
+    ? 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1600'
+    : (photo.thumbUrl || sourceUrl);
         img.alt = photo.label || '';
     } else {
         spin.style.display  = 'none';
