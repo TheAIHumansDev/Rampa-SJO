@@ -2231,23 +2231,30 @@ function lbxShowPhoto(idx) {
   var noImg = document.getElementById('lbxNoImg');
   var spin  = document.getElementById('lbxSpinner');
 
-  if (photo.photoUrl || photo.thumbUrl) {
-    img.style.display  = 'none';
-    noImg.style.display = 'none';
-    spin.style.display  = 'block';
-    // usar thumbnail de mayor resolución para stage
-    var fullUrl = photo.photoUrl || photo.thumbUrl;
-    // Intentar reemplazar sz=w400 por sz=w1200 para mejor calidad en el stage
-    var bigUrl = fullUrl.indexOf('thumbnail?id=') >= 0
-      ? fullUrl.replace(/sz=w\d+/, 'sz=w1200')
-      : fullUrl;
-    img.src = bigUrl;
-    img.alt = photo.label || '';
-  } else {
-    spin.style.display  = 'none';
-    img.style.display   = 'none';
-    noImg.style.display = 'flex';
-  }
+if(photo.photoUrl||photo.thumbUrl||photo.url){
+        img.style.display  = 'none';
+        noImg.style.display = 'none';
+        spin.style.display  = 'block';
+ 
+        // Extraer fileId de cualquier URL de Drive
+        var sourceUrl = photo.photoUrl || photo.thumbUrl || photo.url || '';
+        var fileId = photo.fileId || photo.driveFileId || null;
+        if(!fileId){
+            var m1 = sourceUrl.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+            var m2 = sourceUrl.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+            fileId = m1 ? m1[1] : (m2 ? m2[1] : null);
+        }
+ 
+        // /uc?export=view&id=XXX es la única URL que funciona en <img> desde dominio propio
+        img.src = fileId
+            ? 'https://drive.google.com/uc?export=view&id=' + fileId
+            : sourceUrl;
+        img.alt = photo.label || '';
+    } else {
+        spin.style.display  = 'none';
+        img.style.display   = 'none';
+        noImg.style.display = 'flex';
+    }
 
   // Caption
   var caption = document.getElementById('lbxCaption');
