@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Turnaround Check V12.25</title>
+<title>Turnaround Check V12.37</title>
 
 
 
@@ -1419,7 +1419,7 @@ const QS={
   const r=sessionStorage.getItem('user');
   if(r){try{const u=JSON.parse(r);U={username:u.username,role:u.role};document.getElementById('usernameDisplay').textContent=U.username;document.getElementById('userRole').textContent=U.role}catch(e){alert('Sesión inválida');location.href='login-P10.html'}}
   else{alert('Inicie sesión primero');location.href='login-P10.html'}
-  checkResumeSession();  // ← ÚNICA LÍNEA AÑADIDA
+  setTimeout(checkResumeSession, 0);  // esperar a que TODO el script esté inicializado
 })();
 
   function checkResumeSession() {
@@ -1446,24 +1446,30 @@ const QS={
 
 // 3. Reconstruir fotos desde los checkpoints guardados en historial
   photos = {};
+  console.log('🔄 Retomando — labels recibidos:', (rep.checkpoints || []).map(c => c.label));
   (rep.checkpoints || []).forEach(cp => {
-    const m = resolveRestoredCP(cp);
-    if (!m) return;
-    if (!photos[m.key]) photos[m.key] = [];
-    // No duplicar sub-checkpoints ya restaurados
-    if (m.sub && photos[m.key].some(p => p.sub === m.sub)) return;
-    photos[m.key].push({
-      checkpoint: m.key,
-      label:      cp.label,
-      emoji:      cp.emoji || m.emoji || '✅',
-      timestamp:  normalizeRestoredTS(cp.timestamp),
-      photo:      null,                 // el base64 ya no existe; queda photoUrl
-      photoUrl:   cp.photoUrl || null,
-      sub:        m.sub,
-      restored:   true                  // flag para no re-subir a Drive
-    });
+    try {
+      const m = resolveRestoredCP(cp);
+      if (!m) return;
+      if (!photos[m.key]) photos[m.key] = [];
+      if (m.sub && photos[m.key].some(p => p.sub === m.sub)) return;
+      photos[m.key].push({
+        checkpoint: m.key,
+        label:      cp.label,
+        emoji:      cp.emoji || m.emoji || '✅',
+        timestamp:  normalizeRestoredTS(cp.timestamp),
+        photo:      null,
+        photoUrl:   cp.photoUrl || null,
+        sub:        m.sub,
+        restored:   true
+      });
+    } catch (err) {
+      console.warn('⚠ No se pudo restaurar checkpoint:', cp.label, err);
+    }
   });
-
+  console.log('📦 photos restaurado:',
+    Object.keys(photos).map(k => `${k}[${photos[k].map(p => p.sub || '·').join(',')}]`).join(' | '));
+          
   // 4. Restaurar Beacon OFF si ya fue registrado
   if (photos['beacon_off'] && photos['beacon_off'][0]) {
     beaconOff = new Date(photos['beacon_off'][0].timestamp);
