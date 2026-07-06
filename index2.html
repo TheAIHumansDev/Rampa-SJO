@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Turnaround Check</title>
+<title>Turnaround Check V12.17</title>
 
 
 
@@ -1469,14 +1469,6 @@ const QS={
     beaconOff = new Date(photos['beacon_off'][0].timestamp);
     startBeaconAlerts();
   }
-  // 4. Restaurar Beacon OFF si ya fue registrado
-  const beaconCP = (rep.checkpoints || []).find(c =>
-    c.label === 'Beacon OFF' || c.key === 'beacon_off'
-  );
-  if (beaconCP && beaconCP.timestamp) {
-    beaconOff = new Date(beaconCP.timestamp);
-    startBeaconAlerts();
-  }
 
   // 5. Restaurar servicios facturables si vienen embebidos
   if (Array.isArray(rep.billingItems) && rep.billingItems.length > 0) {
@@ -2000,7 +1992,7 @@ function rMultiBody(b,idx){
   <button class="btn-close-m" onclick="closeCP()">Cancelar</button>`;
   rMThumbs();
 }
-function rMThumbs(){const g=document.getElementById('mTG');if(!g)return;g.innerHTML=mSess.map((p,i)=>`<div class="tw">g.innerHTML=mSess.map((p,i)=>`<div class="tw"><img src="${p.photo||toDriveThumb(p.photoUrl)}"><div class="tw-idx">${i+1}</div><div class="tw-t">${fmt(new Date(p.timestamp))}</div><button class="tw-del" onclick="mDel(${i})">✕</button></div>`).join('')<div class="tw-idx">${i+1}</div><div class="tw-t">${fmt(new Date(p.timestamp))}</div><button class="tw-del" onclick="mDel(${i})">✕</button></div>`).join('')}
+function rMThumbs(){const g=document.getElementById('mTG');if(!g)return;g.innerHTML=mSess.map((p,i)=>`<div class="tw"><img src="${p.photo||toDriveThumb(p.photoUrl)}"><div class="tw-idx">${i+1}</div><div class="tw-t">${fmt(new Date(p.timestamp))}</div><button class="tw-del" onclick="mDel(${i})">✕</button></div>`).join('')}
 function updMUI(){const n=mSess.length;const c=document.getElementById('mCnt');if(c)c.textContent=n;const l=document.getElementById('mCntL');if(l)l.textContent=`foto${n!==1?'s':''} capturada${n!==1?'s':''}`;const b=document.getElementById('m360B');if(b){b.disabled=n===0;b.textContent=`✅ Continuar (${n} foto${n!==1?'s':''})`}const a=document.getElementById('mAddBtn');if(a)a.textContent=`📷 ${n===0?'Iniciar Cámara':'Agregar Otra Foto'}`}
 async function mStartCam(){try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});document.getElementById('mVid').srcObject=camStream;document.getElementById('mCamV').style.display='block';document.getElementById('mAddA').style.display='none';document.getElementById('mPrevV').style.display='none';camTSint=setInterval(()=>{const e=document.getElementById('mTs');if(e)e.textContent=fmt(new Date())},1000)}catch(e){alert('Error cámara: '+e.message)}}
 function mCapture(idx){const v=document.getElementById('mVid');const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);mPrevPhoto=c.toDataURL('image/jpeg',.82);mPrevTS=new Date().toISOString();document.getElementById('mPrevImg').src=mPrevPhoto;document.getElementById('mPrevTs').textContent=`⏰ ${fmt(new Date(mPrevTS))}`;document.getElementById('mCamV').style.display='none';document.getElementById('mPrevV').style.display='block';stopCam();document.getElementById('mAddA').style.display='none'}
