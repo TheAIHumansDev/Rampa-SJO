@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Turnaround Check V12.17</title>
+<title>Turnaround Check V12.25</title>
 
 
 
@@ -2000,14 +2000,13 @@ function mRetake(idx){mPrevPhoto=null;mPrevTS=null;document.getElementById('mPre
 function mConfirm(idx){
   const cp=CPS[idx];mSess.push({photo:mPrevPhoto,timestamp:mPrevTS});mPrevPhoto=null;mPrevTS=null;
   document.getElementById('mPrevV').style.display='none';document.getElementById('mAddA').style.display='block';
-  photos[cp.key]=mSess.map((p,i)=>({checkpoint:cp.key,label:cp.label,emoji:cp.emoji,photo:p.photo,timestamp:p.timestamp,multiIndex:i+1}));
+photos[cp.key]=mSess.map((p,i)=>({checkpoint:cp.key,label:cp.label,emoji:cp.emoji,photo:p.photo,photoUrl:p.photoUrl||null,timestamp:p.timestamp,multiIndex:i+1,restored:p.restored}));        
   post({action:'saveInspection',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,inspector:U.username,role:U.role,step:idx+1,item:`${cp.label} #${mSess.length}`,timestamp:mSess.slice(-1)[0].timestamp,status:'En Proceso',photoBase64:mSess.slice(-1)[0].photo});
   rMThumbs();updMUI();
 }
 function mDel(i){mSess.splice(i,1);rMThumbs();updMUI()}
 function mStopCam(){stopCam();document.getElementById('mCamV').style.display='none';document.getElementById('mAddA').style.display='block'}
-function mFinish(idx){if(mSess.length===0){alert('Capture al menos una foto');return}const cp=CPS[idx];photos[cp.key]=mSess.map((p,i)=>({checkpoint:cp.key,label:cp.label,emoji:cp.emoji,photo:p.photo,timestamp:p.timestamp,multiIndex:i+1}));stopCam();closeCP();renderMissions();checkComplete()}
-
+function mFinish(idx){if(mSess.length===0){alert('Capture al menos una foto');return}const cp=CPS[idx];photos[cp.key]=mSess.map((p,i)=>({checkpoint:cp.key,label:cp.label,emoji:cp.emoji,photo:p.photo,photoUrl:p.photoUrl||null,timestamp:p.timestamp,multiIndex:i+1,restored:p.restored}));stopCam();closeCP();renderMissions();checkComplete()}
 // ── CAM UTILS ──
 function stopCam(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null}if(camTSint){clearInterval(camTSint);camTSint=null}}
 
