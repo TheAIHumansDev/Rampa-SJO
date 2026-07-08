@@ -291,7 +291,7 @@
       </div>
 
       <div class="notice-box" id="equipoNotice" style="display:none">
-        📷 Para reportes de <strong>Daño en Equipo</strong> o <strong>Falla Mecánica</strong> se requiere al menos una fotografía tomada en vivo desde la cámara (no se permite subir desde galería).
+        📷 Para reportes de <strong>Daño en Equipo</strong> o <strong>Falla Mecánica</strong> se requiere al menos una fotografía.
       </div>
 
       <div class="field-block">
@@ -378,7 +378,7 @@ const MAX_FOTOS = 5;
 const FOTO_MAX_ANCHO = 1280;
 // Calidad de compresión JPEG (0 a 1)
 const FOTO_CALIDAD = 0.72;
-// Categorías que exigen # de Unidad + foto en vivo desde cámara
+// Categorías que exigen # de Unidad + foto  desde cámara
 const CATS_REQUIEREN_UNIDAD = ['Daño en Equipo', 'Falla Mecánica'];
 
 // ─── ESTADO ──────────────────────────────────────────────────────
@@ -432,7 +432,7 @@ function selCat(el, val) {
   document.getElementById('equipoNotice').style.display = esEquipo ? 'block' : 'none';
   document.getElementById('btnGaleria').style.display = esEquipo ? 'none' : 'flex';
   document.getElementById('fotosOpcLbl').textContent = esEquipo
-    ? '(requerida al menos 1 foto en vivo)'
+    ? '(requerida al menos 1 foto )'
     : '(opcional, máx ' + MAX_FOTOS + ')';
 }
 
