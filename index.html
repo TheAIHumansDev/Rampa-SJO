@@ -2325,7 +2325,7 @@ function ovClose(e,id){if(e.target===document.getElementById(id))closeM(id)}
 function fmt(d){return d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
 function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove&&t.remove(),2600)}
 function post(d){fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).catch(e=>console.error(e))}
-function goToHistory(){stopCam();location.href='HT2.html'}
+function goToHistory(){stopCam();location.href='H99.html'}
 function logout(){if(confirm('¿Cerrar sesión?')){stopCam();sessionStorage.removeItem('user');location.href='login-P10.html'}}
 function newReport(){
   sA='';sT='';sF='';sOrigen='';sDestino='';sPosicion='';fTS='';CPS=[];photos={};beaconOff=null;incData=null;segData=null;
