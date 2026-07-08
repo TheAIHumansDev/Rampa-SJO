@@ -239,6 +239,9 @@
         <div class="cat-item" onclick="selCat(this,'Daño en Equipo')">
           <div class="cat-emoji">🛠️</div><div class="cat-label">Daño en equipo</div>
         </div>
+        <div class="cat-item" onclick="selCat(this,'Falla Mecánica')">
+          <div class="cat-emoji">⚙️</div><div class="cat-label">Falla mecánica</div>
+        </div>
         <div class="cat-item" onclick="selCat(this,'Comportamiento Inseguro')">
           <div class="cat-emoji">🚨</div><div class="cat-label">Comportamiento inseguro</div>
         </div>
@@ -288,7 +291,7 @@
       </div>
 
       <div class="notice-box" id="equipoNotice" style="display:none">
-        📷 Para reportes de <strong>Daño en Equipo</strong> se requiere al menos una fotografía tomada en vivo desde la cámara (no se permite subir desde galería).
+        📷 Para reportes de <strong>Daño en Equipo</strong> o <strong>Falla Mecánica</strong> se requiere al menos una fotografía tomada en vivo desde la cámara (no se permite subir desde galería).
       </div>
 
       <div class="field-block">
@@ -308,7 +311,7 @@
       </div>
 
       <div class="err-msg" id="errDesc">Por favor describa el evento antes de continuar.</div>
-      <div class="err-msg" id="errFotoEquipo">Para reportes de Daño en Equipo debes tomar al menos una foto en vivo.</div>
+      <div class="err-msg" id="errFotoEquipo">Para este tipo de evento debes tomar al menos una foto en vivo.</div>
     </div>
 
     <!-- PASO 4: SEGUIMIENTO -->
@@ -367,7 +370,7 @@
 <script>
 // ─── CONFIGURACIÓN ───────────────────────────────────────────────
 // Reemplaza esta URL con la de tu Web App de Google Apps Script
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbztsir1aklcAxo8oRa3Zk0qS1C4q3cBRRik3Vt0RYJ5GOZNgJ2JTLyPSgQSn2uWWF_zAQ/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzlZtMdv8cZew4EGgWLedeXIvagZCAyi9HHqDuNbjg4bCRpjgtFgzndB6pwkoE-XOIv/exec';
 
 // Máximo de fotos permitidas (debe coincidir con MAX_FOTOS en el Apps Script)
 const MAX_FOTOS = 5;
@@ -375,8 +378,8 @@ const MAX_FOTOS = 5;
 const FOTO_MAX_ANCHO = 1280;
 // Calidad de compresión JPEG (0 a 1)
 const FOTO_CALIDAD = 0.72;
-// Categoría que exige foto en vivo desde cámara
-const CAT_DANIO_EQUIPO = 'Daño en Equipo';
+// Categorías que exigen # de Unidad + foto en vivo desde cámara
+const CATS_REQUIEREN_UNIDAD = ['Daño en Equipo', 'Falla Mecánica'];
 
 // ─── ESTADO ──────────────────────────────────────────────────────
 let step = 0;
@@ -424,7 +427,7 @@ function selCat(el, val) {
   cat = val;
   document.getElementById('btnNext').disabled = false;
 
-  const esEquipo = (cat === CAT_DANIO_EQUIPO);
+  const esEquipo = CATS_REQUIEREN_UNIDAD.includes(cat);
   document.getElementById('unidadBlock').style.display = esEquipo ? 'block' : 'none';
   document.getElementById('equipoNotice').style.display = esEquipo ? 'block' : 'none';
   document.getElementById('btnGaleria').style.display = esEquipo ? 'none' : 'flex';
@@ -575,7 +578,7 @@ function goNext() {
     if (!desc) { errEl.style.display = 'block'; return; }
     errEl.style.display = 'none';
 
-    if (cat === CAT_DANIO_EQUIPO && fotos.length === 0) {
+    if (CATS_REQUIEREN_UNIDAD.includes(cat) && fotos.length === 0) {
       errFoto.style.display = 'block';
       return;
     }
@@ -607,7 +610,7 @@ async function submitReport() {
     personas: document.getElementById('fPersonas').value.trim() || '—',
     vuelo: document.getElementById('fVuelo').value.trim() || '—',
     hora_evento: document.getElementById('fHora').value.trim() || '—',
-    unidad: cat === CAT_DANIO_EQUIPO ? (document.getElementById('fUnidad').value.trim() || '—') : '—',
+    unidad: CATS_REQUIEREN_UNIDAD.includes(cat) ? (document.getElementById('fUnidad').value.trim() || '—') : '—',
     descripcion: document.getElementById('fDesc').value.trim(),
     accion: document.getElementById('fAccion').value.trim() || '—',
     seguimiento: fol === 'si' ? 'Sí' : 'No',
