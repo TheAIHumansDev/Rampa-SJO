@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+
+         <!-- Open Graph -->
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="AS Handling | Reportes SMS">
+<meta property="og:description" content="Reporta incidentes, peligros y observaciones de Seguridad Operacional (SMS) de forma rápida y sencilla.">
+<meta property="og:url" content="https://rampasjo.aeroaiops.com/SMS.html">
+<meta property="og:site_name" content="AS Handling">
+<meta property="og:image" content="https://rampasjo.aeroaiops.com/SMS.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="AS Handling Safety Management System (SMS)">
+
+
+ <style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --ash:#0f1117;--ash2:#161b25;--ash3:#1e2535;--ash4:#252d3f;
+    --ink:#f0f2f8;--ink2:#a8b4cc;--ink3:#6b7a96;
+    --red:#e84444;--amber:#f59e0b;--green:#22c55e;--blue:#3b82f6;
+    --border-c:#2a3348;--radius-c:12px;
+  }
+  html,body{height:100%;background:var(--ash);color:var(--ink);font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+  .page{max-width:520px;margin:0 auto;padding-bottom:90px}
+
+  /* HEADER */
+  .hdr{background:var(--ash2);border-bottom:1px solid var(--border-c);padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20}
+  .hdr-logo{width:38px;height:38px;background:var(--red);border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;letter-spacing:.3px;flex-shrink:0}
+  .hdr-title{font-size:15px;font-weight:600;color:var(--ink)}
+  .hdr-sub{font-size:11px;color:var(--ink3);margin-top:1px}
+
+  /* HERO */
+  .hero{background:var(--ash2);padding:24px 20px 20px;border-bottom:1px solid var(--border-c)}
+  .hero-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(232,68,68,.12);border:1px solid rgba(232,68,68,.28);border-radius:20px;padding:4px 12px;font-size:11px;color:#f87171;margin-bottom:14px}
+  .badge-dot{width:6px;height:6px;background:var(--red);border-radius:50%;animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .hero h1{font-size:21px;font-weight:700;line-height:1.3;margin-bottom:6px}
+  .hero p{font-size:13px;color:var(--ink2);line-height:1.65}
+  .anon-toggle{display:flex;align-items:center;justify-content:space-between;background:var(--ash3);border:1px solid var(--border-c);border-radius:10px;padding:11px 14px;margin-top:16px;cursor:pointer;user-select:none}
+  .anon-left{display:flex;align-items:center;gap:10px}
+  .anon-icon{font-size:22px}
+  .anon-text{font-size:13px;font-weight:500}
+  .anon-hint{font-size:11px;color:var(--ink3);margin-top:2px}
+  .toggle{width:44px;height:25px;background:#2a3348;border-radius:13px;position:relative;transition:.22s;flex-shrink:0}
+  .toggle.on{background:var(--green)}
+  .toggle::after{content:'';position:absolute;width:19px;height:19px;background:#fff;border-radius:50%;top:3px;left:3px;transition:.22s;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+  .toggle.on::after{left:22px}
+
+  /* STEPS BAR */
+  .steps-bar{display:flex;padding:14px 20px;gap:8px;background:var(--ash2);border-bottom:1px solid var(--border-c)}
+  .step-dot{flex:1;height:3px;background:var(--border-c);border-radius:2px;transition:.3s}
+  .step-dot.active{background:var(--red)}
+  .step-dot.done{background:var(--green)}
+  .step-label{font-size:11px;color:var(--ink3);padding:0 20px 10px;background:var(--ash2);border-bottom:1px solid var(--border-c)}
+  .step-label span{color:var(--ink2);font-weight:500}
+
+  /* SECTIONS */
+  .section{padding:20px 20px 6px}
+  .sec-label{font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:14px}
+
+  /* STATION GRID */
+  .station-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 20px}
+  .station-item{background:var(--ash3);border:1.5px solid var(--border-c);border-radius:var(--radius-c);padding:26px 14px;cursor:pointer;transition:.15s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
+  .station-item:hover{border-color:#3b4560;background:var(--ash4)}
+  .station-item.sel{border-color:var(--blue);background:rgba(59,130,246,.09)}
+  .station-code{font-size:26px;font-weight:800;letter-spacing:1px}
+  .station-item.sel .station-code{color:#60a5fa}
+  .station-name{font-size:12px;color:var(--ink2);font-weight:500}
+  .station-emoji{font-size:28px}
+
+  /* CATEGORY GRID */
+  .cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 20px 16px}
+  .cat-item{background:var(--ash3);border:1.5px solid var(--border-c);border-radius:var(--radius-c);padding:15px 10px;cursor:pointer;transition:.15s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:7px}
+  .cat-item:hover{border-color:#3b4560;background:var(--ash4)}
+  .cat-item.sel{border-color:var(--red);background:rgba(232,68,68,.09)}
+  .cat-emoji{font-size:26px}
+  .cat-label{font-size:12px;color:var(--ink2);line-height:1.35;font-weight:500}
+  .cat-item.sel .cat-label{color:var(--ink)}
+
+  /* RISK PILLS */
+  .risk-row{display:flex;gap:8px;padding:0 20px 16px}
+  .risk-pill{flex:1;padding:11px 6px;border:1.5px solid var(--border-c);border-radius:8px;text-align:center;cursor:pointer;transition:.15s;font-size:12px;font-weight:600;color:var(--ink3)}
+  .risk-pill:hover{border-color:#3b4560;background:var(--ash4)}
+  .risk-pill.bajo.sel{border-color:var(--green);background:rgba(34,197,94,.1);color:var(--green)}
+  .risk-pill.medio.sel{border-color:var(--amber);background:rgba(245,158,11,.1);color:var(--amber)}
+  .risk-pill.alto.sel{border-color:#f97316;background:rgba(249,115,22,.1);color:#f97316}
+  .risk-pill.critico.sel{border-color:var(--red);background:rgba(232,68,68,.1);color:var(--red)}
+
+  /* FIELDS */
+  .field-block{padding:0 20px 14px}
+  .field-lbl{font-size:12px;color:var(--ink3);margin-bottom:6px;display:block;font-weight:500}
+  .field-req{color:var(--red);margin-left:2px}
+  input[type=text],textarea,select{width:100%;background:var(--ash3);border:1px solid var(--border-c);border-radius:8px;padding:11px 13px;color:var(--ink);font-size:14px;font-family:inherit;resize:none;transition:.15s;-webkit-appearance:none}
+  input[type=text]:focus,textarea:focus,select:focus{outline:none;border-color:var(--blue);background:var(--ash4)}
+  input[type=text]::placeholder,textarea::placeholder{color:var(--ink3)}
+  textarea{min-height:82px;line-height:1.55}
+
+  /* FOLLOW-UP */
+  .follow-row{display:flex;gap:8px;padding:0 20px 16px}
+  .follow-opt{flex:1;padding:11px 8px;border:1.5px solid var(--border-c);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;color:var(--ink2);transition:.15s;font-weight:500}
+  .follow-opt:hover{background:var(--ash4)}
+  .follow-opt.sel{border-color:var(--blue);background:rgba(59,130,246,.1);color:#60a5fa}
+
+  /* PRIVACY BOX */
+  .privacy-box{margin:0 20px 16px;padding:12px 14px;background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:8px;font-size:12px;color:#93c5fd;line-height:1.65}
+
+  /* NOTICE BOX (equipo) */
+  .notice-box{margin:0 20px 14px;padding:12px 14px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:8px;font-size:12px;color:#fdba74;line-height:1.6}
+
+  /* PHOTOS */
+  .photo-actions{display:flex;gap:8px;margin-bottom:12px}
+  .photo-btn{flex:1;padding:12px 8px;background:var(--ash3);border:1.5px dashed var(--border-c);border-radius:10px;color:var(--ink2);font-size:13px;font-weight:500;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px}
+  .photo-btn:hover{border-color:var(--blue);background:var(--ash4);color:var(--ink)}
+  .photo-btn:disabled{opacity:.35;cursor:not-allowed}
+  .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .photo-thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border-c);background:var(--ash3)}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .photo-remove{position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(15,17,23,.85);border:1px solid rgba(255,255,255,.2);border-radius:50%;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1}
+  .photo-remove:hover{background:var(--red)}
+  .photo-hint{font-size:11px;color:var(--ink3);margin-top:8px}
+  .photo-loading{font-size:12px;color:var(--ink3);padding:8px 0;display:none;align-items:center;gap:8px}
+  .spin{width:14px;height:14px;border:2px solid var(--border-c);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* NAV BUTTONS */
+  .nav-bar{padding:14px 20px;display:flex;gap:10px;background:var(--ash2);border-top:1px solid var(--border-c);position:fixed;bottom:0;left:0;right:0;z-index:20;max-width:520px;margin:0 auto}
+  @media(min-width:520px){.nav-bar{left:50%;transform:translateX(-50%);right:auto;width:520px}}
+  .btn-back{flex:0 0 50px;height:50px;background:var(--ash3);border:1px solid var(--border-c);border-radius:10px;color:var(--ink2);font-size:20px;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center}
+  .btn-back:hover{background:var(--ash4);color:var(--ink)}
+  .btn-next{flex:1;height:50px;background:var(--red);border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:.15s;letter-spacing:.2px}
+  .btn-next:hover:not(:disabled){background:#d63c3c}
+  .btn-next:disabled{opacity:.35;cursor:not-allowed}
+  .btn-next.sending{background:#1a5fa8;pointer-events:none}
+
+  /* STEP VIEWS */
+  .step-view{display:none}
+  .step-view.active{display:block}
+
+  /* SUCCESS */
+  .success-view{display:none;flex-direction:column;align-items:center;text-align:center;padding:52px 24px}
+  .success-icon{width:76px;height:76px;background:rgba(34,197,94,.13);border:2px solid var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:22px}
+  .success-view h2{font-size:21px;font-weight:700;margin-bottom:8px}
+  .success-view p{font-size:14px;color:var(--ink2);line-height:1.65;max-width:320px}
+  .ticket-box{margin-top:22px;background:var(--ash3);border:1px solid var(--border-c);border-radius:10px;padding:14px 20px;text-align:center}
+  .ticket-box .t-lbl{font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+  .ticket-box .t-num{font-size:20px;font-weight:700;color:var(--green);letter-spacing:2px}
+  .btn-nuevo{margin-top:24px;padding:13px 32px;background:var(--ash3);border:1px solid var(--border-c);border-radius:10px;color:var(--ink);font-size:14px;cursor:pointer;transition:.15s;font-weight:500}
+  .btn-nuevo:hover{background:var(--ash4)}
+
+  /* ERROR */
+  .err-msg{display:none;margin:0 20px 12px;padding:10px 13px;background:rgba(232,68,68,.1);border:1px solid rgba(232,68,68,.3);border-radius:8px;font-size:12px;color:#fca5a5}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-logo">AS</div>
+    <div>
+      <div class="hdr-title">Safety Report — AS Handling</div>
+      <div class="hdr-sub">Sistema de Gestión de Seguridad (SMS)</div>
+    </div>
+  </div>
+
+  <!-- FORM AREA -->
+  <div id="formArea">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-badge"><span class="badge-dot"></span>Línea abierta 24/7</div>
+      <h1>Reporte un evento de seguridad</h1>
+      <p>Rápido, confidencial y sin complicaciones. Tu reporte contribuye a una rampa más segura para todos.</p>
+      <div class="anon-toggle" onclick="toggleAnon()">
+        <div class="anon-left">
+          <span class="anon-icon">🕵️</span>
+          <div>
+            <div class="anon-text">Reporte anónimo</div>
+            <div class="anon-hint" id="anonHint">Activar — tu identidad no quedará registrada</div>
+          </div>
+        </div>
+        <div class="toggle" id="anonToggle"></div>
+      </div>
+    </div>
+
+    <!-- STEPS BAR -->
+    <div class="steps-bar">
+      <div class="step-dot active" id="sd0"></div>
+      <div class="step-dot" id="sd1"></div>
+      <div class="step-dot" id="sd2"></div>
+      <div class="step-dot" id="sd3"></div>
+      <div class="step-dot" id="sd4"></div>
+    </div>
+    <div class="step-label" id="stepLabel">Paso <span>1 de 5</span> — Estación</div>
+
+    <!-- PASO 0: ESTACIÓN -->
+    <div class="step-view active" id="s0">
+      <div class="section"><span class="sec-label">¿Desde qué estación reportas?</span></div>
+      <div class="station-grid">
+        <div class="station-item" onclick="selEstacion(this,'SJO')">
+          <div class="station-emoji">✈️</div>
+          <div class="station-code">SJO</div>
+          <div class="station-name">Juan Santamaría</div>
+        </div>
+        <div class="station-item" onclick="selEstacion(this,'LIR')">
+          <div class="station-emoji">✈️</div>
+          <div class="station-code">LIR</div>
+          <div class="station-name">Daniel Oduber</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 1: CATEGORÍA -->
+    <div class="step-view" id="s1">
+      <div class="section"><span class="sec-label">¿Qué tipo de evento fue?</span></div>
+      <div class="cat-grid">
+        <div class="cat-item" onclick="selCat(this,'Invasión de Zona Restringida')">
+          <div class="cat-emoji">🚧</div><div class="cat-label">Invasión zona restringida</div>
+        </div>
+        <div class="cat-item" onclick="selCat(this,'FOD en Pista / Plataforma')">
+          <div class="cat-emoji">⚡</div><div class="cat-label">FOD en pista / plataforma</div>
+        </div>
+        <div class="cat-item" onclick="selCat(this,'Incumplimiento de Procedimiento')">
+          <div class="cat-emoji">📋</div><div class="cat-label">Incumplimiento de procedimiento</div>
+        </div>
+        <div class="cat-item" onclick="selCat(this,'Condición Insegura de Equipo')">
+          <div class="cat-emoji">🔧</div><div class="cat-label">Condición insegura de equipo</div>
+        </div>
+        <div class="cat-item" onclick="selCat(this,'Near Miss / Casi Accidente')">
+          <div class="cat-emoji">😰</div><div class="cat-label">Near miss / casi accidente</div>
+        </div>
+        <div class="cat-item" onclick="selCat(this,'Daño en Equipo')">
+          <div class="cat-emoji">🛠️</div><div class="cat-label">Daño en equipo</div>
+        </div>
+        <div class="cat-item" onclick="selCat(this,'Falla Mecánica')">
+          <div class="cat-emoji">⚙️</div><div class="cat-label">Falla mecánica</div>
+        </div>
+        <div class="cat-item" onclick="selCat(this,'Comportamiento Inseguro')">
+          <div class="cat-emoji">🚨</div><div class="cat-label">Comportamiento inseguro</div>
+        </div>
+        <div class="cat-item" onclick="selCat(this,'Otro')">
+          <div class="cat-emoji">📝</div><div class="cat-label">Otro</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 2: RIESGO + CONTEXTO -->
+    <div class="step-view" id="s2">
+      <div class="section"><span class="sec-label">Nivel de riesgo percibido</span></div>
+      <div class="risk-row">
+        <div class="risk-pill bajo" onclick="selRisk(this,'Bajo')">🟢 Bajo</div>
+        <div class="risk-pill medio" onclick="selRisk(this,'Medio')">🟡 Medio</div>
+        <div class="risk-pill alto" onclick="selRisk(this,'Alto')">🟠 Alto</div>
+        <div class="risk-pill critico" onclick="selRisk(this,'Crítico')">🔴 Crítico</div>
+      </div>
+      <div class="field-block">
+        <label class="field-lbl">Personas involucradas o en riesgo</label>
+        <input type="text" id="fPersonas" placeholder="Ej: 2 agentes de rampa, 1 operador banda">
+      </div>
+      <div class="field-block">
+        <label class="field-lbl">Vuelo o área del evento <span style="color:var(--ink3)">(opcional)</span></label>
+        <input type="text" id="fVuelo" placeholder="Ej: AV201, Posición 14, Bodega Sur">
+      </div>
+      <div class="field-block">
+        <label class="field-lbl">Hora aproximada del evento <span style="color:var(--ink3)">(opcional)</span></label>
+        <input type="text" id="fHora" placeholder="Ej: 14:30, alrededor del mediodía">
+      </div>
+      <div class="field-block" id="unidadBlock" style="display:none">
+        <label class="field-lbl"># de Unidad <span style="color:var(--ink3)">(opcional)</span></label>
+        <input type="text" id="fUnidad" placeholder="Ej: GPU-04, Banda-12, Tractor-7">
+      </div>
+    </div>
+
+    <!-- PASO 3: DESCRIPCIÓN + FOTOS -->
+    <div class="step-view" id="s3">
+      <div class="section"><span class="sec-label">Descripción del evento</span></div>
+      <div class="field-block">
+        <label class="field-lbl">¿Qué ocurrió? ¿Dónde y cómo? <span class="field-req">*</span></label>
+        <textarea id="fDesc" placeholder="Describa la situación con el mayor detalle posible. Incluya la secuencia de hechos, condiciones del área y cualquier factor que considere relevante…" style="min-height:130px"></textarea>
+      </div>
+      <div class="field-block">
+        <label class="field-lbl">Acción inmediata tomada</label>
+        <textarea id="fAccion" placeholder="¿Qué hizo usted o el equipo para controlar o mitigar la situación?"></textarea>
+      </div>
+
+      <div class="notice-box" id="equipoNotice" style="display:none">
+        📷 Para reportes de <strong>Daño en Equipo</strong> se requiere al menos una fotografía tomada en vivo desde la cámara (no se permite subir desde galería).
+      </div>
+
+      <div class="field-block">
+        <label class="field-lbl">Fotos del evento <span style="color:var(--ink3)" id="fotosOpcLbl">(opcional, máx <span id="maxFotosLbl">5</span>)</span></label>
+        <div class="photo-actions">
+          <button type="button" class="photo-btn" id="btnCamara" onclick="document.getElementById('fotoCamara').click()">📷 Tomar foto</button>
+          <button type="button" class="photo-btn" id="btnGaleria" onclick="document.getElementById('fotoGaleria').click()">🖼 Galería</button>
+        </div>
+        <!-- Cámara en vivo (móviles) -->
+        <input type="file" id="fotoCamara" accept="image/*" capture="environment" style="display:none">
+        <!-- Selección desde galería (permite múltiples) -->
+        <input type="file" id="fotoGaleria" accept="image/*" multiple style="display:none">
+
+        <div class="photo-loading" id="photoLoading"><span class="spin"></span> Procesando imagen…</div>
+        <div class="photo-grid" id="photoGrid"></div>
+        <div class="photo-hint">Las fotos se comprimen automáticamente antes de enviarse.</div>
+      </div>
+
+      <div class="err-msg" id="errDesc">Por favor describa el evento antes de continuar.</div>
+      <div class="err-msg" id="errFotoEquipo">Para reportes de Daño en Equipo debes tomar al menos una foto en vivo.</div>
+    </div>
+
+    <!-- PASO 4: SEGUIMIENTO -->
+    <div class="step-view" id="s4">
+      <div class="section"><span class="sec-label">Seguimiento y datos de contacto</span></div>
+      <div class="field-block">
+        <label class="field-lbl">¿Requiere seguimiento por el área de Seguridad?</label>
+      </div>
+      <div class="follow-row">
+        <div class="follow-opt" id="folSi" onclick="selFol('si')">✅ Sí, necesita revisión</div>
+        <div class="follow-opt sel" id="folNo" onclick="selFol('no')">✔ No por ahora</div>
+      </div>
+
+      <div class="field-block" id="contactBlock" style="display:none">
+        <label class="field-lbl">Nombre / contacto para el seguimiento</label>
+        <input type="text" id="fContacto" placeholder="Nombre, extensión o correo para coordinar">
+      </div>
+
+      <div class="field-block" id="reporterBlock">
+        <label class="field-lbl">Tu nombre <span style="color:var(--ink3)" id="reporterHint">(opcional si el reporte es anónimo)</span></label>
+        <input type="text" id="fReporter" placeholder="Nombre del agente que reporta">
+      </div>
+
+      <div class="field-block">
+        <label class="field-lbl">Observaciones adicionales <span style="color:var(--ink3)">(opcional)</span></label>
+        <textarea id="fObs" placeholder="Cualquier dato relevante que no haya podido incluir antes…"></textarea>
+      </div>
+
+      <div class="privacy-box" id="privacyBox">
+        🔒 Este reporte se envía de forma segura al equipo de SMS de AS Handling. <span id="anonNote">Tu nombre quedará registrado junto al reporte.</span>
+      </div>
+    </div>
+
+    <!-- NAV -->
+    <div class="nav-bar">
+      <button class="btn-back" id="btnBack" onclick="goBack()" style="display:none" aria-label="Volver">←</button>
+      <button class="btn-next" id="btnNext" onclick="goNext()" disabled>Continuar →</button>
+    </div>
+
+  </div><!-- /formArea -->
+
+  <!-- SUCCESS VIEW -->
+  <div class="success-view" id="successView">
+    <div class="success-icon">✅</div>
+    <h2>Reporte enviado</h2>
+    <p>Gracias por contribuir a la seguridad de la operación. El equipo SMS de AS Handling revisará tu reporte a la brevedad.</p>
+    <div class="ticket-box">
+      <div class="t-lbl">Número de reporte</div>
+      <div class="t-num" id="ticketNum">—</div>
+    </div>
+    <button class="btn-nuevo" onclick="resetForm()">Enviar otro reporte</button>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+// ─── CONFIGURACIÓN ───────────────────────────────────────────────
+// Reemplaza esta URL con la de tu Web App de Google Apps Script
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzlZtMdv8cZew4EGgWLedeXIvagZCAyi9HHqDuNbjg4bCRpjgtFgzndB6pwkoE-XOIv/exec';
+
+// Máximo de fotos permitidas (debe coincidir con MAX_FOTOS en el Apps Script)
+const MAX_FOTOS = 5;
+// Ancho máximo al que se redimensionan las fotos antes de enviarlas (px)
+const FOTO_MAX_ANCHO = 1280;
+// Calidad de compresión JPEG (0 a 1)
+const FOTO_CALIDAD = 0.72;
+// Categoría que exige foto en vivo desde cámara
+const CAT_DANIO_EQUIPO = 'Daño en Equipo';
+
+// ─── ESTADO ──────────────────────────────────────────────────────
+let step = 0;
+let estacion = '', cat = '', risk = '', fol = 'no', anon = false;
+let fotos = []; // { dataUrl: 'data:image/jpeg;base64,...', mimeType: 'image/jpeg' }
+const TOTAL = 5;
+
+const stepLabels = [
+  'Estación',
+  'Tipo de evento',
+  'Nivel de riesgo y contexto',
+  'Descripción del evento',
+  'Seguimiento y envío'
+];
+
+document.getElementById('maxFotosLbl').textContent = MAX_FOTOS;
+
+// ─── SELECCIÓN ESTACIÓN ──────────────────────────────────────────
+function selEstacion(el, val) {
+  document.querySelectorAll('.station-item').forEach(x => x.classList.remove('sel'));
+  el.classList.add('sel');
+  estacion = val;
+  document.getElementById('btnNext').disabled = false;
+}
+
+// ─── TOGGLE ANÓNIMO ──────────────────────────────────────────────
+function toggleAnon() {
+  anon = !anon;
+  document.getElementById('anonToggle').classList.toggle('on', anon);
+  document.getElementById('anonHint').textContent = anon
+    ? 'Activado — tu identidad NO quedará registrada'
+    : 'Activar — tu identidad no quedará registrada';
+  document.getElementById('anonNote').textContent = anon
+    ? 'Este reporte es completamente anónimo.'
+    : 'Tu nombre quedará registrado junto al reporte.';
+  document.getElementById('reporterHint').textContent = anon
+    ? '(opcional — reporte anónimo activado)'
+    : '(recomendado para seguimiento)';
+}
+
+// ─── SELECCIÓN CATEGORÍA ─────────────────────────────────────────
+function selCat(el, val) {
+  document.querySelectorAll('.cat-item').forEach(x => x.classList.remove('sel'));
+  el.classList.add('sel');
+  cat = val;
+  document.getElementById('btnNext').disabled = false;
+
+  const esEquipo = (cat === CAT_DANIO_EQUIPO);
+  document.getElementById('unidadBlock').style.display = esEquipo ? 'block' : 'none';
+  document.getElementById('equipoNotice').style.display = esEquipo ? 'block' : 'none';
+  document.getElementById('btnGaleria').style.display = esEquipo ? 'none' : 'flex';
+  document.getElementById('fotosOpcLbl').textContent = esEquipo
+    ? '(requerida al menos 1 foto en vivo)'
+    : '(opcional, máx ' + MAX_FOTOS + ')';
+}
+
+// ─── SELECCIÓN RIESGO ────────────────────────────────────────────
+function selRisk(el, val) {
+  document.querySelectorAll('.risk-pill').forEach(x => x.classList.remove('sel'));
+  el.classList.add('sel');
+  risk = val;
+  document.getElementById('btnNext').disabled = false;
+}
+
+// ─── SELECCIÓN SEGUIMIENTO ───────────────────────────────────────
+function selFol(val) {
+  fol = val;
+  document.getElementById('folSi').classList.toggle('sel', val === 'si');
+  document.getElementById('folNo').classList.toggle('sel', val === 'no');
+  document.getElementById('contactBlock').style.display = val === 'si' ? 'block' : 'none';
+}
+
+// ─── FOTOS: captura desde cámara o galería ───────────────────────
+document.getElementById('fotoCamara').addEventListener('change', function(e) {
+  handleFotoFiles(e.target.files);
+  e.target.value = ''; // permite volver a tomar la misma foto si se elimina
+});
+document.getElementById('fotoGaleria').addEventListener('change', function(e) {
+  handleFotoFiles(e.target.files);
+  e.target.value = '';
+});
+
+async function handleFotoFiles(fileList) {
+  const files = Array.from(fileList || []).filter(f => f.type.startsWith('image/'));
+  if (!files.length) return;
+
+  const espacioDisponible = MAX_FOTOS - fotos.length;
+  if (espacioDisponible <= 0) {
+    alert('Ya alcanzaste el máximo de ' + MAX_FOTOS + ' fotos por reporte.');
+    return;
+  }
+
+  const aProcesar = files.slice(0, espacioDisponible);
+  const loadingEl = document.getElementById('photoLoading');
+  loadingEl.style.display = 'flex';
+
+  for (const file of aProcesar) {
+    try {
+      const dataUrl = await comprimirImagen(file, FOTO_MAX_ANCHO, FOTO_CALIDAD);
+      fotos.push({ dataUrl: dataUrl, mimeType: 'image/jpeg' });
+    } catch (err) {
+      console.error('Error procesando imagen:', err);
+    }
+  }
+
+  loadingEl.style.display = 'none';
+  renderPhotoGrid();
+}
+
+// Redimensiona y comprime una imagen usando canvas, devuelve un dataURL JPEG
+function comprimirImagen(file, maxAncho, calidad) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('No se pudo cargar la imagen'));
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxAncho) {
+          h = Math.round(h * (maxAncho / w));
+          w = maxAncho;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', calidad));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderPhotoGrid() {
+  const grid = document.getElementById('photoGrid');
+  grid.innerHTML = '';
+  fotos.forEach((foto, i) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'photo-thumb';
+    thumb.innerHTML = `
+      <img src="${foto.dataUrl}" alt="Foto ${i + 1}">
+      <div class="photo-remove" onclick="removeFoto(${i})">✕</div>
+    `;
+    grid.appendChild(thumb);
+  });
+
+  const lleno = fotos.length >= MAX_FOTOS;
+  document.getElementById('btnCamara').disabled = lleno;
+  document.getElementById('btnGaleria').disabled = lleno;
+}
+
+function removeFoto(i) {
+  fotos.splice(i, 1);
+  renderPhotoGrid();
+}
+
+// ─── BARRA DE PROGRESO ───────────────────────────────────────────
+function updStepBar() {
+  for (let i = 0; i < TOTAL; i++) {
+    const d = document.getElementById('sd' + i);
+    if (i < step) d.className = 'step-dot done';
+    else if (i === step) d.className = 'step-dot active';
+    else d.className = 'step-dot';
+  }
+  document.getElementById('stepLabel').innerHTML =
+    `Paso <span>${step + 1} de ${TOTAL}</span> — ${stepLabels[step]}`;
+}
+
+// ─── MOSTRAR PASO ────────────────────────────────────────────────
+function showStep(s) {
+  document.querySelectorAll('.step-view').forEach((x, i) => {
+    x.classList.toggle('active', i === s);
+  });
+  document.getElementById('btnBack').style.display = s > 0 ? 'flex' : 'none';
+  const btn = document.getElementById('btnNext');
+
+  if (s === 0) { btn.disabled = !estacion; btn.textContent = 'Continuar →'; }
+  else if (s === 1) { btn.disabled = !cat; btn.textContent = 'Continuar →'; }
+  else if (s === 2) { btn.disabled = !risk; btn.textContent = 'Continuar →'; }
+  else if (s === 3) { btn.disabled = false; btn.textContent = 'Continuar →'; }
+  else { btn.disabled = false; btn.textContent = '✈ Enviar reporte'; }
+
+  updStepBar();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── NAVEGACIÓN ──────────────────────────────────────────────────
+function goNext() {
+  if (step === 3) {
+    const desc = document.getElementById('fDesc').value.trim();
+    const errEl = document.getElementById('errDesc');
+    const errFoto = document.getElementById('errFotoEquipo');
+    if (!desc) { errEl.style.display = 'block'; return; }
+    errEl.style.display = 'none';
+
+    if (cat === CAT_DANIO_EQUIPO && fotos.length === 0) {
+      errFoto.style.display = 'block';
+      return;
+    }
+    errFoto.style.display = 'none';
+  }
+  if (step < TOTAL - 1) { step++; showStep(step); }
+  else { submitReport(); }
+}
+
+function goBack() {
+  if (step > 0) { step--; showStep(step); }
+}
+
+// ─── ENVÍO ───────────────────────────────────────────────────────
+async function submitReport() {
+  const btn = document.getElementById('btnNext');
+  btn.textContent = 'Enviando…';
+  btn.classList.add('sending');
+
+  const ticketId = 'SMS-' + Date.now().toString(36).toUpperCase().slice(-7);
+
+  const payload = {
+    ticket: ticketId,
+    timestamp: new Date().toLocaleString('es-CR', { timeZone: 'America/Costa_Rica' }),
+    estacion: estacion,
+    anonimo: anon ? 'Sí' : 'No',
+    categoria: cat,
+    riesgo: risk,
+    personas: document.getElementById('fPersonas').value.trim() || '—',
+    vuelo: document.getElementById('fVuelo').value.trim() || '—',
+    hora_evento: document.getElementById('fHora').value.trim() || '—',
+    unidad: cat === CAT_DANIO_EQUIPO ? (document.getElementById('fUnidad').value.trim() || '—') : '—',
+    descripcion: document.getElementById('fDesc').value.trim(),
+    accion: document.getElementById('fAccion').value.trim() || '—',
+    seguimiento: fol === 'si' ? 'Sí' : 'No',
+    contacto: fol === 'si' ? (document.getElementById('fContacto').value.trim() || '—') : '—',
+    reporter: anon ? 'ANÓNIMO' : (document.getElementById('fReporter').value.trim() || '—'),
+    observaciones: document.getElementById('fObs').value.trim() || '—',
+    // Fotos: el Apps Script espera { data, mimeType } por cada una
+    fotos: fotos.map(f => ({ data: f.dataUrl, mimeType: f.mimeType }))
+  };
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {
+    // no-cors: la respuesta siempre es opaque, se considera éxito si no lanza
+    console.warn('Fetch error (puede ser CORS normal):', e);
+  }
+
+  document.getElementById('ticketNum').textContent = ticketId;
+  document.getElementById('formArea').style.display = 'none';
+  document.getElementById('successView').style.display = 'flex';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── RESET ───────────────────────────────────────────────────────
+function resetForm() {
+  step = 0; estacion = ''; cat = ''; risk = ''; fol = 'no'; anon = false; fotos = [];
+  document.querySelectorAll('.station-item').forEach(x => x.classList.remove('sel'));
+  document.querySelectorAll('.cat-item').forEach(x => x.classList.remove('sel'));
+  document.querySelectorAll('.risk-pill').forEach(x => x.classList.remove('sel'));
+  ['fPersonas','fVuelo','fHora','fUnidad','fDesc','fAccion','fContacto','fReporter','fObs']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('anonToggle').classList.remove('on');
+  document.getElementById('anonHint').textContent = 'Activar — tu identidad no quedará registrada';
+  document.getElementById('anonNote').textContent = 'Tu nombre quedará registrado junto al reporte.';
+  document.getElementById('folNo').classList.add('sel');
+  document.getElementById('folSi').classList.remove('sel');
+  document.getElementById('contactBlock').style.display = 'none';
+  document.getElementById('unidadBlock').style.display = 'none';
+  document.getElementById('equipoNotice').style.display = 'none';
+  document.getElementById('btnGaleria').style.display = 'flex';
+  document.getElementById('fotosOpcLbl').textContent = '(opcional, máx ' + MAX_FOTOS + ')';
+  document.getElementById('errDesc').style.display = 'none';
+  document.getElementById('errFotoEquipo').style.display = 'none';
+  renderPhotoGrid();
+  document.getElementById('formArea').style.display = 'block';
+  document.getElementById('successView').style.display = 'none';
+  const btn = document.getElementById('btnNext');
+  btn.classList.remove('sending');
+  showStep(0);
+}
+
+// ─── INIT ────────────────────────────────────────────────────────
+showStep(0);
+</script>
+</body>
+</html>
