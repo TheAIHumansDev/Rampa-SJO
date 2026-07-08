@@ -8,7 +8,7 @@
          <!-- Open Graph -->
 <!-- Open Graph -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="AS Handling | Reportes SMS VF-2">
+<meta property="og:title" content="AS Handling | Reportes SMS">
 <meta property="og:description" content="Reporta incidentes, peligros y observaciones de Seguridad Operacional (SMS) de forma rápida y sencilla.">
 <meta property="og:url" content="https://rampasjo.aeroaiops.com/SMS.html">
 <meta property="og:site_name" content="AS Handling">
@@ -17,7 +17,7 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="AS Handling Safety Management System (SMS)">
 
- 
+
  <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -64,6 +64,16 @@
   .section{padding:20px 20px 6px}
   .sec-label{font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:14px}
 
+  /* STATION GRID */
+  .station-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 20px}
+  .station-item{background:var(--ash3);border:1.5px solid var(--border-c);border-radius:var(--radius-c);padding:26px 14px;cursor:pointer;transition:.15s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
+  .station-item:hover{border-color:#3b4560;background:var(--ash4)}
+  .station-item.sel{border-color:var(--blue);background:rgba(59,130,246,.09)}
+  .station-code{font-size:26px;font-weight:800;letter-spacing:1px}
+  .station-item.sel .station-code{color:#60a5fa}
+  .station-name{font-size:12px;color:var(--ink2);font-weight:500}
+  .station-emoji{font-size:28px}
+
   /* CATEGORY GRID */
   .cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 20px 16px}
   .cat-item{background:var(--ash3);border:1.5px solid var(--border-c);border-radius:var(--radius-c);padding:15px 10px;cursor:pointer;transition:.15s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:7px}
@@ -99,6 +109,9 @@
 
   /* PRIVACY BOX */
   .privacy-box{margin:0 20px 16px;padding:12px 14px;background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:8px;font-size:12px;color:#93c5fd;line-height:1.65}
+
+  /* NOTICE BOX (equipo) */
+  .notice-box{margin:0 20px 14px;padding:12px 14px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:8px;font-size:12px;color:#fdba74;line-height:1.6}
 
   /* PHOTOS */
   .photo-actions{display:flex;gap:8px;margin-bottom:12px}
@@ -183,11 +196,29 @@
       <div class="step-dot" id="sd1"></div>
       <div class="step-dot" id="sd2"></div>
       <div class="step-dot" id="sd3"></div>
+      <div class="step-dot" id="sd4"></div>
     </div>
-    <div class="step-label" id="stepLabel">Paso <span>1 de 4</span> — Tipo de evento</div>
+    <div class="step-label" id="stepLabel">Paso <span>1 de 5</span> — Estación</div>
+
+    <!-- PASO 0: ESTACIÓN -->
+    <div class="step-view active" id="s0">
+      <div class="section"><span class="sec-label">¿Desde qué estación reportas?</span></div>
+      <div class="station-grid">
+        <div class="station-item" onclick="selEstacion(this,'SJO')">
+          <div class="station-emoji">✈️</div>
+          <div class="station-code">SJO</div>
+          <div class="station-name">Juan Santamaría</div>
+        </div>
+        <div class="station-item" onclick="selEstacion(this,'LIR')">
+          <div class="station-emoji">✈️</div>
+          <div class="station-code">LIR</div>
+          <div class="station-name">Daniel Oduber</div>
+        </div>
+      </div>
+    </div>
 
     <!-- PASO 1: CATEGORÍA -->
-    <div class="step-view active" id="s0">
+    <div class="step-view" id="s1">
       <div class="section"><span class="sec-label">¿Qué tipo de evento fue?</span></div>
       <div class="cat-grid">
         <div class="cat-item" onclick="selCat(this,'Invasión de Zona Restringida')">
@@ -205,8 +236,11 @@
         <div class="cat-item" onclick="selCat(this,'Near Miss / Casi Accidente')">
           <div class="cat-emoji">😰</div><div class="cat-label">Near miss / casi accidente</div>
         </div>
-        <div class="cat-item" onclick="selCat(this,'Daño a Propiedad')">
-          <div class="cat-emoji">💥</div><div class="cat-label">Daño a propiedad</div>
+        <div class="cat-item" onclick="selCat(this,'Daño en Equipo')">
+          <div class="cat-emoji">🛠️</div><div class="cat-label">Daño en equipo</div>
+        </div>
+        <div class="cat-item" onclick="selCat(this,'Falla Mecánica')">
+          <div class="cat-emoji">⚙️</div><div class="cat-label">Falla mecánica</div>
         </div>
         <div class="cat-item" onclick="selCat(this,'Comportamiento Inseguro')">
           <div class="cat-emoji">🚨</div><div class="cat-label">Comportamiento inseguro</div>
@@ -218,7 +252,7 @@
     </div>
 
     <!-- PASO 2: RIESGO + CONTEXTO -->
-    <div class="step-view" id="s1">
+    <div class="step-view" id="s2">
       <div class="section"><span class="sec-label">Nivel de riesgo percibido</span></div>
       <div class="risk-row">
         <div class="risk-pill bajo" onclick="selRisk(this,'Bajo')">🟢 Bajo</div>
@@ -238,10 +272,14 @@
         <label class="field-lbl">Hora aproximada del evento <span style="color:var(--ink3)">(opcional)</span></label>
         <input type="text" id="fHora" placeholder="Ej: 14:30, alrededor del mediodía">
       </div>
+      <div class="field-block" id="unidadBlock" style="display:none">
+        <label class="field-lbl"># de Unidad <span style="color:var(--ink3)">(opcional)</span></label>
+        <input type="text" id="fUnidad" placeholder="Ej: GPU-04, Banda-12, Tractor-7">
+      </div>
     </div>
 
     <!-- PASO 3: DESCRIPCIÓN + FOTOS -->
-    <div class="step-view" id="s2">
+    <div class="step-view" id="s3">
       <div class="section"><span class="sec-label">Descripción del evento</span></div>
       <div class="field-block">
         <label class="field-lbl">¿Qué ocurrió? ¿Dónde y cómo? <span class="field-req">*</span></label>
@@ -252,8 +290,12 @@
         <textarea id="fAccion" placeholder="¿Qué hizo usted o el equipo para controlar o mitigar la situación?"></textarea>
       </div>
 
+      <div class="notice-box" id="equipoNotice" style="display:none">
+        📷 Para reportes de <strong>Daño en Equipo</strong> o <strong>Falla Mecánica</strong> se requiere al menos una fotografía tomada en vivo desde la cámara (no se permite subir desde galería).
+      </div>
+
       <div class="field-block">
-        <label class="field-lbl">Fotos del evento <span style="color:var(--ink3)">(opcional, máx <span id="maxFotosLbl">5</span>)</span></label>
+        <label class="field-lbl">Fotos del evento <span style="color:var(--ink3)" id="fotosOpcLbl">(opcional, máx <span id="maxFotosLbl">5</span>)</span></label>
         <div class="photo-actions">
           <button type="button" class="photo-btn" id="btnCamara" onclick="document.getElementById('fotoCamara').click()">📷 Tomar foto</button>
           <button type="button" class="photo-btn" id="btnGaleria" onclick="document.getElementById('fotoGaleria').click()">🖼 Galería</button>
@@ -269,10 +311,11 @@
       </div>
 
       <div class="err-msg" id="errDesc">Por favor describa el evento antes de continuar.</div>
+      <div class="err-msg" id="errFotoEquipo">Para este tipo de evento debes tomar al menos una foto en vivo.</div>
     </div>
 
     <!-- PASO 4: SEGUIMIENTO -->
-    <div class="step-view" id="s3">
+    <div class="step-view" id="s4">
       <div class="section"><span class="sec-label">Seguimiento y datos de contacto</span></div>
       <div class="field-block">
         <label class="field-lbl">¿Requiere seguimiento por el área de Seguridad?</label>
@@ -327,7 +370,7 @@
 <script>
 // ─── CONFIGURACIÓN ───────────────────────────────────────────────
 // Reemplaza esta URL con la de tu Web App de Google Apps Script
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwtWGGcLINr7nYCzzELdqEbmmP1QiSkC2hLUB4hsUaXokbRpC_4Knr56L4oSafjxMv5Lw/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzlZtMdv8cZew4EGgWLedeXIvagZCAyi9HHqDuNbjg4bCRpjgtFgzndB6pwkoE-XOIv/exec';
 
 // Máximo de fotos permitidas (debe coincidir con MAX_FOTOS en el Apps Script)
 const MAX_FOTOS = 5;
@@ -335,14 +378,17 @@ const MAX_FOTOS = 5;
 const FOTO_MAX_ANCHO = 1280;
 // Calidad de compresión JPEG (0 a 1)
 const FOTO_CALIDAD = 0.72;
+// Categorías que exigen # de Unidad + foto en vivo desde cámara
+const CATS_REQUIEREN_UNIDAD = ['Daño en Equipo', 'Falla Mecánica'];
 
 // ─── ESTADO ──────────────────────────────────────────────────────
 let step = 0;
-let cat = '', risk = '', fol = 'no', anon = false;
+let estacion = '', cat = '', risk = '', fol = 'no', anon = false;
 let fotos = []; // { dataUrl: 'data:image/jpeg;base64,...', mimeType: 'image/jpeg' }
-const TOTAL = 4;
+const TOTAL = 5;
 
 const stepLabels = [
+  'Estación',
   'Tipo de evento',
   'Nivel de riesgo y contexto',
   'Descripción del evento',
@@ -350,6 +396,14 @@ const stepLabels = [
 ];
 
 document.getElementById('maxFotosLbl').textContent = MAX_FOTOS;
+
+// ─── SELECCIÓN ESTACIÓN ──────────────────────────────────────────
+function selEstacion(el, val) {
+  document.querySelectorAll('.station-item').forEach(x => x.classList.remove('sel'));
+  el.classList.add('sel');
+  estacion = val;
+  document.getElementById('btnNext').disabled = false;
+}
 
 // ─── TOGGLE ANÓNIMO ──────────────────────────────────────────────
 function toggleAnon() {
@@ -372,6 +426,14 @@ function selCat(el, val) {
   el.classList.add('sel');
   cat = val;
   document.getElementById('btnNext').disabled = false;
+
+  const esEquipo = CATS_REQUIEREN_UNIDAD.includes(cat);
+  document.getElementById('unidadBlock').style.display = esEquipo ? 'block' : 'none';
+  document.getElementById('equipoNotice').style.display = esEquipo ? 'block' : 'none';
+  document.getElementById('btnGaleria').style.display = esEquipo ? 'none' : 'flex';
+  document.getElementById('fotosOpcLbl').textContent = esEquipo
+    ? '(requerida al menos 1 foto en vivo)'
+    : '(opcional, máx ' + MAX_FOTOS + ')';
 }
 
 // ─── SELECCIÓN RIESGO ────────────────────────────────────────────
@@ -497,9 +559,10 @@ function showStep(s) {
   document.getElementById('btnBack').style.display = s > 0 ? 'flex' : 'none';
   const btn = document.getElementById('btnNext');
 
-  if (s === 0) { btn.disabled = !cat; btn.textContent = 'Continuar →'; }
-  else if (s === 1) { btn.disabled = !risk; btn.textContent = 'Continuar →'; }
-  else if (s === 2) { btn.disabled = false; btn.textContent = 'Continuar →'; }
+  if (s === 0) { btn.disabled = !estacion; btn.textContent = 'Continuar →'; }
+  else if (s === 1) { btn.disabled = !cat; btn.textContent = 'Continuar →'; }
+  else if (s === 2) { btn.disabled = !risk; btn.textContent = 'Continuar →'; }
+  else if (s === 3) { btn.disabled = false; btn.textContent = 'Continuar →'; }
   else { btn.disabled = false; btn.textContent = '✈ Enviar reporte'; }
 
   updStepBar();
@@ -508,11 +571,18 @@ function showStep(s) {
 
 // ─── NAVEGACIÓN ──────────────────────────────────────────────────
 function goNext() {
-  if (step === 2) {
+  if (step === 3) {
     const desc = document.getElementById('fDesc').value.trim();
     const errEl = document.getElementById('errDesc');
+    const errFoto = document.getElementById('errFotoEquipo');
     if (!desc) { errEl.style.display = 'block'; return; }
     errEl.style.display = 'none';
+
+    if (CATS_REQUIEREN_UNIDAD.includes(cat) && fotos.length === 0) {
+      errFoto.style.display = 'block';
+      return;
+    }
+    errFoto.style.display = 'none';
   }
   if (step < TOTAL - 1) { step++; showStep(step); }
   else { submitReport(); }
@@ -533,12 +603,14 @@ async function submitReport() {
   const payload = {
     ticket: ticketId,
     timestamp: new Date().toLocaleString('es-CR', { timeZone: 'America/Costa_Rica' }),
+    estacion: estacion,
     anonimo: anon ? 'Sí' : 'No',
     categoria: cat,
     riesgo: risk,
     personas: document.getElementById('fPersonas').value.trim() || '—',
     vuelo: document.getElementById('fVuelo').value.trim() || '—',
     hora_evento: document.getElementById('fHora').value.trim() || '—',
+    unidad: CATS_REQUIEREN_UNIDAD.includes(cat) ? (document.getElementById('fUnidad').value.trim() || '—') : '—',
     descripcion: document.getElementById('fDesc').value.trim(),
     accion: document.getElementById('fAccion').value.trim() || '—',
     seguimiento: fol === 'si' ? 'Sí' : 'No',
@@ -569,10 +641,11 @@ async function submitReport() {
 
 // ─── RESET ───────────────────────────────────────────────────────
 function resetForm() {
-  step = 0; cat = ''; risk = ''; fol = 'no'; anon = false; fotos = [];
+  step = 0; estacion = ''; cat = ''; risk = ''; fol = 'no'; anon = false; fotos = [];
+  document.querySelectorAll('.station-item').forEach(x => x.classList.remove('sel'));
   document.querySelectorAll('.cat-item').forEach(x => x.classList.remove('sel'));
   document.querySelectorAll('.risk-pill').forEach(x => x.classList.remove('sel'));
-  ['fPersonas','fVuelo','fHora','fDesc','fAccion','fContacto','fReporter','fObs']
+  ['fPersonas','fVuelo','fHora','fUnidad','fDesc','fAccion','fContacto','fReporter','fObs']
     .forEach(id => document.getElementById(id).value = '');
   document.getElementById('anonToggle').classList.remove('on');
   document.getElementById('anonHint').textContent = 'Activar — tu identidad no quedará registrada';
@@ -580,7 +653,12 @@ function resetForm() {
   document.getElementById('folNo').classList.add('sel');
   document.getElementById('folSi').classList.remove('sel');
   document.getElementById('contactBlock').style.display = 'none';
+  document.getElementById('unidadBlock').style.display = 'none';
+  document.getElementById('equipoNotice').style.display = 'none';
+  document.getElementById('btnGaleria').style.display = 'flex';
+  document.getElementById('fotosOpcLbl').textContent = '(opcional, máx ' + MAX_FOTOS + ')';
   document.getElementById('errDesc').style.display = 'none';
+  document.getElementById('errFotoEquipo').style.display = 'none';
   renderPhotoGrid();
   document.getElementById('formArea').style.display = 'block';
   document.getElementById('successView').style.display = 'none';
