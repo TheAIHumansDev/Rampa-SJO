@@ -1765,6 +1765,30 @@ function fdmRender(r){
     document.getElementById('fdmAiOutput').innerHTML='<span style="color:var(--muted);font-size:11px;">Selecciona un análisis para que Claude evalúe este vuelo.</span>';
 }
 
+// Muestra cualquier timestamp en hora de Costa Rica, sin importar el formato
+function fmtCR(ts, withDate){
+  if (!ts) return '—';
+  const raw = String(ts).split('|')[0].trim();
+
+  // Formato nuevo del GAS: "yyyy-MM-ddTHH:mm:ss" SIN zona → ya es hora CR
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(raw)) {
+    const hhmm = raw.substring(11, 16);
+    return withDate ? raw.substring(0, 10) + ' ' + hhmm : hhmm;
+  }
+
+  // Formato "HH:MM" o "HH:MM:SS" suelto → mostrar tal cual
+  const t = raw.match(/^(\d{1,2}:\d{2})(:\d{2})?$/);
+  if (t) return t[1];
+
+  // ISO con Z u otro parseable → convertir explícitamente a CR
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return raw;
+  const opts = { hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'America/Costa_Rica' };
+  if (withDate) Object.assign(opts, { year:'numeric', month:'2-digit', day:'2-digit' });
+  return d.toLocaleString('es-CR', opts);
+}
+    
+
 function fdmRenderKPIs(r){
     const prog=Math.round(r.progress||0),done=r.status==='Completado';
     const total=r.itemsTotales||getCpCols(r.flightType).length,itemsDone=r.itemsCompletados||0;
