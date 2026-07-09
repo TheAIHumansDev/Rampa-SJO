@@ -2087,8 +2087,39 @@ async function runGlobalAI(mode){
         const b=document.getElementById(id); if(b) b.disabled=false;
     });
 }
-function fdmParseTimeMin(val){if(!val||val==='null')return null;const s=String(val).trim().split('\n')[0].trim();const m1=s.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);if(m1)return parseInt(m1[1])*60+parseInt(m1[2])+(parseInt(m1[3]||0)/60);const d=new Date(s);if(!isNaN(d.getTime()))return d.getHours()*60+d.getMinutes()+d.getSeconds()/60;return null;}
-function fdmFmtTime(val){if(!val||val==='null')return'–';const s=String(val).trim().split('\n')[0].trim();const m=s.match(/(\d{1,2}:\d{2})(?::\d{2})?/);if(m)return m[1];const d=new Date(s);if(!isNaN(d.getTime()))return d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});return s.slice(0,5);}
+
+// ── Normaliza cualquier timestamp a hora de Costa Rica ──────
+const CR_TZ = 'America/Costa_Rica';
+function crParts(val){
+  if(!val || val==='null') return null;
+  const s = String(val).trim().split('\n')[0].split('|')[0].trim();
+
+  function fromDate(d){
+    const p = new Intl.DateTimeFormat('en-GB',{
+      timeZone: CR_TZ, hour:'2-digit', minute:'2-digit',
+      second:'2-digit', hour12:false
+    }).formatToParts(d);
+    const g = t => parseInt(p.find(x=>x.type===t).value,10);
+    return { h: g('hour')%24, m: g('minute'), s: g('second') };
+  }
+
+  // 1) ISO con Z u offset explícito → convertir a hora CR
+  if(/(Z|[+\-]\d{2}:?\d{2})$/.test(s)){
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : fromDate(d);
+  }
+  // 2) "yyyy-MM-ddTHH:mm[:ss]" sin zona (GAS ya la envía en CR)
+  //    o "HH:MM[:SS]" suelto → usar los dígitos tal cual
+  const m = s.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if(m) return { h:+m[1], m:+m[2], s:+(m[3]||0) };
+  // 3) Cualquier otro formato parseable → convertir a CR
+  const d2 = new Date(s);
+  return isNaN(d2.getTime()) ? null : fromDate(d2);
+}
+
+    
+function fdmParseTimeMin(val){const t = crParts(val);return t ? t.h*60 + t.m + t.s/60 : null;}
+function fdmFmtTime(val){const t = crParts(val);if(!t) return '–';return String(t.h).padStart(2,'0') + ':' + String(t.m).padStart(2,'0');}
 function fdmFmtDate(r){const ts=parseFlightDate(r);if(!ts)return'–';return new Date(ts).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})+' '+new Date(ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});}
 function fdmElapsedMin(r){const cps=r.checkpoints||[],briefingCp=cps.find(c=>c.label==='Briefing'),startMin=briefingCp?fdmParseTimeMin(briefingCp.timestamp):null;if(startMin===null)return null;if(r.status==='Completado'){const sorted=[...cps].map(c=>fdmParseTimeMin(c.timestamp)).filter(m=>m!==null).sort((a,b)=>b-a);if(sorted.length)return+(sorted[0]-startMin).toFixed(0);}const now=new Date();return+(now.getHours()*60+now.getMinutes()-startMin).toFixed(0);}
 function fdmCountSLAViolations(r){const cps=r.checkpoints||[],beaconMin=fdmParseTimeMin(cps.find(c=>c.label==='Beacon OFF')?.timestamp);if(beaconMin===null)return 0;let count=0;const FDM_SLA=getSLAMap(r.flightType);for(const cp of cps){const meta=FDM_SLA[cp.label];if(!meta?.sla)continue;const cpMin=fdmParseTimeMin(cp.timestamp);if(cpMin!==null&&(cpMin-beaconMin)>meta.sla)count++;}return count;}
