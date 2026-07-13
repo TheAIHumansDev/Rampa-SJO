@@ -964,6 +964,8 @@
 //  CONFIG
 // ══════════════════════════════════════════════════════
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgK8TQSs4IoGdtgWHyI6tYzxhh1r7Jk2yYZsM0FJVbSQuZFl3_X8W8p9RbTNrcM5j9/exec';
+const SCRIPT_URL_SMS = 'https://script.google.com/macros/s/AKfycbwYyl68b-lI0JaZG1UFXD62SMjeDgC1LmH-lCbDgsLk92Mj-_CETuCM_54JIr3MQGC-eA/exec'; // ej: https://script.google.com/macros/s/AKfycb.../exec
+
 
 const CP_COLS_TURN = ['Briefing','Inicio FOD','Beacon OFF','Planta Eléctrica','Aire Acondicionado','Banda','Escalera','Inicia Descarga Carga','Waste & Water','Finaliza Descarga Carga','Inicia Descarga Equipaje','Finaliza Descarga Equipaje','Sube Limpieza','Baja Limpieza','2do FOD','Último Viaje Carreta','Inicia Carga Maleta','Última Maleta','Towbar','Cierre Bines','Push Back','3er FOD','En el Aire'];
 const CP_COLS_RON_ARRIVAL = ['Briefing','FOD','Beacon OFF','Planta Eléctrica','Aire Acondicionado','Banda','Escalera','Inicia Descarga Equipaje','Finaliza Descarga Equipaje','Waste & Water','Sube Limpieza','Baja Limpieza','2do FOD','Último Viaje Carreta','Cierre Bines','Towbar'];
@@ -1033,8 +1035,8 @@ var chartInstances={};
 (function boot(){
     // const userData=sessionStorage.getItem('user');
     // if(!userData){alert('Sesión no encontrada.');window.location.href='login-Admin.html';return;}
-    loadAllReports();
-   loadSmsReports();
+    try { loadAllReports(); } catch(e) { console.error('Error cargando TURN/RON:', e); }
+    try { loadSmsReports(); } catch(e) { console.error('Error cargando SMS:', e); }
 })();
 
 // ══════════════════════════════════════════════════════
@@ -2488,7 +2490,6 @@ function lbxFmtDateTime(ts) {
 // ══════════════════════════════════════════════════════
 //  SMS — fuente de datos INDEPENDIENTE (otro GAS, otro Sheet)
 // ══════════════════════════════════════════════════════
-const SCRIPT_URL_SMS = 'https://script.google.com/macros/s/AKfycbwYyl68b-lI0JaZG1UFXD62SMjeDgC1LmH-lCbDgsLk92Mj-_CETuCM_54JIr3MQGC-eA/exec'; // ej: https://script.google.com/macros/s/AKfycb.../exec
 
 var allSmsReports = [], filteredSmsReports = [];
 var smsDateFilter = 'today', smsCustomDateVal = null;
