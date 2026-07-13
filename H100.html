@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Mi Historial — Turnaround Check VF-7-7-26</title>
+<title>Mi Historial — Turnaround Check VF-12-7-26</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
@@ -388,10 +388,14 @@ let allSeguridad   = [];
 let allCancelados  = [];
 let filterStatus   = 'all';
 let autoTimer      = null;
-
+let histScope = 'today';  
+let loading   = false;
 // Modal state
 let modalReport     = null;   // report currently targeted by modal
 let delReasonVal    = '';
+
+
+
 
 // ── AUTH ─────────────────────────────────────────────────────────────────────
 (()=>{
@@ -426,8 +430,7 @@ let delReasonVal    = '';
 
 // ── LOAD ─────────────────────────────────────────────────────────────────────
 // v2.2: UNA sola llamada getAll (antes eran 5 en paralelo → saturaba GAS)
-let histScope = 'today';   // 'today' (default) | 'all'
-let loading   = false;
+
 
 function load(manual = false) {
   if (loading) return;           // no apilar requests
