@@ -1563,6 +1563,8 @@ function normalizeReport(r){
     if(gasPhotoCount>photoCount)photoCount=gasPhotoCount;
  
     const uniqueKey=flightKey?(r._sheetType+'_'+flightKey):(r._sheetType+'_'+flightNumber+'_'+flightTs);
+
+    if (posicion) console.log('✓ Posición encontrada:', posicion, '| keys disponibles:', Object.keys(r));
  
     return{
         flightKey:uniqueKey,
