@@ -1501,6 +1501,7 @@ function jsonpFetch(id,url,timeoutMs,onData,onFail){
 // ══════════════════════════════════════════════════════
 function processRawReports(rawReports){
     resetInspectorColors();activeInspectorFilter=null;
+    window._rawSample=rawReports; // ← temporal, para inspeccionar en consola
     allReports=rawReports.map(normalizeReport);
     populateFilterDropdowns();applyFilters();
 }
