@@ -1515,6 +1515,7 @@ function normalizeReport(r){
     const flightTs=get('Fecha/Hora','flightTimestamp')||'';
     const inspector=get('Inspector','inspector')||'–';
     const role=get('Rol','role')||'–';
+    const posicion=get('Posición','Posicion','POSICION','Position','position')||'';
     const aeropuerto=get('Aeropuerto','aeropuerto')||'–';
     const itemsDone=parseInt(get('Items Completados','itemsCompletados')||0);
     const cpCols=getCpCols(flightType);
@@ -1693,7 +1694,10 @@ const photoBtnClass=effectiveCount>0?'has-photos':'no-photos';
 const photoBtnTitle=effectiveCount>0?(effectiveCount+' foto(s) disponibles'):'Sin fotos registradas';
         return`<div class="rt-row" style="animation-delay:${i*.03}s;opacity:${rowOpacity};transition:opacity .25s;${leftAccent}" onclick="openFlightDetail('${safeKey}')" title="Ver detalle">
             <div class="rt-cell flight">${r.airlineName||r.airline||'–'} ${r.flightNumber||'–'}${incBadge}<span style="margin-left:5px;">${sheetBadge}</span></div>
-            <div class="rt-cell"><div class="user-pill" style="--ipill-bg:${c.bg};--ipill-border:${c.border};--ipill-text:${c.text};"><div class="user-avatar" style="--iavatar-bg:${c.grad};--iavatar-glow:${c.glow};">${initials}</div><span class="user-name-text">${inspector}</span></div></div>
+            <div class="rt-cell" style="flex-direction:column;align-items:flex-start;gap:2px;">
+    <div class="user-pill" style="--ipill-bg:${c.bg};--ipill-border:${c.border};--ipill-text:${c.text};"><div class="user-avatar" style="--iavatar-bg:${c.grad};--iavatar-glow:${c.glow};">${initials}</div><span class="user-name-text">${inspector}</span></div>
+    ${r.posicion ? `<span style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;padding-left:2px;">📍 ${r.posicion}</span>` : ''}
+</div>
             <div class="rt-cell">${dt}</div>
             <div class="rt-cell">${r.airline||'–'}</div>
             <div class="rt-cell">${typeTag}</div>
