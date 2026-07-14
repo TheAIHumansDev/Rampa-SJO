@@ -394,6 +394,26 @@
 .photo-btn.has-photos { border-color:rgba(139,92,246,0.6); color:#e9d5ff; }
 .photo-btn.no-photos  { opacity:.4; cursor:default; pointer-events:none; }
 
+
+.risk-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:6px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.risk-bajo{background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.3);}
+.risk-medio{background:rgba(245,158,11,0.15);color:#fcd34d;border:1px solid rgba(245,158,11,0.3);}
+.risk-alto{background:rgba(249,115,22,0.15);color:#fdba74;border:1px solid rgba(249,115,22,0.3);}
+.risk-critico{background:rgba(232,68,68,0.18);color:#fca5a5;border:1px solid rgba(232,68,68,0.4);}
+.estado-badge{padding:2px 9px;border-radius:6px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;background:rgba(59,130,246,0.12);color:#93c5fd;white-space:nowrap;}      
+
+.wch-estado-badge{padding:2px 9px;border-radius:6px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.wch-completado{background:rgba(16,185,129,0.15);color:#6ee7b7;border:1px solid rgba(16,185,129,0.3);}
+.wch-enproceso{background:rgba(245,158,11,0.15);color:#fcd34d;border:1px solid rgba(245,158,11,0.3);}
+.wch-incompleto{background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);}
+.he-day-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(30,41,59,0.5);}
+.he-day-row:last-child{border-bottom:none;}
+.he-day-date{width:100px;flex-shrink:0;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.he-day-bar-wrap{flex:1;}
+.he-day-bar-bg{height:6px;border-radius:6px;background:rgba(30,41,59,0.8);overflow:hidden;}
+.he-day-bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#f59e0b,#f97316);}
+.he-day-val{width:90px;flex-shrink:0;text-align:right;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);}
+        
 .lbx-overlay {
   position:fixed;inset:0;z-index:900;
   background:rgba(2,5,18,0.96);
@@ -653,9 +673,11 @@
         </div>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('reportes',this)">📋 Reportes <span class="tab-badge normal" id="tabBadgeReportes">0</span></button>
+            <button class="tab-btn active" onclick="switchTab('reportes',this)">📋 Rampa <span class="tab-badge normal" id="tabBadgeReportes">0</span></button>
             <button class="tab-btn" onclick="switchTab('alertas',this)">🚨 Alertas <span class="tab-badge alert" id="tabBadgeAlertas">0</span></button>
             <button class="tab-btn" onclick="switchTab('analytics',this)">📊 Analytics <span class="tab-badge analytics" id="tabBadgeAnalytics">NEW</span></button>
+          <button class="tab-btn" onclick="switchTab('sms',this)">🦺 SMS <span class="tab-badge alert" id="tabBadgeSms">0</span></button>
+            <button class="tab-btn" onclick="switchTab('wch',this)"> ♿ Sillas <span class="tab-badge normal" id="tabBadgeWch">0</span></button>
         </div>
 
         <!-- TAB REPORTES -->
@@ -844,6 +866,151 @@
             </div>
 
         </div><!-- /tab-analytics -->
+    
+    
+    <!-- TAB SMS -->
+<div class="tab-panel" id="tab-sms">
+    <div class="kpi-row" id="smsKpiRow">
+        <div class="kpi-card cyan"><div class="kpi-label">Total Reportes SMS</div><div class="kpi-value cyan" id="smsKpiTotal">–</div><div class="kpi-sub">en el período</div></div>
+        <div class="kpi-card green"><div class="kpi-label">Riesgo Bajo</div><div class="kpi-value green" id="smsKpiBajo">–</div><div class="kpi-sub">🟢</div></div>
+        <div class="kpi-card yellow"><div class="kpi-label">Riesgo Medio</div><div class="kpi-value yellow" id="smsKpiMedio">–</div><div class="kpi-sub">🟡</div></div>
+        <div class="kpi-card red"><div class="kpi-label">Riesgo Alto / Crítico</div><div class="kpi-value red" id="smsKpiAltoCritico">–</div><div class="kpi-sub">🟠🔴</div></div>
+        <div class="kpi-card blue"><div class="kpi-label">Con Seguimiento Pendiente</div><div class="kpi-value blue" id="smsKpiSeguimiento">–</div><div class="kpi-sub">requieren cierre</div></div>
+    </div>
+
+    <div class="filter-bar" style="margin-bottom:12px;">
+        <span class="filter-label">📅</span>
+        <div class="date-pills">
+            <button class="date-pill active" onclick="setSmsDateFilter('today',this)">Hoy</button>
+            <button class="date-pill" onclick="setSmsDateFilter('week',this)">7 días</button>
+            <button class="date-pill" onclick="setSmsDateFilter('month',this)">30 días</button>
+            <button class="date-pill" onclick="setSmsDateFilter('all',this)">Todo</button>
+        </div>
+        <span class="filter-label" style="margin-left:6px;">🏢</span>
+        <select class="filter-select" id="smsStationFilter" onchange="applySmsFilters()"><option value="all">Todas las estaciones</option></select>
+        <span class="filter-label" style="margin-left:6px;">⚠️</span>
+        <select class="filter-select" id="smsRiskFilter" onchange="applySmsFilters()">
+            <option value="all">Todo riesgo</option>
+            <option value="Bajo">🟢 Bajo</option>
+            <option value="Medio">🟡 Medio</option>
+            <option value="Alto">🟠 Alto</option>
+            <option value="Crítico">🔴 Crítico</option>
+        </select>
+        <span class="filter-label" style="margin-left:6px;">📁</span>
+        <select class="filter-select" id="smsCategoryFilter" onchange="applySmsFilters()"><option value="all">Toda categoría</option></select>
+        <span class="filter-label" style="margin-left:6px;">📌</span>
+        <select class="filter-select" id="smsStatusFilter" onchange="applySmsFilters()">
+            <option value="all">Todo estado</option>
+            <option value="Recibido">Recibido</option>
+            <option value="En revisión">En revisión</option>
+            <option value="En proceso">En proceso</option>
+            <option value="Cerrado">Cerrado</option>
+            <option value="Archivado">Archivado</option>
+        </select>
+        <button class="refresh-btn" id="smsRefreshBtn" onclick="loadSmsReports(true)"><span class="spin-icon">↻</span> Actualizar</button>
+        <span class="last-updated" id="smsLastUpdated">–</span>
+    </div>
+
+    <div class="toolbar">
+        <div class="toolbar-title">🦺 Reportes SMS <span class="count-tag" id="smsFilteredCount">0</span></div>
+    </div>
+
+    <div class="report-table-wrap">
+        <div class="rt-head" style="grid-template-columns:1fr 0.8fr 1.3fr 1fr 0.9fr 1fr 0.9fr 0.7fr;">
+            <div class="rt-head-cell">Ticket</div>
+            <div class="rt-head-cell">Estación</div>
+            <div class="rt-head-cell">Fecha</div>
+            <div class="rt-head-cell">Categoría</div>
+            <div class="rt-head-cell">Riesgo</div>
+            <div class="rt-head-cell">Reportado por</div>
+            <div class="rt-head-cell">Estado</div>
+            <div class="rt-head-cell">Fotos</div>
+        </div>
+        <div class="rt-body" id="smsTableBody">
+            <div class="skeleton-row"><div class="skel" style="width:120px;height:14px"></div><div class="skel" style="width:80px;height:14px;margin-left:12px"></div></div>
+        </div>
+    </div>
+</div><!-- /tab-sms -->
+
+<!-- TAB WCH -->
+<div class="tab-panel" id="tab-wch">
+    <div class="kpi-row" id="wchKpiRow">
+        <div class="kpi-card blue"><div class="kpi-label">Total Servicios WCH</div><div class="kpi-value blue" id="wchKpiTotal">–</div><div class="kpi-sub">en el período</div></div>
+        <div class="kpi-card green"><div class="kpi-label">Completados</div><div class="kpi-value green" id="wchKpiDone">–</div><div class="kpi-sub" id="wchKpiDonePct">–</div></div>
+        <div class="kpi-card yellow"><div class="kpi-label">En Proceso</div><div class="kpi-value yellow" id="wchKpiPending">–</div><div class="kpi-sub">sin cerrar</div></div>
+        <div class="kpi-card cyan"><div class="kpi-label">Con Incidente</div><div class="kpi-value cyan" id="wchKpiIncidente">–</div><div class="kpi-sub">reportados</div></div>
+        <div class="kpi-card red"><div class="kpi-label">Horas Extra Hoy</div><div class="kpi-value red" id="wchKpiHeHoy">–</div><div class="kpi-sub" id="wchKpiHeReportes">–</div></div>
+    </div>
+
+    <div class="filter-bar" style="margin-bottom:12px;">
+        <span class="filter-label">📅</span>
+        <div class="date-pills">
+            <button class="date-pill active" onclick="setWchDateFilter('today',this)">Hoy</button>
+            <button class="date-pill" onclick="setWchDateFilter('week',this)">7 días</button>
+            <button class="date-pill" onclick="setWchDateFilter('all',this)">Todo</button>
+        </div>
+        <span class="filter-label" style="margin-left:6px;">🏢</span>
+        <select class="filter-select" id="wchAeropuertoFilter" onchange="applyWchFilters()"><option value="all">Todas las estaciones</option></select>
+        <span class="filter-label" style="margin-left:6px;">✈️</span>
+        <select class="filter-select" id="wchAerolineaFilter" onchange="applyWchFilters()"><option value="all">Todas las aerolíneas</option></select>
+        <span class="filter-label" style="margin-left:6px;">🔷</span>
+        <select class="filter-select" id="wchTipoFilter" onchange="applyWchFilters()"><option value="all">Todo tipo</option></select>
+        <span class="filter-label" style="margin-left:6px;">📌</span>
+        <select class="filter-select" id="wchEstadoFilter" onchange="applyWchFilters()">
+            <option value="all">Todo estado</option>
+            <option value="Completado">Completado</option>
+            <option value="En Proceso">En Proceso</option>
+        </select>
+        <button class="refresh-btn" id="wchRefreshBtn" onclick="loadWchReports(true)"><span class="spin-icon">↻</span> Actualizar</button>
+        <span class="last-updated" id="wchLastUpdated">–</span>
+    </div>
+
+    <div class="analytics-grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px;">
+        <div class="an-card ac-blue">
+            <div class="an-card-title">🏆 Top Usuarios (servicios)</div>
+            <div class="rank-table" id="wchRankUsuarios"></div>
+        </div>
+        <div class="an-card ac-cyan">
+            <div class="an-card-title">✈️ Servicios por Aerolínea</div>
+            <div class="rank-table" id="wchRankAerolineas"></div>
+        </div>
+    </div>
+
+    <div class="analytics-grid single" style="margin-bottom:16px;">
+        <div class="an-card ac-purple">
+            <div class="an-card-title">🔷 Servicios por Tipo</div>
+            <div class="rank-table" id="wchRankTipos"></div>
+        </div>
+    </div>
+
+    <div class="toolbar"><div class="toolbar-title">🦽 Reportes WCH <span class="count-tag" id="wchFilteredCount">0</span></div></div>
+
+    <div class="report-table-wrap">
+        <div class="rt-head" style="grid-template-columns:1fr 1fr 0.9fr 0.9fr 1fr 0.8fr 0.9fr;">
+            <div class="rt-head-cell">Ticket</div>
+            <div class="rt-head-cell">Usuario</div>
+            <div class="rt-head-cell">Vuelo</div>
+            <div class="rt-head-cell">Aerolínea</div>
+            <div class="rt-head-cell">Tipo</div>
+            <div class="rt-head-cell">Estación</div>
+            <div class="rt-head-cell">Estado</div>
+        </div>
+        <div class="rt-body" id="wchTableBody">
+            <div class="skeleton-row"><div class="skel" style="width:120px;height:14px"></div></div>
+        </div>
+    </div>
+
+    <div class="an-section-label" style="margin-top:24px;">horas extra</div>
+
+    <div class="analytics-grid single" style="margin-bottom:16px;">
+        <div class="an-card ac-red">
+            <div class="an-card-title">⏱️ Horas Extra Reportadas por Día</div>
+            <div id="heDailyList"></div>
+        </div>
+    </div>
+</div><!-- /tab-wch -->
+        
+    
     </main>
 </div>
 
@@ -888,7 +1055,191 @@
 //  CONFIG
 // ══════════════════════════════════════════════════════
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgK8TQSs4IoGdtgWHyI6tYzxhh1r7Jk2yYZsM0FJVbSQuZFl3_X8W8p9RbTNrcM5j9/exec';
+const SCRIPT_URL_SMS = 'https://script.google.com/macros/s/AKfycbxQlup8TVTJwY9pGIfYHosmYaf9ckdYp7LtvnCdm_n57GPPq6ohR-RDmZ-PbnMbLbmymQ/exec';
+const SCRIPT_URL_WCH = 'https://script.google.com/macros/s/AKfycbyHgq_faVn7d5UjG5fcP5Tzuk-xOWmZqqenYi4reOgEn8cN49-PIbRjgzR-ai0xwYbM/exec'; // ej: https://script.google.com/macros/s/AKfycb.../exec
 
+var allWchReports = [], filteredWchReports = [];
+var wchDateFilter = 'today';
+var activeWchAeropuertoFilter = 'all', activeWchAerolineaFilter = 'all', activeWchTipoFilter = 'all', activeWchEstadoFilter = 'all';
+var allHeReports = [], heDailyTotals = [];
+
+function loadWchReports(manual) {
+    manual = !!manual;
+    const btn = document.getElementById('wchRefreshBtn');
+    if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
+
+    jsonpFetch('jst_wch', SCRIPT_URL_WCH + '?action=getWchReports', 9000,
+        data => {
+            if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+            const lu = document.getElementById('wchLastUpdated');
+            if (lu) lu.textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            if (data && data.success && Array.isArray(data.reports)) {
+                allWchReports = data.reports;
+                populateWchFilterDropdowns();
+                applyWchFilters();
+                if (manual) showToast('✓ ' + data.reports.length + ' reportes WCH cargados');
+            } else if (manual) {
+                showToast('⚠ No se pudieron cargar los reportes WCH', true);
+            }
+        },
+        () => {
+            if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+            if (manual) showToast('⚠ Error de conexión con el GAS de WCH', true);
+        }
+    );
+
+    // Horas extra se carga junto con WCH (misma pestaña)
+    jsonpFetch('jst_he', SCRIPT_URL_WCH + '?action=getHorasExtra', 9000,
+        data => {
+            if (data && data.success) {
+                allHeReports = data.reports || [];
+                heDailyTotals = data.dailyTotals || [];
+                renderHeDaily();
+                updateWchKPIs(); // depende de heDailyTotals para "horas extra hoy"
+            }
+        },
+        () => { /* silencioso: si falla, la sección de horas extra queda vacía */ }
+    );
+}
+
+function populateWchFilterDropdowns() {
+    populateSelect('wchAeropuertoFilter', 'Todas las estaciones', [...new Set(allWchReports.map(r => r.aeropuerto).filter(v => v && v !== '–' && v !== 'No encontrado'))].sort());
+    populateSelect('wchAerolineaFilter', 'Todas las aerolíneas', [...new Set(allWchReports.map(r => r.aerolinea).filter(Boolean))].sort());
+    populateSelect('wchTipoFilter', 'Todo tipo', [...new Set(allWchReports.map(r => r.tipoServicio).filter(Boolean))].sort());
+}
+
+function parseWchDateClient(r) {
+    const f = r.fechaCreacion || '', h = r.horaCreacion || '00:00:00';
+    const m = String(f).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (!m) return 0;
+    const t = String(h).match(/(\d{1,2}):(\d{2})/);
+    return new Date(+m[3], +m[2] - 1, +m[1], t ? +t[1] : 0, t ? +t[2] : 0).getTime();
+}
+
+function setWchDateFilter(mode, el) {
+    wchDateFilter = mode;
+    document.querySelectorAll('#tab-wch .date-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    applyWchFilters();
+}
+
+function applyWchFilters() {
+    activeWchAeropuertoFilter = document.getElementById('wchAeropuertoFilter').value;
+    activeWchAerolineaFilter = document.getElementById('wchAerolineaFilter').value;
+    activeWchTipoFilter = document.getElementById('wchTipoFilter').value;
+    activeWchEstadoFilter = document.getElementById('wchEstadoFilter').value;
+    const now = new Date();
+    filteredWchReports = allWchReports.filter(r => {
+        const ts = parseWchDateClient(r); const rDate = new Date(ts);
+        if (wchDateFilter === 'today' && rDate.toDateString() !== now.toDateString()) return false;
+        if (wchDateFilter === 'week') { const w = new Date(now); w.setDate(w.getDate() - 7); if (rDate < w) return false; }
+        if (activeWchAeropuertoFilter !== 'all' && r.aeropuerto !== activeWchAeropuertoFilter) return false;
+        if (activeWchAerolineaFilter !== 'all' && r.aerolinea !== activeWchAerolineaFilter) return false;
+        if (activeWchTipoFilter !== 'all' && r.tipoServicio !== activeWchTipoFilter) return false;
+        if (activeWchEstadoFilter !== 'all' && r.estado !== activeWchEstadoFilter) return false;
+        return true;
+    });
+    renderWchTable();
+    renderWchRankings();
+    updateWchKPIs();
+}
+
+function wchEstadoClass(estado) {
+    if (estado === 'Completado') return 'wch-completado';
+    if (estado === 'En Proceso') return 'wch-enproceso';
+    return 'wch-incompleto';
+}
+
+function renderWchTable() {
+    const body = document.getElementById('wchTableBody');
+    document.getElementById('wchFilteredCount').textContent = filteredWchReports.length;
+    document.getElementById('tabBadgeWch').textContent = filteredWchReports.length;
+    if (!filteredWchReports.length) { body.innerHTML = '<div class="empty-row">📭 Sin reportes WCH para este filtro</div>'; return; }
+    const display = [...filteredWchReports].sort((a, b) => parseWchDateClient(b) - parseWchDateClient(a));
+    body.innerHTML = display.map((r, i) => `<div class="rt-row" style="grid-template-columns:1fr 1fr 0.9fr 0.9fr 1fr 0.8fr 0.9fr;animation-delay:${i * .02}s;">
+        <div class="rt-cell flight">${r.ticket || '–'}</div>
+        <div class="rt-cell">${r.usuario || '–'}</div>
+        <div class="rt-cell">${r.vuelo || '–'}</div>
+        <div class="rt-cell">${r.aerolinea || '–'}</div>
+        <div class="rt-cell">${r.tipoServicio || '–'}</div>
+        <div class="rt-cell">${r.aeropuerto || '–'}</div>
+        <div class="rt-cell"><span class="wch-estado-badge ${wchEstadoClass(r.estado)}">${r.estado || '–'}</span></div>
+    </div>`).join('');
+}
+
+function buildWchRanking(field) {
+    const map = {};
+    filteredWchReports.forEach(r => {
+        const key = r[field] || '–';
+        map[key] = (map[key] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, total]) => ({ name, total })).sort((a, b) => b.total - a.total);
+}
+
+function renderRankList(elId, items, colorVar) {
+    const max = items[0]?.total || 1;
+    const posColors = ['gold', 'silver', 'bronze'];
+    document.getElementById(elId).innerHTML = items.slice(0, 15).map((it, i) => `<div class="rank-row">
+        <div class="rank-pos ${posColors[i] || 'rest'}">${i + 1}</div>
+        <div class="rank-name">${it.name}</div>
+        <div class="rank-bar-wrap"><div class="rank-bar-bg"><div class="rank-bar-fill" style="width:${Math.round(it.total / max * 100)}%;background:${colorVar};"></div></div></div>
+        <div class="rank-val" style="color:${colorVar};">${it.total}</div>
+    </div>`).join('');
+}
+
+function renderWchRankings() {
+    renderRankList('wchRankUsuarios', buildWchRanking('usuario'), '#3b82f6');
+    renderRankList('wchRankAerolineas', buildWchRanking('aerolinea'), '#06b6d4');
+    renderRankList('wchRankTipos', buildWchRanking('tipoServicio'), '#8b5cf6');
+}
+
+function updateWchKPIs() {
+    const total = filteredWchReports.length;
+    const done = filteredWchReports.filter(r => r.estado === 'Completado').length;
+    const pending = total - done;
+    const conIncidente = filteredWchReports.filter(r => r.descripcionIncidente && r.descripcionIncidente !== 'Sin incidentes reportados' && r.descripcionIncidente !== '–').length;
+    const pct = total > 0 ? Math.round(done / total * 100) : 0;
+    document.getElementById('wchKpiTotal').textContent = total;
+    document.getElementById('wchKpiDone').textContent = done;
+    document.getElementById('wchKpiDonePct').textContent = pct + '% completitud';
+    document.getElementById('wchKpiPending').textContent = pending;
+    document.getElementById('wchKpiIncidente').textContent = conIncidente;
+
+    // Horas extra de HOY (independiente del filtro de fecha de WCH)
+    const todayKey = todayIsoDate();
+    const todayEntry = heDailyTotals.find(d => normalizeHeDateKey(d.fecha) === todayKey);
+    document.getElementById('wchKpiHeHoy').textContent = todayEntry ? todayEntry.horas.toFixed(1) + 'h' : '0h';
+    document.getElementById('wchKpiHeReportes').textContent = todayEntry ? todayEntry.reportes + ' reporte(s)' : 'sin reportes hoy';
+}
+
+function todayIsoDate() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function normalizeHeDateKey(f) {
+    // admite 'yyyy-MM-dd' tal cual, o 'dd/MM/yyyy' → normaliza a 'yyyy-MM-dd'
+    if (!f) return '';
+    let m = String(f).match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
+    m = String(f).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+    return f;
+}
+
+function renderHeDaily() {
+    const el = document.getElementById('heDailyList');
+    if (!el) return;
+    if (!heDailyTotals.length) { el.innerHTML = '<div class="empty-row">📭 Sin horas extra registradas</div>'; return; }
+    const max = Math.max(...heDailyTotals.map(d => d.horas), 1);
+    el.innerHTML = heDailyTotals.slice(0, 21).map(d => `<div class="he-day-row">
+        <div class="he-day-date">${normalizeHeDateKey(d.fecha)}</div>
+        <div class="he-day-bar-wrap"><div class="he-day-bar-bg"><div class="he-day-bar-fill" style="width:${Math.round(d.horas / max * 100)}%;"></div></div></div>
+        <div class="he-day-val">${d.horas.toFixed(1)}h · ${d.reportes} rep.</div>
+    </div>`).join('');
+}
+
+
+    
 const CP_COLS_TURN = ['Briefing','Inicio FOD','Beacon OFF','Planta Eléctrica','Aire Acondicionado','Banda','Escalera','Inicia Descarga Carga','Waste & Water','Finaliza Descarga Carga','Inicia Descarga Equipaje','Finaliza Descarga Equipaje','Sube Limpieza','Baja Limpieza','2do FOD','Último Viaje Carreta','Inicia Carga Maleta','Última Maleta','Towbar','Cierre Bines','Push Back','3er FOD','En el Aire'];
 const CP_COLS_RON_ARRIVAL = ['Briefing','FOD','Beacon OFF','Planta Eléctrica','Aire Acondicionado','Banda','Escalera','Inicia Descarga Equipaje','Finaliza Descarga Equipaje','Waste & Water','Sube Limpieza','Baja Limpieza','2do FOD','Último Viaje Carreta','Cierre Bines','Towbar'];
 const CP_COLS_RON_DEPARTURE = ['Briefing','FOD','Avión en Posición','Planta Eléctrica','Aire Acondicionado','Banda','Escalera','Inicia Carga de Equipaje','Waste & Water','2do FOD','Finaliza Carga Equipaje','Inicia carga de Carga','Finaliza carga de Carga','Towbar','Cierre Bines','Push Back','3er FOD'];
@@ -957,7 +1308,10 @@ var chartInstances={};
 (function boot(){
     // const userData=sessionStorage.getItem('user');
     // if(!userData){alert('Sesión no encontrada.');window.location.href='login-Admin.html';return;}
-    loadAllReports();
+    try { loadAllReports(); } catch(e) { console.error('Error cargando TURN/RON:', e); }
+    try { loadSmsReports(); } catch(e) { console.error('Error cargando SMS:', e); }
+    try { loadWchReports(); } catch(e) { console.error('Error cargando WCH:', e); }
+
 })();
 
 // ══════════════════════════════════════════════════════
@@ -2408,6 +2762,160 @@ function lbxFmtDateTime(ts) {
   } catch(e) { return String(ts); }
 }
 
+// ══════════════════════════════════════════════════════
+//  SMS — fuente de datos INDEPENDIENTE (otro GAS, otro Sheet)
+// ══════════════════════════════════════════════════════
+
+var allSmsReports = [], filteredSmsReports = [];
+var smsDateFilter = 'today', smsCustomDateVal = null;
+var activeSmsStationFilter = 'all', activeSmsRiskFilter = 'all', activeSmsCategoryFilter = 'all', activeSmsStatusFilter = 'all';
+
+function loadSmsReports(manual) {
+    manual = !!manual;
+    const btn = document.getElementById('smsRefreshBtn');
+    if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
+    const url = SCRIPT_URL_SMS + '?action=getReports';
+    jsonpFetch('jst_sms', url, 9000,
+        data => {
+            if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+            const now = new Date();
+            const lu = document.getElementById('smsLastUpdated');
+            if (lu) lu.textContent = 'Actualizado: ' + now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            if (data && data.success && Array.isArray(data.reports)) {
+                allSmsReports = data.reports;
+                populateSmsFilterDropdowns();
+                applySmsFilters();
+                if (manual) showToast('✓ ' + data.reports.length + ' reportes SMS cargados');
+            } else if (manual) {
+                showToast('⚠ No se pudieron cargar los reportes SMS', true);
+            }
+        },
+        () => {
+            if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+            if (manual) showToast('⚠ Error de conexión con el GAS de SMS', true);
+        }
+    );
+}
+
+function populateSmsFilterDropdowns() {
+    populateSelect('smsStationFilter', 'Todas las estaciones', [...new Set(allSmsReports.map(r => r.estacion).filter(v => v && v !== '—'))].sort());
+    populateSelect('smsCategoryFilter', 'Toda categoría', [...new Set(allSmsReports.map(r => r.categoria).filter(v => v && v !== '—'))].sort());
+}
+
+// "dd/MM/yyyy HH:mm:ss" → timestamp
+function parseSmsDate(r) {
+    const s = r.fechaRecepcion || '';
+    const m = String(s).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):?(\d{0,2})/);
+    if (m) return new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5], +(m[6] || 0)).getTime();
+    const d = new Date(s); return isNaN(d.getTime()) ? 0 : d.getTime();
+}
+
+function setSmsDateFilter(mode, el) {
+    smsDateFilter = mode;
+    document.querySelectorAll('#tab-sms .date-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    applySmsFilters();
+}
+
+function applySmsFilters() {
+    activeSmsStationFilter = document.getElementById('smsStationFilter').value;
+    activeSmsRiskFilter = document.getElementById('smsRiskFilter').value;
+    activeSmsCategoryFilter = document.getElementById('smsCategoryFilter').value;
+    activeSmsStatusFilter = document.getElementById('smsStatusFilter').value;
+    const now = new Date();
+    filteredSmsReports = allSmsReports.filter(r => {
+        const ts = parseSmsDate(r); const rDate = new Date(ts);
+        if (smsDateFilter === 'today' && rDate.toDateString() !== now.toDateString()) return false;
+        if (smsDateFilter === 'week') { const w = new Date(now); w.setDate(w.getDate() - 7); if (rDate < w) return false; }
+        if (smsDateFilter === 'month') { const w = new Date(now); w.setDate(w.getDate() - 30); if (rDate < w) return false; }
+        if (activeSmsStationFilter !== 'all' && r.estacion !== activeSmsStationFilter) return false;
+        if (activeSmsRiskFilter !== 'all' && r.riesgo !== activeSmsRiskFilter) return false;
+        if (activeSmsCategoryFilter !== 'all' && r.categoria !== activeSmsCategoryFilter) return false;
+        if (activeSmsStatusFilter !== 'all' && r.estado !== activeSmsStatusFilter) return false;
+        return true;
+    });
+    renderSmsTable();
+    updateSmsKPIs();
+}
+
+function riskClass(riesgo) {
+    return { 'Bajo': 'risk-bajo', 'Medio': 'risk-medio', 'Alto': 'risk-alto', 'Crítico': 'risk-critico' }[riesgo] || 'risk-bajo';
+}
+function riskEmoji(riesgo) {
+    return { 'Bajo': '🟢', 'Medio': '🟡', 'Alto': '🟠', 'Crítico': '🔴' }[riesgo] || '⚪';
+}
+
+function renderSmsTable() {
+    const body = document.getElementById('smsTableBody');
+    document.getElementById('smsFilteredCount').textContent = filteredSmsReports.length;
+    document.getElementById('tabBadgeSms').textContent = filteredSmsReports.length;
+    if (!filteredSmsReports.length) { body.innerHTML = '<div class="empty-row">📭 Sin reportes SMS para este filtro</div>'; return; }
+    const display = [...filteredSmsReports].sort((a, b) => parseSmsDate(b) - parseSmsDate(a));
+    body.innerHTML = display.map((r, i) => {
+        const pc = r.photoCount || 0;
+        const safeTicket = (r.ticket || '').replace(/'/g, "\\'");
+        return `<div class="rt-row" style="grid-template-columns:1fr 0.8fr 1.3fr 1fr 0.9fr 1fr 0.9fr 0.7fr;animation-delay:${i * .02}s;">
+            <div class="rt-cell flight">${r.ticket || '–'}</div>
+            <div class="rt-cell">${r.estacion || '–'}</div>
+            <div class="rt-cell">${r.fechaRecepcion || '–'}</div>
+            <div class="rt-cell">${r.categoria || '–'}</div>
+            <div class="rt-cell"><span class="risk-badge ${riskClass(r.riesgo)}">${riskEmoji(r.riesgo)} ${r.riesgo || '–'}</span></div>
+            <div class="rt-cell">${r.anonimo === 'Sí' ? 'Anónimo' : (r.reportadoPor || '–')}</div>
+            <div class="rt-cell"><span class="estado-badge">${r.estado || '–'}</span></div>
+            <div class="rt-cell"><button class="photo-btn ${pc > 0 ? 'has-photos' : 'no-photos'}" onclick="openSmsPhotos(event,'${safeTicket}')" title="${pc > 0 ? pc + ' foto(s)' : 'Sin fotos'}">📸 ${pc || '–'}</button></div>
+        </div>`;
+    }).join('');
+}
+
+function updateSmsKPIs() {
+    const total = filteredSmsReports.length;
+    const bajo = filteredSmsReports.filter(r => r.riesgo === 'Bajo').length;
+    const medio = filteredSmsReports.filter(r => r.riesgo === 'Medio').length;
+    const altoCritico = filteredSmsReports.filter(r => r.riesgo === 'Alto' || r.riesgo === 'Crítico').length;
+    const seguimiento = filteredSmsReports.filter(r => r.seguimiento === 'Sí' && r.estado !== 'Cerrado').length;
+    document.getElementById('smsKpiTotal').textContent = total;
+    document.getElementById('smsKpiBajo').textContent = bajo;
+    document.getElementById('smsKpiMedio').textContent = medio;
+    document.getElementById('smsKpiAltoCritico').textContent = altoCritico;
+    document.getElementById('smsKpiSeguimiento').textContent = seguimiento;
+}
+
+// Reutiliza el MISMO visor de fotos (lightbox) que ya usa Turnaround Check —
+// solo le damos un arreglo de fotos con la forma que ese visor ya espera.
+function openSmsPhotos(e, ticket) {
+    e.stopPropagation();
+    const report = allSmsReports.find(r => r.ticket === ticket);
+    if (!report) { showToast('Reporte no encontrado', true); return; }
+
+    document.getElementById('lbxOverlay').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('lbxBadge').textContent = '🦺 ' + report.ticket;
+    document.getElementById('lbxTitle').textContent = 'Fotos del reporte SMS';
+    document.getElementById('lbxSubtitle').textContent = (report.estacion || '–') + ' · ' + (report.categoria || '–') + ' · ' + (report.fechaRecepcion || '–');
+    document.getElementById('lbxLoading').style.display = 'none';
+    document.getElementById('lbxCaption').style.display = 'none';
+
+    if (!report.fotos || !report.fotos.length) {
+        lbxPhotos = [];
+        document.getElementById('lbxFilmstrip').innerHTML = '';
+        document.getElementById('lbxImgMain').style.display = 'none';
+        document.getElementById('lbxNoImg').style.display = 'flex';
+        document.getElementById('lbxCount').textContent = '0 fotos';
+        return;
+    }
+
+    lbxPhotos = report.fotos.map((f, i) => ({
+        label: 'Foto ' + (i + 1),
+        emoji: '🦺',
+        timestamp: report.fechaRecepcion,
+        photoUrl: f.photoUrl,
+        thumbUrl: f.thumbUrl,
+        subItem: ''
+    }));
+    lbxCurrentReport = report;
+    lbxRender();
+}
+  
 </script>
 
 <div id="lbxOverlay" class="lbx-overlay hidden">
