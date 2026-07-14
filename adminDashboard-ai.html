@@ -603,6 +603,58 @@
   .lbx-filmstrip { width:80px; }
   .lbx-stage { padding:10px; }
 }
+
+
+ /* ═══ FIX iOS Safari/Chrome (WebKit): scroll lateral y overlap de texto ═══ */
+html, body {
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+  max-width: 100vw;
+}
+.app, .main, .header {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* WebKit no encoge flex/grid items por defecto — se lo forzamos explícito */
+.header-top, .header-brand, .header-right,
+.filter-bar, .filter-bar-2, .date-pills,
+.alert-filters, .alert-meta, .airline-stats,
+.kpi-row, .kpi-card,
+.an-card, .alert-card, .summary-card, .shift-card,
+.airline-row, .rank-row, .rank-name,
+.lbx-header, .lbx-caption-actions {
+  min-width: 0;
+}
+.header-top > *, .filter-bar > *, .filter-bar-2 > *, .date-pills > * {
+  min-width: 0;
+}
+.filter-select { min-width: 0; }
+
+/* Evita que texto largo (KPI, nombres, etiquetas) se salga de su tarjeta */
+.kpi-card, .an-card, .alert-card, .summary-card, .shift-card,
+.airline-row, .rank-row {
+  overflow: hidden;
+}
+.kpi-value, .kpi-label, .kpi-sub,
+.rank-name, .airline-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Los tabs SÍ deben poder scrollear horizontal (son muchos: Reportes,
+   Alertas, Analytics, SMS, WCH) — se lo permitimos explícitamente aunque
+   el body en general solo permita scroll vertical */
+.tabs {
+  min-width: 0;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+}
+.tab-btn {
+  min-width: 88px;
+}       
         
     </style>
 </head>
