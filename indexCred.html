@@ -1,0 +1,2937 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Turnaround Check V1.07</title>
+
+
+
+        <!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content=" RAMPAPP | Aero AI">
+<meta property="og:description" content="Reporte en un click!">
+<meta property="og:url" content="https://rampasjo.aeroaiops.com/">
+<meta property="og:site_name" content="Aero AI">
+<meta property="og:image" content="https://i.ibb.co/s9yvC7w2/Gemini-Generated-Image-eg3z0deg3z0deg3z.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Operations Reporting">
+
+
+  
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{overflow-x:hidden}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#060b1e;color:#e2e8f0;overflow-x:hidden;min-height:100vh;display:flex;flex-direction:column}
+#canvas-container{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none}
+.app-shell{position:relative;z-index:2;display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+
+/* HEADER */
+.app-header{background:rgba(4,7,18,0.96);backdrop-filter:blur(24px);border-bottom:1px solid rgba(59,130,246,0.16);padding:11px 16px 0;flex-shrink:0}
+.header-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+.header-title{font-size:17px;font-weight:700;background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.header-right{display:flex;gap:7px;align-items:center;flex-shrink:0}
+.btn-hist{background:rgba(139,92,246,0.14);border:1px solid rgba(139,92,246,0.32);color:#c4b5fd;border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit}
+.user-chip{background:linear-gradient(135deg,#3b82f6,#8b5cf6);padding:4px 10px;border-radius:7px;font-weight:600;color:#fff;font-size:11px;white-space:nowrap}
+.user-name{color:#64748b;font-size:11px;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis}
+.progress-bar{width:100%;height:3px;background:rgba(59,130,246,0.08);overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#3b82f6,#8b5cf6);transition:width .4s ease;width:0%}
+.step-label{text-align:center;color:#475569;font-size:11px;padding:5px 0 8px;letter-spacing:.3px}
+
+/* CONTENT SCROLL */
+.app-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:14px 13px 6px;max-width:680px;margin:0 auto;width:100%}
+.app-content::-webkit-scrollbar{width:3px}
+.app-content::-webkit-scrollbar-thumb{background:rgba(59,130,246,0.25);border-radius:3px}
+
+/* SETUP CARDS */
+.sc{display:none;animation:fadeUp .3s ease}
+.sc.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card-glass{background:rgba(10,17,35,0.88);backdrop-filter:blur(20px);border:1px solid rgba(59,130,246,0.2);border-radius:18px;padding:22px;margin-bottom:12px}
+.card-title{color:#fff;font-size:19px;font-weight:700;text-align:center;margin-bottom:5px}
+.card-sub{color:#475569;font-size:13px;text-align:center;margin-bottom:16px}
+select,input[type="text"]{width:100%;padding:13px 15px;background:rgba(18,28,52,0.8);border:1px solid rgba(59,130,246,0.18);border-radius:11px;color:#fff;font-size:15px;outline:none;transition:border-color .2s;font-family:inherit}
+select:focus,input[type="text"]:focus{border-color:#3b82f6}
+select option{background:#111e3a;color:#fff}
+.nav-btns{display:flex;gap:9px;margin-top:15px}
+.btn-prev{flex:1;padding:12px;background:rgba(51,65,85,0.28);border:1px solid rgba(51,65,85,0.45);border-radius:10px;color:#94a3b8;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-next{flex:2;padding:12px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:transform .2s}
+.btn-next:hover{transform:translateY(-1px)}
+
+/* FLIGHT BAR */
+.flight-bar{background:rgba(10,17,35,0.9);border:1px solid rgba(59,130,246,0.18);border-radius:11px;padding:9px 13px;margin-bottom:10px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.flight-badge{background:linear-gradient(135deg,#1d4ed8,#7c3aed);padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.flight-info-t{color:#64748b;font-size:12px}
+.flight-num{color:#fff;font-weight:700;font-size:14px;margin-left:auto}
+
+/* ALERT TICKER */
+.alert-ticker{display:none;border-radius:9px;padding:7px 12px;margin-bottom:9px;font-size:12px;font-weight:600;text-align:center}
+.alert-ticker.visible.crit{display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5}
+.alert-ticker.visible.warn{display:block;background:rgba(245,158,11,0.09);border:1px solid rgba(245,158,11,0.28);color:#fcd34d}
+
+/* MISSIONS */
+.missions-hdr{color:#475569;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;margin-bottom:7px;padding:0 2px}
+.mi{position:relative;background:rgba(10,17,35,0.82);border:1px solid rgba(59,130,246,0.13);border-radius:13px;padding:12px 13px;margin-bottom:7px;cursor:pointer;transition:all .22s;display:flex;align-items:center;gap:11px;overflow:hidden}
+.mi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:rgba(59,130,246,0.25);border-radius:3px 0 0 3px;transition:background .3s}
+.mi:hover{border-color:rgba(59,130,246,0.38);background:rgba(14,24,48,0.95);transform:translateX(2px)}
+.mi:active{transform:translateX(0)}
+.mi.done{background:rgba(4,22,17,0.88);border-color:rgba(16,185,129,0.32)}
+.mi.done::before{background:#10b981}
+.mi.active-now::before{background:#3b82f6;box-shadow:0 0 7px #3b82f6}
+.mi.optional-m{opacity:.72}
+.mi.warn-alert::before{background:#f59e0b;animation:pw 2s infinite}
+.mi.crit-alert::before{background:#ef4444;animation:pc 1s infinite}
+@keyframes pw{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes pc{0%,100%{opacity:1;box-shadow:0 0 7px #ef4444}50%{opacity:.28;box-shadow:none}}
+.mi.beacon-item.done::before{background:#f59e0b}
+.mi-icon{font-size:19px;flex-shrink:0;width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:rgba(25,37,65,0.7);border-radius:9px;transition:background .3s}
+.mi.done .mi-icon{background:rgba(4,36,28,0.8)}
+.mi-body{flex:1;min-width:0}
+.mi-label{color:#cbd5e1;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi.done .mi-label{color:#6ee7b7}
+.mi.beacon-item.done .mi-label{color:#fcd34d}
+.mi-meta{display:flex;align-items:center;gap:5px;margin-top:2px;flex-wrap:wrap}
+.mi-time{color:#fbbf24;font-size:10px;font-family:'Courier New',monospace;font-weight:600}
+.badge-opt{background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.22);color:#fbbf24;font-size:9px;padding:1px 6px;border-radius:4px}
+.badge-type{background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.22);color:#c4b5fd;font-size:9px;padding:1px 6px;border-radius:4px}
+.mi-dot{flex-shrink:0;width:9px;height:9px;border-radius:50%;background:rgba(51,65,85,0.6);border:2px solid rgba(71,85,105,0.38);transition:all .3s}
+.mi.done .mi-dot{background:#10b981;border-color:#059669;box-shadow:0 0 5px rgba(16,185,129,0.5)}
+.mi.active-now .mi-dot{background:#3b82f6;border-color:#1d4ed8;animation:pdot 1.5s infinite}
+.mi.beacon-item.done .mi-dot{background:#f59e0b;border-color:#d97706;box-shadow:0 0 5px rgba(245,158,11,0.5)}
+@keyframes pdot{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.6)}50%{box-shadow:0 0 0 4px rgba(59,130,246,0)}}
+.alert-badge{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap}
+.alert-badge.warn{background:rgba(245,158,11,0.18);border:1px solid rgba(245,158,11,0.38);color:#fcd34d}
+.alert-badge.crit{background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.38);color:#fca5a5;animation:bab 1s infinite}
+@keyframes bab{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* BOTTOM BAR — 4 buttons */
+.bottom-bar{flex-shrink:0;background:rgba(4,7,18,0.97);backdrop-filter:blur(24px);border-top:1px solid rgba(59,130,246,0.16);padding:9px 11px;padding-bottom:max(9px,env(safe-area-inset-bottom))}
+.bottom-btns{display:flex;gap:6px;max-width:680px;margin:0 auto}
+.bot-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px;background:rgba(18,28,52,0.75);border:1px solid rgba(59,130,246,0.13);border-radius:11px;cursor:pointer;transition:all .2s;font-family:inherit}
+.bot-btn:hover{transform:translateY(-1px)}
+.bot-btn:active{transform:translateY(0)}
+.bot-icon{font-size:19px}
+.bot-label{font-size:9px;font-weight:700;white-space:nowrap;letter-spacing:.3px}
+.bot-btn.inc-btn{border-color:rgba(239,68,68,0.22);background:rgba(26,10,10,0.7)}
+.bot-btn.inc-btn:hover{border-color:rgba(239,68,68,0.5);background:rgba(40,12,12,0.85)}
+.bot-btn.inc-btn .bot-label{color:#f87171}
+.bot-btn.seg-btn{border-color:rgba(245,158,11,0.22);background:rgba(26,20,6,0.7)}
+.bot-btn.seg-btn:hover{border-color:rgba(245,158,11,0.5);background:rgba(40,30,8,0.85)}
+.bot-btn.seg-btn .bot-label{color:#fbbf24}
+.bot-btn.chat-btn{border-color:rgba(16,185,129,0.22);background:rgba(4,22,17,0.7)}
+.bot-btn.chat-btn:hover{border-color:rgba(16,185,129,0.5);background:rgba(6,32,24,0.85)}
+.bot-btn.chat-btn .bot-label{color:#34d399}
+.bot-btn.equip-btn{border-color:rgba(139,92,246,0.22);background:rgba(16,10,30,0.7)}
+.bot-btn.equip-btn:hover{border-color:rgba(139,92,246,0.5);background:rgba(22,12,40,0.85)}
+.bot-btn.equip-btn .bot-label{color:#c4b5fd}
+/* row 2 */
+.bot-btn.svc-btn{border-color:rgba(20,184,166,0.22);background:rgba(4,22,22,0.7)}
+.bot-btn.svc-btn:hover{border-color:rgba(20,184,166,0.5);background:rgba(6,32,32,0.85)}
+.bot-btn.svc-btn .bot-label{color:#2dd4bf}
+.bot-btn.cancel-btn{border-color:rgba(239,68,68,0.35);background:rgba(30,6,6,0.8)}
+.bot-btn.cancel-btn:hover{border-color:rgba(239,68,68,0.65);background:rgba(44,8,8,0.9)}
+.bot-btn.cancel-btn .bot-label{color:#fca5a5}
+.bot-btn.final-btn{border-color:rgba(16,185,129,0.45);background:linear-gradient(135deg,rgba(16,185,129,0.18),rgba(5,150,105,0.18));padding:9px 8px}
+.bot-btn.final-btn:hover{border-color:rgba(16,185,129,0.7);background:linear-gradient(135deg,rgba(16,185,129,0.3),rgba(5,150,105,0.28))}
+.bot-btn.final-btn .bot-label{color:#34d399;font-size:10px;letter-spacing:.4px}
+.bot-btn.final-btn .bot-icon{font-size:20px}
+.bottom-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-width:680px;margin:0 auto}
+.bottom-btns-r2{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-width:680px;margin:4px auto 0}
+.bottom-btns-r3{display:grid;grid-template-columns:1fr;gap:5px;max-width:680px;margin:4px auto 0}
+
+/* ── SERVICIOS ── */
+.svc-cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:13px}
+.svc-cat-item{padding:10px 8px;background:rgba(18,28,52,.55);border:2px solid rgba(20,184,166,.14);border-radius:10px;cursor:pointer;text-align:center;transition:all .2s}
+.svc-cat-item:hover{border-color:rgba(20,184,166,.4);background:rgba(20,184,166,.08)}
+.svc-cat-item.sel{border-color:#14b8a6;background:rgba(20,184,166,.18)}
+.svc-cat-icon{font-size:24px;margin-bottom:3px}
+.svc-cat-label{color:#cbd5e1;font-size:11px;font-weight:600;line-height:1.3}
+.svc-detail-block{background:rgba(20,184,166,.05);border:1px solid rgba(20,184,166,.18);border-radius:10px;padding:12px 13px;margin-bottom:12px;display:none}
+.svc-detail-block.visible{display:block}
+.coopesa-timer{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.28);border-radius:9px;padding:10px 13px;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.coopesa-timer-label{color:#fbbf24;font-size:12px;font-weight:600}
+.coopesa-timer-display{font-family:'Courier New',monospace;font-size:22px;font-weight:800;color:#fcd34d}
+.coopesa-btns{display:flex;gap:7px;margin-bottom:10px}
+.btn-timer-start{flex:1;padding:9px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .2s}
+.btn-timer-stop{flex:1;padding:9px;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .2s}
+.billing-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.billing-item{display:flex;align-items:center;gap:9px;padding:10px 12px;background:rgba(18,28,52,.6);border:1px solid rgba(20,184,166,.15);border-radius:9px}
+.billing-icon{font-size:18px;flex-shrink:0}
+.billing-body{flex:1;min-width:0}
+.billing-name{color:#e2e8f0;font-size:12px;font-weight:600}
+.billing-detail{color:#64748b;font-size:10px;margin-top:1px}
+.billing-amount{color:#2dd4bf;font-size:13px;font-weight:800;white-space:nowrap;flex-shrink:0}
+.billing-del{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;flex-shrink:0;font-family:inherit}
+.billing-total-bar{background:linear-gradient(135deg,rgba(20,184,166,.15),rgba(59,130,246,.1));border:1px solid rgba(20,184,166,.3);border-radius:10px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.billing-total-label{color:#94a3b8;font-size:12px;font-weight:600}
+.billing-total-val{color:#2dd4bf;font-size:18px;font-weight:800;font-family:'Courier New',monospace}
+
+/* ── CANCELADO ── */
+.cancel-confirm-box{background:rgba(239,68,68,.06);border:2px solid rgba(239,68,68,.3);border-radius:12px;padding:16px;margin-bottom:14px;text-align:center}
+.cancel-confirm-icon{font-size:48px;margin-bottom:8px}
+.cancel-confirm-title{color:#fca5a5;font-size:17px;font-weight:700;margin-bottom:6px}
+.cancel-confirm-sub{color:#64748b;font-size:12px;line-height:1.5;margin-bottom:14px}
+.cancel-confirm-btns{display:flex;gap:8px}
+.btn-cancel-yes{flex:1;padding:13px;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-cancel-no{flex:1;padding:13px;background:rgba(51,65,85,.35);border:1px solid rgba(51,65,85,.5);border-radius:10px;color:#94a3b8;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.cancel-form-block{display:none}
+.cancel-form-block.visible{display:block}
+.tiempo-pos-display{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:9px;padding:10px 13px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.tpd-label{color:#fca5a5;font-size:11px;font-weight:700}
+.tpd-value{color:#fcd34d;font-size:15px;font-weight:800;font-family:'Courier New',monospace}
+.svc-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(20,184,166,.12);border:1px solid rgba(20,184,166,.25);color:#2dd4bf;font-size:10px;padding:2px 8px;border-radius:5px;margin-left:6px;font-weight:600}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(7px);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-sheet{width:100%;max-width:680px;background:rgba(7,13,28,0.99);border:1px solid rgba(59,130,246,0.22);border-radius:20px 20px 0 0;padding:18px 18px max(18px,env(safe-area-inset-bottom));max-height:92dvh;overflow-y:auto;transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1)}
+.modal-overlay.open .modal-sheet{transform:translateY(0)}
+.modal-handle{width:36px;height:4px;background:rgba(71,85,105,0.45);border-radius:2px;margin:0 auto 15px}
+.modal-title{color:#fff;font-size:17px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.modal-sub{color:#475569;font-size:12px;margin-bottom:15px;line-height:1.5}
+
+/* CAMERA */
+.cam-wrap{position:relative;width:100%;aspect-ratio:4/3;background:#000;border-radius:13px;overflow:hidden;margin-bottom:11px}
+.cam-wrap video{width:100%;height:100%;object-fit:cover}
+.cam-lbl{position:absolute;top:11px;left:50%;transform:translateX(-50%);background:rgba(59,130,246,.92);color:#fff;padding:4px 15px;border-radius:16px;font-size:11px;font-weight:600;white-space:nowrap}
+.cam-ts{position:absolute;bottom:9px;right:9px;background:rgba(0,0,0,.78);color:#fff;padding:3px 8px;border-radius:5px;font-size:10px;font-family:'Courier New',monospace;font-weight:600}
+.cam-corners span{position:absolute;width:20px;height:20px;border:2.5px solid #3b82f6}
+.c-tl{top:9%;left:9%;border-right:none;border-bottom:none}
+.c-tr{top:9%;right:9%;border-left:none;border-bottom:none}
+.c-bl{bottom:9%;left:9%;border-right:none;border-top:none}
+.c-br{bottom:9%;right:9%;border-left:none;border-top:none}
+.btn-capture{width:100%;padding:14px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border:none;border-radius:11px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:9px;transition:all .2s;font-family:inherit}
+.btn-capture:hover{transform:translateY(-1px)}
+.prev-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:11px;margin-bottom:9px}
+.prev-ts{text-align:center;color:#fbbf24;font-size:12px;margin-bottom:9px;font-family:'Courier New',monospace;font-weight:600}
+.photo-act{display:flex;gap:8px;margin-bottom:9px}
+.btn-retake{flex:1;padding:11px;background:rgba(239,68,68,.13);border:1px solid rgba(239,68,68,.38);border-radius:10px;color:#fca5a5;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-confirm{flex:2;padding:11px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:transform .2s}
+.btn-confirm:hover{transform:translateY(-1px)}
+.btn-start-cam{width:100%;padding:13px;background:rgba(59,130,246,.1);border:2px dashed rgba(59,130,246,.38);border-radius:11px;color:#60a5fa;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:9px;transition:all .2s;font-family:inherit}
+.btn-start-cam:hover{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.65)}
+.btn-close-m{width:100%;padding:10px;background:rgba(51,65,85,.28);border:1px solid rgba(51,65,85,.42);border-radius:10px;color:#94a3b8;font-size:13px;font-weight:600;cursor:pointer;margin-top:7px;font-family:inherit}
+
+/* FORM ELEMENTS */
+.form-lbl{color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;display:block}
+.form-g{margin-bottom:13px}
+.radio-row{display:flex;gap:7px;flex-wrap:wrap}
+.r-opt{flex:1;min-width:70px;padding:9px;background:rgba(18,28,52,.55);border:2px solid rgba(59,130,246,.14);border-radius:9px;text-align:center;cursor:pointer;transition:all .2s;font-family:inherit}
+.r-opt.sel{background:rgba(59,130,246,.2);border-color:#3b82f6}
+.r-opt input{display:none}
+.r-opt label{color:#cbd5e1;font-size:12px;cursor:pointer}
+textarea.ta{width:100%;min-height:70px;padding:11px;background:rgba(18,28,52,.7);border:1px solid rgba(59,130,246,.18);border-radius:10px;color:#fff;font-size:13px;resize:vertical;font-family:inherit;outline:none;transition:border-color .2s}
+textarea.ta:focus{border-color:#3b82f6}
+.btn-action{width:100%;padding:13px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;margin-top:7px;transition:transform .2s;font-family:inherit}
+.btn-action:hover{transform:translateY(-1px)}
+.btn-action.amber{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.btn-action.blue{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
+.btn-action.purple{background:linear-gradient(135deg,#8b5cf6,#6d28d9)}
+
+/* MULTI PHOTO */
+.m-counter{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.22);border-radius:9px;padding:9px;text-align:center;margin-bottom:11px}
+.m-count-n{font-size:26px;font-weight:800;background:linear-gradient(135deg,#10b981,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.m-count-l{color:#475569;font-size:10px}
+.m-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px}
+.tw{position:relative;aspect-ratio:4/3;border-radius:8px;overflow:hidden;border:2px solid rgba(59,130,246,.22)}
+.tw img{width:100%;height:100%;object-fit:cover}
+.tw-idx{position:absolute;top:3px;left:3px;background:rgba(59,130,246,.92);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
+.tw-t{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.78);color:#fbbf24;padding:2px 3px;font-size:8px;font-family:'Courier New',monospace;text-align:center}
+.tw-del{position:absolute;top:3px;right:3px;background:rgba(239,68,68,.85);color:#fff;width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;cursor:pointer;border:none;line-height:1;font-family:inherit}
+.btn-add-ph{width:100%;padding:11px;background:rgba(59,130,246,.09);border:2px dashed rgba(59,130,246,.35);border-radius:10px;color:#60a5fa;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:7px;transition:all .2s;font-family:inherit}
+.btn-add-ph:hover{background:rgba(59,130,246,.18)}
+.btn-360-ok{width:100%;padding:13px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:11px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:7px;transition:all .2s;font-family:inherit}
+.btn-360-ok:hover{transform:translateY(-1px)}
+.btn-360-ok:disabled{opacity:.35;pointer-events:none;transform:none}
+
+/* BRIEFING */
+.brief-topics{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.topic-row{display:flex;align-items:center;gap:9px;padding:10px 12px;background:rgba(18,28,52,.5);border:1px solid rgba(59,130,246,.13);border-radius:9px;cursor:pointer;transition:all .2s}
+.topic-row:hover{background:rgba(25,40,72,.7);border-color:rgba(59,130,246,.38)}
+.topic-row input[type="checkbox"]{width:15px;height:15px;flex-shrink:0;cursor:pointer}
+.topic-row label{color:#cbd5e1;font-size:12px;cursor:pointer;flex:1;line-height:1.4}
+
+/* PREV STRIP */
+.prev-strip{background:rgba(4,20,16,.65);border:1px solid rgba(16,185,129,.18);border-radius:9px;padding:9px 12px;margin-bottom:11px}
+.prev-strip-title{color:#6ee7b7;font-size:10px;font-weight:700;margin-bottom:7px}
+.prev-photos{display:flex;gap:7px;overflow-x:auto;padding-bottom:3px}
+.prev-photos::-webkit-scrollbar{height:2px}
+.prev-photos::-webkit-scrollbar-thumb{background:rgba(16,185,129,.28)}
+.pt{flex-shrink:0;width:58px}
+.pt-img{width:58px;aspect-ratio:4/3;border-radius:6px;overflow:hidden;border:1px solid rgba(16,185,129,.28)}
+.pt-img img{width:100%;height:100%;object-fit:cover}
+.pt-ts{color:#6ee7b7;font-size:8px;text-align:center;font-family:'Courier New',monospace;margin-top:2px}
+
+/* BEACON NOTICE */
+.beacon-notice{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.28);border-radius:9px;padding:9px 12px;margin-bottom:11px;color:#fbbf24;font-size:12px;line-height:1.55}
+.beacon-notice strong{color:#fcd34d}
+
+/* ── CHAT ── */
+.chat-contact{display:flex;align-items:center;gap:9px;padding:10px 12px;background:rgba(18,28,52,.5);border:1px solid rgba(59,130,246,.1);border-radius:9px;margin-bottom:7px;cursor:pointer;transition:all .2s}
+.chat-contact:hover{background:rgba(25,40,72,.7);border-color:rgba(59,130,246,.35)}
+.chat-contact.selected{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.45)}
+.chat-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0}
+.chat-av.sv{background:linear-gradient(135deg,#3b82f6,#8b5cf6)}
+.chat-av.jr{background:linear-gradient(135deg,#10b981,#059669)}
+.chat-av.jc{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.chat-av.lm{background:linear-gradient(135deg,#8b5cf6,#6d28d9)}
+.chat-name{color:#e2e8f0;font-size:13px;font-weight:600}
+.chat-role{color:#475569;font-size:10px}
+.chat-online{margin-left:auto;width:8px;height:8px;border-radius:50%;background:#10b981;flex-shrink:0}
+.chat-messages{background:rgba(4,8,18,.7);border:1px solid rgba(59,130,246,.12);border-radius:11px;min-height:120px;max-height:220px;overflow-y:auto;padding:11px;margin-bottom:10px;display:flex;flex-direction:column;gap:7px}
+.msg-bubble{max-width:82%;padding:8px 11px;border-radius:11px;font-size:12px;line-height:1.45}
+.msg-bubble.out{background:linear-gradient(135deg,rgba(59,130,246,.28),rgba(139,92,246,.18));border:1px solid rgba(59,130,246,.3);color:#e2e8f0;align-self:flex-end;border-radius:11px 11px 3px 11px}
+.msg-bubble.in{background:rgba(22,33,58,.7);border:1px solid rgba(59,130,246,.1);color:#cbd5e1;align-self:flex-start;border-radius:11px 11px 11px 3px}
+.msg-from{font-size:9px;color:#475569;margin-bottom:2px;font-weight:600}
+.msg-ts{font-size:9px;color:#475569;margin-top:2px;text-align:right;font-family:'Courier New',monospace}
+.chat-input-row{display:flex;gap:7px}
+.chat-input-row input{flex:1;padding:11px 13px;background:rgba(18,28,52,.8);border:1px solid rgba(59,130,246,.18);border-radius:10px;color:#fff;font-size:13px;outline:none;font-family:inherit}
+.chat-input-row input:focus{border-color:#3b82f6}
+.btn-send-chat{padding:11px 16px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border:none;border-radius:10px;color:#fff;font-size:18px;cursor:pointer;transition:transform .2s;font-family:inherit}
+.btn-send-chat:hover{transform:translateY(-1px)}
+.chat-presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+.preset-btn{padding:5px 10px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.22);border-radius:14px;color:#60a5fa;font-size:11px;cursor:pointer;font-family:inherit;transition:all .2s}
+.preset-btn:hover{background:rgba(59,130,246,.22);border-color:rgba(59,130,246,.45)}
+
+/* ── EQUIPMENT ── */
+.equip-tabs{display:flex;gap:6px;margin-bottom:14px}
+.eq-tab{flex:1;padding:9px 4px;background:rgba(18,28,52,.6);border:1px solid rgba(59,130,246,.14);border-radius:9px;text-align:center;cursor:pointer;font-size:11px;font-weight:600;color:#64748b;transition:all .2s;font-family:inherit}
+.eq-tab.active{background:rgba(139,92,246,.18);border-color:rgba(139,92,246,.45);color:#c4b5fd}
+.eq-panel{display:none}
+.eq-panel.active{display:block}
+
+/* Assign panel */
+.eq-form-row{display:flex;gap:8px;margin-bottom:10px;align-items:flex-end}
+.eq-form-row>div{flex:1}
+.eq-form-row select{padding:10px 12px;font-size:13px}
+.assign-confirm{background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.28);border-radius:10px;padding:11px 13px;margin-bottom:10px;display:none}
+.assign-confirm .ac-title{color:#c4b5fd;font-size:11px;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.assign-confirm .ac-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px}
+.assign-confirm .ac-lab{color:#64748b}
+.assign-confirm .ac-val{color:#e2e8f0;font-weight:600}
+
+.cred-scan-box{background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:11px;padding:13px;margin-bottom:13px}
+.cred-loading{text-align:center;color:#c4b5fd;font-size:12px;padding:14px 0}
+.cred-confirm-row{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.cred-confirm-row input{padding:9px 11px;background:rgba(18,28,52,.8);border:1px solid rgba(139,92,246,.25);border-radius:8px;color:#fff;font-size:12px;font-family:inherit}
+.pers-table{width:100%;border-collapse:collapse;margin-bottom:11px}
+.pers-table th{color:#64748b;font-size:9px;text-transform:uppercase;letter-spacing:.4px;text-align:left;padding:6px}
+.pers-table td{padding:7px 6px;font-size:12px;color:#e2e8f0;border-bottom:1px solid rgba(59,130,246,.08)}
+.pers-hrs-input{width:52px;padding:5px 6px;background:rgba(18,28,52,.8);border:1px solid rgba(59,130,246,.25);border-radius:6px;color:#fff;font-size:12px;text-align:center;font-family:inherit}
+.pers-del{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:10px;font-family:inherit}
+
+/* Fleet list */
+.fleet-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(18,28,52,.5);border:1px solid rgba(59,130,246,.1);border-radius:10px;margin-bottom:7px}
+.fleet-icon{font-size:20px;flex-shrink:0}
+.fleet-body{flex:1;min-width:0}
+.fleet-name{color:#e2e8f0;font-size:13px;font-weight:600}
+.fleet-loc{color:#64748b;font-size:11px;margin-top:1px}
+.fleet-id{color:#475569;font-size:10px;font-family:'Courier New',monospace}
+.fleet-status{flex-shrink:0;text-align:right}
+.f-badge{font-size:10px;padding:2px 8px;border-radius:5px;font-weight:700;display:block;margin-bottom:3px}
+.f-badge.avail{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.28)}
+.f-badge.busy{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.28)}
+.f-badge.sol{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.28)}
+.fleet-act-btns{display:flex;gap:5px;margin-top:3px}
+.f-btn{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;border:none}
+.f-btn.s{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.32)}
+.f-btn.l{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.32)}
+.f-btn:hover{opacity:.8}
+
+/* SEGURIDAD OPERACIONAL */
+.seg-section{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.18);border-radius:10px;padding:11px 13px;margin-bottom:12px}
+.seg-section-title{color:#fbbf24;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+.seg-risk-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px}
+.seg-risk-item{padding:9px;background:rgba(18,28,52,.5);border:2px solid rgba(245,158,11,.1);border-radius:9px;cursor:pointer;text-align:center;transition:all .2s}
+.seg-risk-item:hover{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.08)}
+.seg-risk-item.sel{border-color:#f59e0b;background:rgba(245,158,11,.15)}
+.seg-risk-item input{display:none}
+.seg-risk-emoji{font-size:22px;margin-bottom:3px}
+.seg-risk-label{color:#cbd5e1;font-size:11px;font-weight:600}
+
+/* COMPLETION */
+.comp-wrap{padding:8px 0 110px}
+.comp-icon{font-size:62px;text-align:center;margin-bottom:12px}
+.comp-title{color:#fff;font-size:24px;font-weight:700;text-align:center;margin-bottom:16px}
+.sum-card{background:rgba(10,17,35,.88);border:1px solid rgba(59,130,246,.18);border-radius:14px;padding:16px;margin-bottom:11px}
+.sum-card-t{color:#fff;font-size:13px;font-weight:600;margin-bottom:11px}
+.sum-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid rgba(59,130,246,.07)}
+.sum-row:last-child{border-bottom:none}
+.sum-lab{color:#475569;font-size:12px}
+.sum-val{color:#fff;font-weight:600;font-size:12px;text-align:right}
+.photo-gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:9px;margin-top:11px}
+.gal-it{position:relative;aspect-ratio:4/3;border-radius:10px;overflow:hidden}
+.gal-it img{width:100%;height:100%;object-fit:cover}
+.gal-lab{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.88);color:#fff;padding:4px;font-size:9px;text-align:center}
+.act-btns{display:flex;flex-direction:column;gap:9px;margin-top:16px}
+.btn-prim{padding:14px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border:none;border-radius:11px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:transform .2s;font-family:inherit}
+.btn-prim:hover{transform:translateY(-1px)}
+.btn-sec{padding:12px;background:rgba(51,65,85,.28);border:1px solid rgba(51,65,85,.42);border-radius:11px;color:#94a3b8;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+
+/* TOAST */
+.toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:rgba(12,20,38,.97);border:1px solid rgba(59,130,246,.38);color:#e2e8f0;padding:9px 18px;border-radius:14px;font-size:12px;font-weight:600;z-index:400;white-space:nowrap;backdrop-filter:blur(12px);pointer-events:none;animation:fadeUp .25s ease}
+
+@media(max-width:420px){.modal-sheet{border-radius:16px 16px 0 0}.bottom-btns{gap:4px}.bot-btn{padding:6px 1px}.bot-label{font-size:8.5px}.bot-icon{font-size:17px}}
+</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div class="app-shell">
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="header-row">
+    <span class="header-title">✈️ Turnaround</span>
+    <div class="header-right">
+      <span class="user-name" id="usernameDisplay">…</span>
+      <button class="btn-hist" onclick="goToHistory()">📋 Historial</button>
+      <span class="user-chip" id="userRole">…</span>
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressBar"></div></div>
+  <div class="step-label" id="stepLabel">Seleccione aerolínea</div>
+</header>
+
+<!-- MAIN CONTENT -->
+<div class="app-content" id="appContent">
+
+  <!-- s0: aerolínea -->
+  <div id="s0" class="sc active">
+    <div class="card-glass">
+      <h2 class="card-title">Aerolínea</h2>
+      <p class="card-sub">Seleccione la aerolínea del vuelo</p>
+      <select id="airlineSelect" onchange="pickAirline(this.value)">
+        <option value="">— Seleccione —</option>
+        <option value="DL">Delta</option><option value="WN">Southwest</option>
+        <option value="UA">United</option><option value="VB">Viva Aerobus</option>
+        <option value="AA">American Airlines</option><option value="WS">Westjet</option>
+        <option value="E9">Iberojet</option><option value="PO">Porter</option>
+        <option value="AV">Avianca</option><option value="IB">Iberia</option>
+        <option value="TS">Air Transat</option><option value="B6">Jetblue</option>
+        <option value="D0">DHL</option><option value="CG">Cargo</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- s1: tipo -->
+  <div id="s1" class="sc">
+    <div class="card-glass">
+      <h2 class="card-title">Tipo de Vuelo</h2>
+      <p class="card-sub">Seleccione el tipo de operación</p>
+      <select id="flightTypeSelect" onchange="pickType(this.value)">
+        <option value="">— Seleccione —</option>
+        <option value="TURN">TURN (Turnaround)</option>
+        <option value="RON-ARRIVAL">RON - Llegada</option>
+        <option value="RON-DEPARTURE">RON - Salida</option>
+      </select>
+      <div class="nav-btns"><button class="btn-prev" onclick="back('s0','s1','Seleccione aerolínea')">← Anterior</button></div>
+    </div>
+  </div>
+
+  <!-- s2: número -->
+  <div id="s2" class="sc">
+    <div class="card-glass">
+      <h2 class="card-title">Datos del Vuelo</h2>
+      <p class="card-sub">Ingrese los números de vuelo y la posición de la aeronave</p>
+      <div style="margin-bottom:11px">
+        <label style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">Vuelo Origen (3-4 dígitos)</label>
+        <input type="text" id="flightOrigen" placeholder="Ej: 1234" maxlength="4" inputmode="numeric" pattern="[0-9]{3,4}">
+      </div>
+      <div style="margin-bottom:11px">
+        <label style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">Vuelo Destino (3-4 dígitos)</label>
+        <input type="text" id="flightDestino" placeholder="Ej: 5678" maxlength="4" inputmode="numeric" pattern="[0-9]{3,4}">
+      </div>
+      <div style="margin-bottom:11px">
+        <label style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">Posición de la Aeronave</label>
+        <select id="posicionAeronave">
+          <option value="">— Seleccione posición —</option>
+          <option value="A1">A1</option><option value="A2">A2</option><option value="A3">A3</option>
+          <option value="A4">A4</option><option value="A5">A5</option><option value="A6">A6</option>
+          <option value="A7">A7</option><option value="A8">A8</option><option value="A9">A9</option>
+          <option value="A10">A10</option><option value="A11">A11</option><option value="A12">A12</option>
+          <option value="A13">A13</option>
+                <option value="C1">C1</option>
+                <option value="C2">C2</option>
+                <option value="C3">C3</option>
+                <option value="C4">C4</option>
+                <option value="C5">C5</option>
+                <option value="C6">C6</option>
+                <option value="C7">C7</option>
+                <option value="C8">C8</option>
+                <option value="C9">C9</option>
+                <option value="C10">C10</option>
+                <option value="R7">R7</option>
+                <option value="R8">R8</option>
+                <option value="R9">R9</option>
+                <option value="R10">R10</option>
+                <option value="R11">R11</option>
+        
+        </select>
+      </div>
+      <div class="nav-btns">
+        <button class="btn-prev" onclick="back('s1','s2','Tipo de Vuelo')">← Anterior</button>
+        <button class="btn-next" onclick="startInsp()">Continuar →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- sI: inspection mission list -->
+  <div id="sI" class="sc">
+    <div class="flight-bar" id="flightBar"></div>
+    <div class="alert-ticker" id="alertTicker"></div>
+    <div class="missions-hdr" id="missHdr">Checkpoints de Misión</div>
+    <div id="missionList"></div>
+  </div>
+
+  <!-- sC: completion -->
+  <div id="sC" class="sc">
+    <div class="comp-wrap">
+      <div class="comp-icon">🎉</div>
+      <h2 class="comp-title">¡Inspección Completada!</h2>
+      <div class="sum-card">
+        <div class="sum-card-t">✈️ Información del Vuelo</div>
+        <div class="sum-row"><span class="sum-lab">Aerolínea:</span><span class="sum-val" id="cAirline"></span></div>
+        <div class="sum-row"><span class="sum-lab">Tipo:</span><span class="sum-val" id="cType"></span></div>
+        <div class="sum-row"><span class="sum-lab">Vuelo:</span><span class="sum-val" id="cFlight"></span></div>
+        <div class="sum-row"><span class="sum-lab">Inspector:</span><span class="sum-val" id="cInspector"></span></div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-card-t">📊 Métricas</div>
+        <div class="sum-row"><span class="sum-lab">Fotos:</span><span class="sum-val" id="cPhotos"></span></div>
+        <div class="sum-row"><span class="sum-lab">Checkpoints:</span><span class="sum-val" id="cChecks"></span></div>
+      </div>
+      <div class="sum-card" id="cIncCard" style="display:none">
+        <div class="sum-card-t" style="color:#fca5a5">⚠️ Incidente</div>
+        <div id="cIncContent"></div>
+      </div>
+      <div class="sum-card" id="cSegCard" style="display:none">
+        <div class="sum-card-t" style="color:#fcd34d">🛡️ Seguridad Operacional</div>
+        <div id="cSegContent"></div>
+      </div>
+      <div class="sum-card" id="cSvcCard" style="display:none">
+        <div class="sum-card-t" style="color:#2dd4bf">💰 Servicios Facturables</div>
+        <div id="cSvcContent"></div>
+        <div class="sum-row" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(20,184,166,.2)">
+          <span class="sum-lab" style="color:#94a3b8;font-weight:700">TOTAL ESTIMADO:</span>
+          <span class="sum-val" id="cSvcTotal" style="color:#2dd4bf;font-size:15px;font-family:'Courier New',monospace"></span>
+        </div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-card-t">🖼️ Galería</div>
+        <div class="photo-gal" id="cGallery"></div>
+      </div>
+      <div class="act-btns">
+        <button class="btn-prim" onclick="newReport()">🔄 Nueva Inspección</button>
+        <button class="btn-prim" onclick="goToHistory()" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">📋 Historial</button>
+        <button class="btn-sec" onclick="logout()">🚪 Cerrar Sesión</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- BOTTOM BAR -->
+<div class="bottom-bar" id="bottomBar" style="display:none">
+  <div class="bottom-btns">
+    <button class="bot-btn inc-btn" onclick="openM('mInc')">
+      <span class="bot-icon">⚠️</span><span class="bot-label">Incidente</span>
+    </button>
+    <button class="bot-btn seg-btn" onclick="openM('mSeg')">
+      <span class="bot-icon">🛡️</span><span class="bot-label">SMS</span>
+    </button>
+    <button class="bot-btn chat-btn" onclick="openM('mChat')">
+      <span class="bot-icon">💬</span><span class="bot-label">Chat</span>
+    </button>
+  </div>
+  <div class="bottom-btns-r2">
+    <button class="bot-btn equip-btn" onclick="openM('mEquip')">
+      <span class="bot-icon">🔧</span><span class="bot-label">Equipo</span>
+    </button>
+    <button class="bot-btn svc-btn" onclick="openM('mSvc')" style="position:relative">
+      <span class="bot-icon">💰</span><span class="bot-label">Servicios</span>
+      <span id="svcBadge" style="display:none;position:absolute;top:4px;right:4px;background:#14b8a6;color:#fff;font-size:8px;padding:1px 5px;border-radius:4px;font-weight:700;line-height:1.4">0</span>
+    </button>
+    <button class="bot-btn cancel-btn" onclick="openM('mCancel')">
+      <span class="bot-icon">❌</span><span class="bot-label">Cancelado</span>
+    </button>
+  </div>
+  <div class="bottom-btns-r3">
+    <button class="bot-btn final-btn" onclick="openM('mFinal')">
+      <span class="bot-icon">✅</span><span class="bot-label">Finalizar Reporte</span>
+    </button>
+  </div>
+</div>
+
+<!-- FINALIZAR REPORTE -->
+<div class="modal-overlay" id="mFinal" onclick="ovClose(event,'mFinal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-title">✅ Finalizar Reporte</h2>
+    <p class="modal-sub">Cierre y confirme la inspección completa de este vuelo. Esta acción no se puede deshacer.</p>
+    <!-- Summary preview -->
+    <div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:14px;margin-bottom:14px" id="finalSummaryBox">
+      <div style="color:#6ee7b7;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Resumen de la Operación</div>
+      <div id="finalSummaryRows"></div>
+    </div>
+
+    <!-- Servicios summary -->
+    <div style="background:rgba(20,184,166,.06);border:1px solid rgba(20,184,166,.18);border-radius:12px;padding:14px;margin-bottom:14px" id="finalBillingBox" style="display:none">
+      <div style="color:#2dd4bf;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">💰 Servicios a Facturar</div>
+      <div id="finalBillingRows"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:9px;padding-top:9px;border-top:1px solid rgba(20,184,166,.18)">
+        <span style="color:#64748b;font-size:12px;font-weight:700">Total registrado:</span>
+        <span style="color:#2dd4bf;font-size:14px;font-weight:800;font-family:'Courier New',monospace" id="finalBillingTotal">0 servicio(s)</span>
+      </div>
+    </div>
+
+    <!-- Pending checkpoints warning -->
+    <div id="finalPendingWarn" style="display:none;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:11px 13px;margin-bottom:14px;color:#fcd34d;font-size:12px;line-height:1.5"></div>
+
+    <!-- Confirmation -->
+    <div style="background:rgba(16,185,129,.04);border:2px solid rgba(16,185,129,.25);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="color:#6ee7b7;font-size:13px;font-weight:700;margin-bottom:8px">¿Confirmar cierre del reporte?</div>
+      <div style="color:#64748b;font-size:12px;line-height:1.55;margin-bottom:12px">Al finalizar, el reporte quedará cerrado, el estatus del vuelo cambiará a <strong style="color:#6ee7b7">Completado</strong> y todos los servicios quedarán documentados para facturación.</div>
+      <div class="form-g">
+        <label class="form-lbl">Observaciones finales (opcional)</label>
+        <textarea class="ta" id="finalObs" placeholder="Alguna nota de cierre, condición especial, o comentario final…" style="min-height:60px"></textarea>
+      </div>
+    </div>
+
+    <button class="btn-action" style="background:linear-gradient(135deg,#10b981,#059669);font-size:15px;padding:15px" onclick="confirmFinalReport()">✅ Confirmar y Cerrar Reporte</button>
+    <button class="btn-close-m" onclick="closeM('mFinal')">Cancelar — Seguir Inspeccionando</button>
+  </div>
+</div>
+
+<!-- SERVICIOS ADICIONALES -->
+<div class="modal-overlay" id="mSvc" onclick="ovClose(event,'mSvc')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-title">💰 Servicios Adicionales</h2>
+    <p class="modal-sub">Registre todos los servicios brindados a la aeronave para facturación. Cada rubro queda documentado en el reporte final.</p>
+
+    <!-- Running billing list -->
+    <div id="billingListWrap" style="display:none;margin-bottom:12px">
+      <div style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Servicios registrados esta operación</div>
+      <div class="billing-list" id="billingList"></div>
+      <div class="billing-total-bar">
+        <span class="billing-total-label">Total acumulado</span>
+        <span class="billing-total-val" id="billingTotalDisplay">$0.00</span>
+      </div>
+    </div>
+
+    <!-- Category selector -->
+    <div class="form-g">
+      <label class="form-lbl">Seleccione servicio a agregar</label>
+      <div class="svc-cat-grid">
+        <div class="svc-cat-item" onclick="pickSvcCat(this,'transporte_crew','Transporte Crew','🚐')">
+          <div class="svc-cat-icon">🚐</div>
+          <div class="svc-cat-label">Transporte Crew</div>
+        </div>
+        <div class="svc-cat-item" onclick="pickSvcCat(this,'coopesa','Coopesa (GPU/APU)','⚡')">
+          <div class="svc-cat-icon">⚡</div>
+          <div class="svc-cat-label">Coopesa</div>
+        </div>
+        <div class="svc-cat-item" onclick="pickSvcCat(this,'traslado','Traslado Aeronave','🛫')">
+          <div class="svc-cat-icon">🛫</div>
+          <div class="svc-cat-label">Traslado Aeronave</div>
+        </div>
+        <div class="svc-cat-item" onclick="pickSvcCat(this,'catering','Catering Service','🍽️')">
+          <div class="svc-cat-icon">🍽️</div>
+          <div class="svc-cat-label">Catering Service</div>
+        </div>
+        <div class="svc-cat-item" onclick="pickSvcCat(this,'combustible','Combustible','⛽')">
+          <div class="svc-cat-icon">⛽</div>
+          <div class="svc-cat-label">Combustible</div>
+        </div>
+        <div class="svc-cat-item" onclick="pickSvcCat(this,'oficial_seg','Oficial Seguridad','👮')">
+          <div class="svc-cat-icon">👮</div>
+          <div class="svc-cat-label">Oficial Seguridad</div>
+        </div>
+        <div class="svc-cat-item" onclick="pickSvcCat(this,'escalera_svc','Escalera','🪜')">
+          <div class="svc-cat-icon">🪜</div>
+          <div class="svc-cat-label">Escalera</div>
+        </div>
+        <div class="svc-cat-item" onclick="pickSvcCat(this,'barra','Barra','🔩')">
+          <div class="svc-cat-icon">🔩</div>
+          <div class="svc-cat-label">Barra</div>
+        </div>
+        <div class="svc-cat-item" onclick="pickSvcCat(this,'remolque_svc','Remolque','🚛')">
+          <div class="svc-cat-icon">🚛</div>
+          <div class="svc-cat-label">Remolque</div>
+        </div>
+        <div class="svc-cat-item" onclick="pickSvcCat(this,'mecanico','Mecánico Aero Calidad','🔧')">
+          <div class="svc-cat-icon">🔧</div>
+          <div class="svc-cat-label">Mecánico Aero Calidad</div>
+        </div>
+        <div class="svc-cat-item" onclick="pickSvcCat(this,'otro','Otro','📋')">
+          <div class="svc-cat-icon">📋</div>
+          <div class="svc-cat-label">Otro</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COOPESA: live timer block -->
+    <div class="svc-detail-block" id="svcBlockCoopesa">
+      <div style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px">⚡ Coopesa — Tiempo de Planta Eléctrica</div>
+      <div class="coopesa-timer">
+        <div>
+          <div class="coopesa-timer-label">Tiempo en servicio</div>
+          <div style="color:#64748b;font-size:10px" id="coopesaStartLabel">No iniciado</div>
+        </div>
+        <div class="coopesa-timer-display" id="coopesaDisplay">00:00:00</div>
+      </div>
+      <div class="coopesa-btns">
+        <button class="btn-timer-start" id="btnCoopesaStart" onclick="coopesaStart()">▶ Iniciar Planta</button>
+        <button class="btn-timer-stop" id="btnCoopesaStop" onclick="coopesaStop()" style="display:none">⏹ Detener</button>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Tarifa por minuto ($)</label>
+        <input type="text" id="coopesaTarifa" placeholder="Ej: 2.50" style="margin-bottom:0">
+      </div>
+      <div class="form-g" style="margin-top:10px">
+        <label class="form-lbl">Observaciones</label>
+        <textarea class="ta" id="coopesaObs" placeholder="Ej: GPU conectada a puerta 1L…"></textarea>
+      </div>
+      <button class="btn-action amber" onclick="addSvc('coopesa')">+ Agregar a Facturación</button>
+    </div>
+
+    <!-- TRANSPORTE CREW block -->
+    <div class="svc-detail-block" id="svcBlockTransporte">
+      <div style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px">🚐 Transporte Crew</div>
+      <div class="form-g">
+        <label class="form-lbl">Número de personas</label>
+        <input type="text" id="transPersonas" placeholder="Ej: 6">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Destino / Ruta</label>
+        <input type="text" id="transRuta" placeholder="Ej: Hotel Marriott, Aeropuerto SJO">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Tarifa por vehículo ($)</label>
+        <input type="text" id="transTarifa" placeholder="Ej: 80.00">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Cantidad de vehículos</label>
+        <div class="radio-row">
+          <div class="r-opt" id="tv1" onclick="pickTransV(1,'tv1')"><input type="radio" name="tv" value="1"><label>1</label></div>
+          <div class="r-opt" id="tv2" onclick="pickTransV(2,'tv2')"><input type="radio" name="tv" value="2"><label>2</label></div>
+          <div class="r-opt" id="tv3" onclick="pickTransV(3,'tv3')"><input type="radio" name="tv" value="3"><label>3</label></div>
+          <div class="r-opt" id="tv4" onclick="pickTransV(4,'tv4')"><input type="radio" name="tv" value="4"><label>4+</label></div>
+        </div>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Notas</label>
+        <textarea class="ta" id="transObs" placeholder="Observaciones adicionales…"></textarea>
+      </div>
+      <button class="btn-action" style="background:linear-gradient(135deg,#14b8a6,#0d9488)" onclick="addSvc('transporte_crew')">+ Agregar a Facturación</button>
+    </div>
+
+    <!-- CATERING block -->
+    <div class="svc-detail-block" id="svcBlockCatering">
+      <div style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px">🍽️ Catering Service</div>
+      <div class="form-g">
+        <label class="form-lbl">Tipo de servicio</label>
+        <select id="cateringTipo">
+          <option value="">— Seleccione —</option>
+          <option>Catering Completo (comida caliente)</option>
+          <option>Snack Box / Bebidas</option>
+          <option>Catering Especial (dieta)</option>
+          <option>Solo Bebidas</option>
+          <option>Catering Crew</option>
+        </select>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Número de porciones / unidades</label>
+        <input type="text" id="cateringUnidades" placeholder="Ej: 180">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Tarifa unitaria ($)</label>
+        <input type="text" id="cateringTarifa" placeholder="Ej: 12.00">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Proveedor</label>
+        <input type="text" id="cateringProveedor" placeholder="Ej: Gate Gourmet, LSG Sky Chefs">
+      </div>
+      <button class="btn-action amber" onclick="addSvc('catering')">+ Agregar a Facturación</button>
+    </div>
+
+    <!-- COMBUSTIBLE block -->
+    <div class="svc-detail-block" id="svcBlockCombustible">
+      <div style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px">⛽ Combustible</div>
+      <div class="form-g">
+        <label class="form-lbl">Tipo de combustible</label>
+        <div class="radio-row">
+          <div class="r-opt" id="fuelJetA" onclick="pickFuel('Jet A-1','fuelJetA')"><input type="radio" name="fuel" value="Jet A-1"><label>Jet A-1</label></div>
+          <div class="r-opt" id="fuelAvgas" onclick="pickFuel('Avgas 100LL','fuelAvgas')"><input type="radio" name="fuel" value="Avgas 100LL"><label>Avgas 100LL</label></div>
+        </div>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Cantidad (galones)</label>
+        <input type="text" id="fuelGalones" placeholder="Ej: 12500">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Tarifa por galón ($)</label>
+        <input type="text" id="fuelTarifa" placeholder="Ej: 3.85">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Compañía suministradora</label>
+        <input type="text" id="fuelProveedor" placeholder="Ej: RECOPE, Shell Aviation">
+      </div>
+      <button class="btn-action amber" onclick="addSvc('combustible')">+ Agregar a Facturación</button>
+    </div>
+
+    <!-- OFICIAL SEGURIDAD block -->
+    <div class="svc-detail-block" id="svcBlockOficialSeg">
+      <div style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px">👮 Oficial de Seguridad</div>
+      <div class="form-g">
+        <label class="form-lbl">Número de oficiales</label>
+        <div class="radio-row">
+          <div class="r-opt" id="os1" onclick="pickOS(1,'os1')"><input type="radio" name="os" value="1"><label>1</label></div>
+          <div class="r-opt" id="os2" onclick="pickOS(2,'os2')"><input type="radio" name="os" value="2"><label>2</label></div>
+          <div class="r-opt" id="os3" onclick="pickOS(3,'os3')"><input type="radio" name="os" value="3"><label>3</label></div>
+          <div class="r-opt" id="os4" onclick="pickOS(4,'os4')"><input type="radio" name="os" value="4+"><label>4+</label></div>
+        </div>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Horas de servicio</label>
+        <input type="text" id="osHoras" placeholder="Ej: 2.5">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Tarifa por hora/oficial ($)</label>
+        <input type="text" id="osTarifa" placeholder="Ej: 25.00">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Tipo de cobertura</label>
+        <select id="osTipo">
+          <option value="Custodia Aeronave">Custodia Aeronave</option>
+          <option value="Escolta Crew">Escolta Crew</option>
+          <option value="Control Acceso">Control de Acceso</option>
+          <option value="Custodia Carga">Custodia Carga Especial</option>
+        </select>
+      </div>
+      <button class="btn-action amber" onclick="addSvc('oficial_seg')">+ Agregar a Facturación</button>
+    </div>
+
+    <!-- OTRO block -->
+    <div class="svc-detail-block" id="svcBlockOtro">
+      <div style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px">📋 Otro Servicio</div>
+      <div class="form-g">
+        <label class="form-lbl">Nombre del servicio</label>
+        <input type="text" id="otroNombre" placeholder="Ej: Servicio de deicing, Limpieza especial…">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Descripción / Detalle</label>
+        <textarea class="ta" id="otroDesc" placeholder="Describa el servicio brindado…"></textarea>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Cantidad / Unidad</label>
+        <input type="text" id="otroCantidad" placeholder="Ej: 2 horas, 1 servicio, 5 unidades">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Monto total ($)</label>
+        <input type="text" id="otroMonto" placeholder="Ej: 150.00">
+      </div>
+      <button class="btn-action" style="background:linear-gradient(135deg,#14b8a6,#0d9488)" onclick="addSvc('otro')">+ Agregar a Facturación</button>
+    </div>
+
+    <!-- TRASLADO AERONAVE -->
+    <div class="svc-detail-block" id="svcBlockTraslado">
+      <div style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px">🛫 Traslado de Aeronave</div>
+      <div class="form-g">
+        <label class="form-lbl">Posición de Origen</label>
+        <select id="trasladoOrigen">
+          <option value="">— Origen —</option>
+          <option value="A1">A1</option><option value="A2">A2</option><option value="A3">A3</option>
+          <option value="A4">A4</option><option value="A5">A5</option><option value="A6">A6</option>
+          <option value="A7">A7</option><option value="A8">A8</option><option value="A9">A9</option>
+          <option value="A10">A10</option><option value="A11">A11</option><option value="A12">A12</option>
+          <option value="A13">A13</option>
+                <option value="C1">C1</option>
+                <option value="C2">C2</option>
+                <option value="C3">C3</option>
+                <option value="C4">C4</option>
+                <option value="C5">C5</option>
+                <option value="C6">C6</option>
+                <option value="C7">C7</option>
+                <option value="C8">C8</option>
+                <option value="C9">C9</option>
+                <option value="C10">C10</option>
+                <option value="R7">R7</option>
+                <option value="R8">R8</option>
+                <option value="R9">R9</option>
+                <option value="R10">R10</option>
+                <option value="R11">R11</option>
+        </select>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Posición de Destino</label>
+        <select id="trasladoDestino">
+          <option value="">— Destino —</option>
+          <option value="A1">A1</option><option value="A2">A2</option><option value="A3">A3</option>
+          <option value="A4">A4</option><option value="A5">A5</option><option value="A6">A6</option>
+          <option value="A7">A7</option><option value="A8">A8</option><option value="A9">A9</option>
+          <option value="A10">A10</option><option value="A11">A11</option><option value="A12">A12</option>
+          <option value="A13">A13</option>
+               <option value="C1">C1</option>
+                <option value="C2">C2</option>
+                <option value="C3">C3</option>
+                <option value="C4">C4</option>
+                <option value="C5">C5</option>
+                <option value="C6">C6</option>
+                <option value="C7">C7</option>
+                <option value="C8">C8</option>
+                <option value="C9">C9</option>
+                <option value="C10">C10</option>
+                <option value="R7">R7</option>
+                <option value="R8">R8</option>
+                <option value="R9">R9</option>
+                <option value="R10">R10</option>
+                <option value="R11">R11</option>
+        </select>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Horario del traslado</label>
+        <input type="text" id="trasladoHorario" placeholder="Ej: 14:35 — 14:52">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Observaciones</label>
+        <textarea class="ta" id="trasladoObs" placeholder="Motivo del traslado, condiciones especiales…"></textarea>
+      </div>
+      <button class="btn-action" style="background:linear-gradient(135deg,#14b8a6,#0d9488)" onclick="addSvc('traslado')">+ Registrar Traslado</button>
+    </div>
+
+    <!-- ESCALERA SVC -->
+    <div class="svc-detail-block" id="svcBlockEscaleraSvc">
+      <div style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px">🪜 Servicio de Escalera</div>
+      <div class="form-g">
+        <label class="form-lbl">Tipo de escalera</label>
+        <select id="escaleraTipo">
+          <option value="Escalera Delantera">Escalera Delantera</option>
+          <option value="Escalera Trasera">Escalera Trasera</option>
+          <option value="Escalera Doble">Escalera Doble</option>
+          <option value="Jet Bridge">Jet Bridge</option>
+        </select>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Tiempo de servicio</label>
+        <input type="text" id="escaleraHoras" placeholder="Ej: 1.5h, 45 min">
+      </div>
+      <button class="btn-action amber" onclick="addSvc('escalera_svc')">+ Registrar Escalera</button>
+    </div>
+
+    <!-- BARRA -->
+    <div class="svc-detail-block" id="svcBlockBarra">
+      <div style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px">🔩 Servicio de Barra (Towbar)</div>
+      <div class="form-g">
+        <label class="form-lbl">Tiempo de uso</label>
+        <input type="text" id="barraHoras" placeholder="Ej: 30 min, 1h">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Observaciones</label>
+        <textarea class="ta" id="barraObs" placeholder="Tipo de operación, aeronave, etc."></textarea>
+      </div>
+      <button class="btn-action amber" onclick="addSvc('barra')">+ Registrar Barra</button>
+    </div>
+
+    <!-- REMOLQUE SVC -->
+    <div class="svc-detail-block" id="svcBlockRemolqueSvc">
+      <div style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px">🚛 Servicio de Remolque</div>
+      <div class="form-g">
+        <label class="form-lbl">Número de tramos</label>
+        <div class="radio-row">
+          <div class="r-opt" id="rem1" onclick="pickRem('1','rem1')"><input type="radio" name="rem" value="1"><label>1</label></div>
+          <div class="r-opt" id="rem2" onclick="pickRem('2','rem2')"><input type="radio" name="rem" value="2"><label>2</label></div>
+          <div class="r-opt" id="rem3" onclick="pickRem('3','rem3')"><input type="radio" name="rem" value="3"><label>3+</label></div>
+        </div>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Observaciones</label>
+        <textarea class="ta" id="remolqueObs" placeholder="Destino del remolque, condiciones…"></textarea>
+      </div>
+      <button class="btn-action amber" onclick="addSvc('remolque_svc')">+ Registrar Remolque</button>
+      <input type="hidden" id="remolqueTramos" value="1">
+    </div>
+
+    <!-- MECÁNICO AERO CALIDAD -->
+    <div class="svc-detail-block" id="svcBlockMecanico">
+      <div style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px">🔧 Mecánico Aero Calidad</div>
+      <div class="form-g">
+        <label class="form-lbl">Trabajo realizado</label>
+        <input type="text" id="mecanicoTrabajo" placeholder="Ej: Inspección de neumáticos, revisión de puerta…">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Tiempo de servicio</label>
+        <input type="text" id="mecanicoHoras" placeholder="Ej: 45 min, 2h">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Nombre del técnico</label>
+        <input type="text" id="mecanicoTecnico" placeholder="Nombre del mecánico">
+      </div>
+      <button class="btn-action amber" onclick="addSvc('mecanico')">+ Registrar Servicio Mecánico</button>
+    </div>
+
+    <button class="btn-close-m" onclick="closeM('mSvc')">Cerrar</button>
+  </div>
+</div>
+
+<!-- VUELO CANCELADO -->
+<div class="modal-overlay" id="mCancel" onclick="ovClose(event,'mCancel')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-title">❌ Vuelo Cancelado</h2>
+    <p class="modal-sub">Documente la cancelación del vuelo y registre la operación disponible en posición para facturación.</p>
+
+    <!-- Confirmation step -->
+    <div id="cancelConfirmStep">
+      <div class="cancel-confirm-box">
+        <div class="cancel-confirm-icon">❌</div>
+        <div class="cancel-confirm-title">¿Confirmar Vuelo Cancelado?</div>
+        <div class="cancel-confirm-sub">Esta acción cerrará el reporte de inspección actual y documentará la operación disponible en posición con fines de facturación.<br><br>Esta acción no se puede deshacer.</div>
+        <div class="cancel-confirm-btns">
+          <button class="btn-cancel-yes" onclick="confirmCancelFlight()">✓ Sí, confirmar</button>
+          <button class="btn-cancel-no" onclick="closeM('mCancel')">✗ No, volver</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form step (shown after confirm) -->
+    <div class="cancel-form-block" id="cancelFormStep">
+      <!-- Tiempo en posición display -->
+      <div class="tiempo-pos-display" id="tiempoPosDisplay">
+        <div>
+          <div class="tpd-label">⏱️ Tiempo disponible en posición</div>
+          <div style="color:#64748b;font-size:10px" id="tpdDesde"></div>
+        </div>
+        <div class="tpd-value" id="tpdValue">00:00</div>
+      </div>
+
+      <div class="form-g">
+        <label class="form-lbl">Motivo de Cancelación</label>
+        <div class="svc-cat-grid" id="cancelMotivoGrid">
+          <div class="svc-cat-item" onclick="pickCancelMotivo(this,'Decisión de la aerolínea')"><div class="svc-cat-icon">✈️</div><div class="svc-cat-label">Decisión Aerolínea</div></div>
+          <div class="svc-cat-item" onclick="pickCancelMotivo(this,'Condiciones meteorológicas')"><div class="svc-cat-icon">🌩️</div><div class="svc-cat-label">Condiciones Clima</div></div>
+          <div class="svc-cat-item" onclick="pickCancelMotivo(this,'Falla mecánica aeronave')"><div class="svc-cat-icon">🔧</div><div class="svc-cat-label">Falla Mecánica</div></div>
+          <div class="svc-cat-item" onclick="pickCancelMotivo(this,'Problema operacional')"><div class="svc-cat-icon">📋</div><div class="svc-cat-label">Problema Operacional</div></div>
+          <div class="svc-cat-item" onclick="pickCancelMotivo(this,'Restricción de espacio aéreo')"><div class="svc-cat-icon">🚫</div><div class="svc-cat-label">Espacio Aéreo</div></div>
+          <div class="svc-cat-item" onclick="pickCancelMotivo(this,'Otro')"><div class="svc-cat-icon">📝</div><div class="svc-cat-label">Otro</div></div>
+        </div>
+      </div>
+
+      <div class="form-g">
+        <label class="form-lbl">Hora de notificación de cancelación</label>
+        <input type="text" id="cancelHoraNot" placeholder="Ej: 14:35 — hora en que se notificó al equipo">
+      </div>
+
+      <div class="form-g">
+        <label class="form-lbl">Personal disponible en posición</label>
+        <input type="text" id="cancelPersonal" placeholder="Ej: 4 agentes rampa, 1 inspector, 1 supervisor">
+      </div>
+
+      <div class="form-g">
+        <label class="form-lbl">Equipo desplegado en posición</label>
+        <textarea class="ta" id="cancelEquipo" placeholder="Ej: Banda equipaje BANDA-01, Towbar TW-02, 3 carretas…"></textarea>
+      </div>
+
+      <!-- Billing for available operation -->
+      <div style="background:rgba(20,184,166,.06);border:1px solid rgba(20,184,166,.2);border-radius:10px;padding:11px 13px;margin-bottom:12px">
+        <div style="color:#2dd4bf;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">💰 Facturación — Operación Disponible</div>
+        <div style="color:#64748b;font-size:11px;line-height:1.5;margin-bottom:10px">Registre los rubros a cobrar por haber puesto la operación a disposición del vuelo cancelado.</div>
+        <div class="form-g">
+          <label class="form-lbl">Tarifa de disponibilidad operacional ($)</label>
+          <input type="text" id="cancelTarifaOp" placeholder="Ej: 350.00">
+        </div>
+        <div class="form-g">
+          <label class="form-lbl">Horas de personal facturables</label>
+          <input type="text" id="cancelHorasPersonal" placeholder="Ej: 2.5">
+        </div>
+        <div class="form-g">
+          <label class="form-lbl">Tarifa hora/persona ($)</label>
+          <input type="text" id="cancelTarifaHora" placeholder="Ej: 18.00">
+        </div>
+        <div class="form-g" style="margin-bottom:0">
+          <label class="form-lbl">Cargos adicionales / Equipo ($)</label>
+          <input type="text" id="cancelCargosEq" placeholder="Ej: 120.00">
+        </div>
+      </div>
+
+      <div class="billing-total-bar" id="cancelBillingBar">
+        <span class="billing-total-label">Total estimado a facturar</span>
+        <span class="billing-total-val" id="cancelTotalVal">$0.00</span>
+      </div>
+
+      <div class="form-g">
+        <label class="form-lbl">Observaciones finales</label>
+        <textarea class="ta" id="cancelObs" placeholder="Cualquier observación relevante sobre la operación disponible…"></textarea>
+      </div>
+
+      <button class="btn-action" style="background:linear-gradient(135deg,#ef4444,#dc2626)" onclick="closeCancelReport()">📋 Cerrar Reporte de Cancelación</button>
+    </div>
+
+    <button class="btn-close-m" onclick="closeM('mCancel')">Cancelar</button>
+  </div>
+</div>
+
+<!-- CHECKPOINT -->
+<div class="modal-overlay" id="mCP" onclick="ovClose(event,'mCP')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-title" id="mcpT"></h2>
+    <p class="modal-sub" id="mcpS"></p>
+    <div id="mcpB"></div>
+  </div>
+</div>
+
+<!-- INCIDENTE -->
+<div class="modal-overlay" id="mInc" onclick="ovClose(event,'mInc')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-title">⚠️ Registrar Incidente</h2>
+    <p class="modal-sub">Documente incidentes operacionales durante el turnaround</p>
+    <div class="form-g">
+      <label class="form-lbl">¿Se presentó incidente?</label>
+      <div class="radio-row">
+        <div class="r-opt sel" id="iSi" onclick="togInc(true)"><input type="radio" name="hi" value="si"><label>Sí</label></div>
+        <div class="r-opt" id="iNo" onclick="togInc(false)"><input type="radio" name="hi" value="no"><label>No</label></div>
+      </div>
+    </div>
+    <div id="incBody">
+      <div class="form-g">
+        <label class="form-lbl">Tipo de Incidente</label>
+        <select id="incType"><option value="">— Seleccione —</option>
+          <option>Daño a Aeronave</option><option>Retraso Operacional</option>
+          <option>Equipo Defectuoso</option><option>FOD Encontrado</option>
+          <option>Procedimiento Seguridad</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Severidad</label>
+        <div class="radio-row">
+          <div class="r-opt" id="sBa" onclick="pickSev('Baja','sBa')"><input type="radio" name="sv" value="Baja"><label>Baja</label></div>
+          <div class="r-opt" id="sMe" onclick="pickSev('Media','sMe')"><input type="radio" name="sv" value="Media"><label>Media</label></div>
+          <div class="r-opt" id="sAl" onclick="pickSev('Alta','sAl')"><input type="radio" name="sv" value="Alta"><label>Alta</label></div>
+        </div>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Descripción</label>
+        <textarea class="ta" id="incDesc" placeholder="Describa el incidente detalladamente…"></textarea>
+      </div>
+    </div>
+    <button class="btn-action" onclick="saveInc()">💾 Guardar Incidente</button>
+    <button class="btn-close-m" onclick="closeM('mInc')">Cancelar</button>
+  </div>
+</div>
+
+<!-- SEGURIDAD OPERACIONAL -->
+<div class="modal-overlay" id="mSeg" onclick="ovClose(event,'mSeg')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-title">🛡️ Reporte de Seguridad Operacional</h2>
+    <p class="modal-sub">Reporte condiciones o comportamientos que puedan comprometer la seguridad de la operación en rampa</p>
+    <div class="seg-section">
+      <div class="seg-section-title">Categoría del evento</div>
+      <div class="seg-risk-grid" id="segCatGrid">
+        <div class="seg-risk-item" onclick="pickSegCat(this,'Invasión de Zona Restringida')"><div class="seg-risk-emoji">🚧</div><div class="seg-risk-label">Invasión Zona Restringida</div></div>
+        <div class="seg-risk-item" onclick="pickSegCat(this,'FOD en Pista/Plataforma')"><div class="seg-risk-emoji">⚡</div><div class="seg-risk-label">FOD en Pista / Plataforma</div></div>
+        <div class="seg-risk-item" onclick="pickSegCat(this,'Incumplimiento Procedimiento')"><div class="seg-risk-emoji">📋</div><div class="seg-risk-label">Incumplimiento Procedimiento</div></div>
+        <div class="seg-risk-item" onclick="pickSegCat(this,'Condición Insegura de Equipo')"><div class="seg-risk-emoji">🔧</div><div class="seg-risk-label">Condición Insegura Equipo</div></div>
+        <div class="seg-risk-item" onclick="pickSegCat(this,'Near Miss / Cuasi Accidente')"><div class="seg-risk-emoji">😰</div><div class="seg-risk-label">Near Miss / Cuasi Accidente</div></div>
+        <div class="seg-risk-item" onclick="pickSegCat(this,'Daño a Propiedad')"><div class="seg-risk-emoji">💥</div><div class="seg-risk-label">Daño a Propiedad</div></div>
+        <div class="seg-risk-item" onclick="pickSegCat(this,'Comportamiento Inseguro')"><div class="seg-risk-emoji">🚨</div><div class="seg-risk-label">Comportamiento Inseguro</div></div>
+        <div class="seg-risk-item" onclick="pickSegCat(this,'Otro')"><div class="seg-risk-emoji">📝</div><div class="seg-risk-label">Otro</div></div>
+      </div>
+    </div>
+    <div class="form-g">
+      <label class="form-lbl">Nivel de Riesgo Percibido</label>
+      <div class="radio-row">
+        <div class="r-opt" id="srBa" onclick="pickSegRisk('Bajo','srBa')"><input type="radio" name="sr" value="Bajo"><label>🟢 Bajo</label></div>
+        <div class="r-opt" id="srMe" onclick="pickSegRisk('Medio','srMe')"><input type="radio" name="sr" value="Medio"><label>🟡 Medio</label></div>
+        <div class="r-opt" id="srAl" onclick="pickSegRisk('Alto','srAl')"><input type="radio" name="sr" value="Alto"><label>🔴 Alto</label></div>
+        <div class="r-opt" id="srCr" onclick="pickSegRisk('Crítico','srCr')"><input type="radio" name="sr" value="Crítico"><label>⛔ Crítico</label></div>
+      </div>
+    </div>
+    <div class="form-g">
+      <label class="form-lbl">Personas involucradas o en riesgo</label>
+      <input type="text" id="segPersonas" placeholder="Ej: 2 agentes de rampa, 1 operador banda">
+    </div>
+    <div class="form-g">
+      <label class="form-lbl">Descripción del evento</label>
+      <textarea class="ta" id="segDesc" placeholder="Describa qué ocurrió, dónde y cómo. Sea específico sobre la condición o acción insegura…" style="min-height:90px"></textarea>
+    </div>
+    <div class="form-g">
+      <label class="form-lbl">Acción inmediata tomada</label>
+      <textarea class="ta" id="segAccion" placeholder="¿Qué hizo usted o el equipo para controlar la situación?"></textarea>
+    </div>
+    <div class="form-g">
+      <label class="form-lbl">¿Requiere seguimiento por Seguridad?</label>
+      <div class="radio-row">
+        <div class="r-opt" id="segFolSi" onclick="pickSegFol(true)"><input type="radio" name="sf" value="si"><label>Sí</label></div>
+        <div class="r-opt sel" id="segFolNo" onclick="pickSegFol(false)"><input type="radio" name="sf" value="no" checked><label>No</label></div>
+      </div>
+    </div>
+    <button class="btn-action amber" onclick="saveSeg()">🛡️ Enviar Reporte de Seguridad</button>
+    <button class="btn-close-m" onclick="closeM('mSeg')">Cancelar</button>
+  </div>
+</div>
+
+<!-- CHAT EQUIPO -->
+<div class="modal-overlay" id="mChat" onclick="ovClose(event,'mChat')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-title">💬 Chat Equipo Operaciones</h2>
+    <p class="modal-sub" id="chatSub">Seleccione un contacto para enviar mensaje</p>
+    <div id="chatContacts">
+      <div class="chat-contact" onclick="selContact('Supervisor','sv','SV')" id="cc-Supervisor">
+        <div class="chat-av sv">SV</div>
+        <div><div class="chat-name">Supervisor de Turno</div><div class="chat-role">Coordinador General · Torre de Control</div></div>
+        <div class="chat-online"></div>
+      </div>
+      <div class="chat-contact" onclick="selContact('Jefe de Rampa','jr','JR')" id="cc-Jefe de Rampa">
+        <div class="chat-av jr">JR</div>
+        <div><div class="chat-name">Jefe de Rampa</div><div class="chat-role">Operaciones Rampa · Plataforma</div></div>
+        <div class="chat-online"></div>
+      </div>
+      <div class="chat-contact" onclick="selContact('Jefe de Carga','jc','JC')" id="cc-Jefe de Carga">
+        <div class="chat-av jc">JC</div>
+        <div><div class="chat-name">Jefe de Carga</div><div class="chat-role">Bodega y Carga · Rampa Sur</div></div>
+        <div class="chat-online" style="background:#f59e0b"></div>
+      </div>
+      <div class="chat-contact" onclick="selContact('Limpieza','lm','LM')" id="cc-Limpieza">
+        <div class="chat-av lm">LM</div>
+        <div><div class="chat-name">Equipo de Limpieza</div><div class="chat-role">Servicio de Cabina</div></div>
+        <div class="chat-online" style="background:#475569"></div>
+      </div>
+    </div>
+    <div id="chatWindow" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <button style="background:none;border:none;color:#60a5fa;font-size:18px;cursor:pointer;padding:0;font-family:inherit" onclick="backToContacts()">←</button>
+        <div class="chat-av" id="chatAvWin" style="width:28px;height:28px;font-size:10px">SV</div>
+        <div><div class="chat-name" id="chatNameWin" style="font-size:13px"></div><div class="chat-role" id="chatRoleWin" style="font-size:10px"></div></div>
+      </div>
+      <div class="chat-messages" id="chatMsgs"></div>
+      <div class="chat-presets" id="chatPresets"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="Escriba un mensaje…" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="btn-send-chat" onclick="sendChat()">➤</button>
+      </div>
+    </div>
+    <button class="btn-close-m" onclick="closeM('mChat')">Cerrar</button>
+  </div>
+</div>
+
+<!-- EQUIPO -->
+<div class="modal-overlay" id="mEquip" onclick="ovClose(event,'mEquip')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-title">🔧Gestión de Personal & Equipo </h2>
+    <p class="modal-sub">Asigne, solicite o libere equipo GSE de apoyo en rampa</p>
+    <div class="equip-tabs">
+      <button class="eq-tab" onclick="switchEqTab('personal',this)">🪪 Personal</button>
+      <button class="eq-tab active" onclick="switchEqTab('asignar',this)">📍 Asignar</button>
+      <button class="eq-tab" onclick="switchEqTab('solicitar',this)">📥 Solicitar</button>
+      <button class="eq-tab" onclick="switchEqTab('liberar',this)">📤 Liberar</button>
+      <button class="eq-tab" onclick="switchEqTab('flota',this)">📋 Flota</button>
+  
+
+    </div>
+
+    <!-- ASIGNAR -->
+    <div class="eq-panel active" id="ep-asignar">
+      <p style="color:#64748b;font-size:12px;margin-bottom:11px;line-height:1.5">Ingrese el número de equipo y seleccione la posición donde será asignado. Esto actualiza la ubicación del equipo en tiempo real.</p>
+      <div class="form-g">
+        <label class="form-lbl">Número / ID del Equipo</label>
+        <input type="text" id="eqNumAsign" placeholder="Ej: BANDA-01, TW-03, REM-02">
+      </div>
+      <div class="eq-form-row">
+        <div>
+          <label class="form-lbl">Tipo de Equipo</label>
+          <select id="eqTipoAsign">
+            <option value="">— Tipo —</option>
+            <option value="Banda Equipaje">🎽 Banda Equipaje</option>
+            <option value="Towbar">🔩 Towbar</option>
+            <option value="Barra">🔩 Barra</option>
+            <option value="Escalera Delantera">🪜 Escalera Delantera</option>
+            <option value="Escalera Trasera">🪜 Escalera Trasera</option>
+            <option value="Remolque">🚛 Remolque</option>
+            <option value="Carreta">🛒 Carreta</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-lbl">Posición</label>
+          <select id="eqPosAsign">
+            <option value="">— Posición —</option>
+            <option value="A1">A1</option><option value="A2">A2</option><option value="A3">A3</option>
+            <option value="A4">A4</option><option value="A5">A5</option><option value="A6">A6</option>
+            <option value="A7">A7</option><option value="A8">A8</option><option value="A9">A9</option>
+            <option value="A10">A10</option><option value="A11">A11</option><option value="A12">A12</option>
+            <option value="A13">A13</option>
+                  <option value="C1">C1</option>
+                <option value="C2">C2</option>
+                <option value="C3">C3</option>
+                <option value="C4">C4</option>
+                <option value="C5">C5</option>
+                <option value="C6">C6</option>
+                <option value="C7">C7</option>
+                <option value="C8">C8</option>
+                <option value="C9">C9</option>
+                <option value="C10">C10</option>
+                <option value="R7">R7</option>
+                <option value="R8">R8</option>
+                <option value="R9">R9</option>
+                <option value="R10">R10</option>
+                <option value="R11">R11</option>
+                  
+          </select>
+        </div>
+      </div>
+      <div class="assign-confirm" id="assignConfirm">
+        <div class="ac-title">✅ Confirmación de Asignación</div>
+        <div class="ac-row"><span class="ac-lab">Equipo:</span><span class="ac-val" id="acNom"></span></div>
+        <div class="ac-row"><span class="ac-lab">Tipo:</span><span class="ac-val" id="acTipo"></span></div>
+        <div class="ac-row"><span class="ac-lab">Posición:</span><span class="ac-val" id="acPos"></span></div>
+        <div class="ac-row"><span class="ac-lab">Hora:</span><span class="ac-val" id="acHora"></span></div>
+      </div>
+      <button class="btn-action purple" onclick="doAsignar()">📍 Confirmar Asignación</button>
+    </div>
+
+    <!-- SOLICITAR -->
+    <div class="eq-panel" id="ep-solicitar">
+      <p style="color:#64748b;font-size:12px;margin-bottom:11px;line-height:1.5">Solicite que le envíen un equipo disponible a su posición actual.</p>
+      <div class="form-g">
+        <label class="form-lbl">Equipo requerido</label>
+        <div class="radio-row" style="flex-direction:column">
+          <div class="r-opt" onclick="pickEqSol(this,'Banda Equipaje')" style="text-align:left;display:flex;align-items:center;gap:10px"><input type="radio" name="eqsol" value="Banda Equipaje"><label style="flex:1">🎽 Banda de Equipaje</label></div>
+          <div class="r-opt" onclick="pickEqSol(this,'Towbar')" style="text-align:left;display:flex;align-items:center;gap:10px"><input type="radio" name="eqsol" value="Towbar"><label style="flex:1">🔩 Towbar</label></div>
+          <div class="r-opt" onclick="pickEqSol(this,'Barra')" style="text-align:left;display:flex;align-items:center;gap:10px"><input type="radio" name="eqsol" value="Barra"><label style="flex:1">🔩 Barra</label></div>
+          <div class="r-opt" onclick="pickEqSol(this,'Escalera Delantera')" style="text-align:left;display:flex;align-items:center;gap:10px"><input type="radio" name="eqsol" value="Escalera Delantera"><label style="flex:1">🪜 Escalera Delantera</label></div>
+          <div class="r-opt" onclick="pickEqSol(this,'Escalera Trasera')" style="text-align:left;display:flex;align-items:center;gap:10px"><input type="radio" name="eqsol" value="Escalera Trasera"><label style="flex:1">🪜 Escalera Trasera</label></div>
+          <div class="r-opt" onclick="pickEqSol(this,'Remolque')" style="text-align:left;display:flex;align-items:center;gap:10px"><input type="radio" name="eqsol" value="Remolque"><label style="flex:1">🚛 Remolque</label></div>
+          <div class="r-opt" onclick="pickEqSol(this,'Carretas')" style="text-align:left;display:flex;align-items:center;gap:10px"><input type="radio" name="eqsol" value="Carretas"><label style="flex:1">🛒 Carretas</label></div>
+        </div>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Posición destino (vuelo actual)</label>
+        <select id="eqPosSol">
+          <option value="">— Posición —</option>
+          <option value="A1">A1</option><option value="A2">A2</option><option value="A3">A3</option>
+          <option value="A4">A4</option><option value="A5">A5</option><option value="A6">A6</option>
+          <option value="A7">A7</option><option value="A8">A8</option><option value="A9">A9</option>
+          <option value="A10">A10</option><option value="A11">A11</option><option value="A12">A12</option>
+          <option value="A13">A13</option>
+                <option value="C1">C1</option>
+                <option value="C2">C2</option>
+                <option value="C3">C3</option>
+                <option value="C4">C4</option>
+                <option value="C5">C5</option>
+                <option value="C6">C6</option>
+                <option value="C7">C7</option>
+                <option value="C8">C8</option>
+                <option value="C9">C9</option>
+                <option value="C10">C10</option>
+                <option value="R7">R7</option>
+                <option value="R8">R8</option>
+                <option value="R9">R9</option>
+                <option value="R10">R10</option>
+                <option value="R11">R11</option>
+        </select>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Urgencia</label>
+        <div class="radio-row">
+          <div class="r-opt" id="urgNorm" onclick="pickUrg('Normal','urgNorm')"><input type="radio" name="urg" value="Normal"><label>Normal</label></div>
+          <div class="r-opt" id="urgUrg" onclick="pickUrg('Urgente','urgUrg')"><input type="radio" name="urg" value="Urgente"><label>🔴 Urgente</label></div>
+        </div>
+      </div>
+      <button class="btn-action blue" onclick="doSolicitar()">📥 Enviar Solicitud</button>
+    </div>
+
+    <!-- LIBERAR -->
+    <div class="eq-panel" id="ep-liberar">
+      <p style="color:#64748b;font-size:12px;margin-bottom:11px;line-height:1.5">Registre que el equipo ha terminado de ser utilizado y queda disponible para otra posición.</p>
+      <div class="form-g">
+        <label class="form-lbl">Número / ID del Equipo a Liberar</label>
+        <input type="text" id="eqNumLib" placeholder="Ej: BANDA-01, TW-03">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Posición actual del equipo</label>
+        <select id="eqPosLib">
+          <option value="">— Posición —</option>
+          <option value="A1">A1</option><option value="A2">A2</option><option value="A3">A3</option>
+          <option value="A4">A4</option><option value="A5">A5</option><option value="A6">A6</option>
+          <option value="A7">A7</option><option value="A8">A8</option><option value="A9">A9</option>
+          <option value="A10">A10</option><option value="A11">A11</option><option value="A12">A12</option>
+          <option value="A13">A13</option>
+<option value="C1">C1</option>
+                <option value="C2">C2</option>
+                <option value="C3">C3</option>
+                <option value="C4">C4</option>
+                <option value="C5">C5</option>
+                <option value="C6">C6</option>
+                <option value="C7">C7</option>
+                <option value="C8">C8</option>
+                <option value="C9">C9</option>
+                <option value="C10">C10</option>
+                <option value="R7">R7</option>
+                <option value="R8">R8</option>
+                <option value="R9">R9</option>
+                <option value="R10">R10</option>
+                <option value="R11">R11</option>
+                
+        </select>
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Observaciones</label>
+        <textarea class="ta" id="eqObsLib" placeholder="Ej: Banda sin daños aparentes, lista para siguiente vuelo…"></textarea>
+      </div>
+      <button class="btn-action" onclick="doLiberar()">📤 Liberar Equipo</button>
+    </div>
+
+    <!-- FLOTA -->
+    <div class="eq-panel" id="ep-flota">
+      <div id="flotaList"></div>
+    </div>
+
+    <!-- PERSONAL / CREDENCIALES -->
+    <div class="eq-panel" id="ep-personal">
+      <div class="cred-scan-box">
+        <div style="color:#c4b5fd;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px">🪪 Escaneo de Credenciales</div>
+        <p style="color:#64748b;font-size:11px;line-height:1.5;margin-bottom:11px">Capture el carnet o cédula del agente para registrarlo en este vuelo.</p>
+        <div id="credCamV" style="display:none">
+          <div class="cam-wrap"><video id="credVid" autoplay playsinline></video><div class="cam-lbl">Credencial</div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="credTs">--:--:--</div></div>
+          <button class="btn-capture" onclick="credCapture()">📸 Capturar</button>
+          <button class="btn-close-m" style="margin-bottom:9px" onclick="credStopCam()">✕ Cerrar Cámara</button>
+        </div>
+        <div id="credPrevV" style="display:none">
+          <img class="prev-img" id="credPrevImg">
+          <div class="photo-act"><button class="btn-retake" onclick="credRetake()">🔄 Retomar</button><button class="btn-confirm" onclick="credProcess()">🔎 Extraer Datos</button></div>
+        </div>
+        <div id="credLoadingV" class="cred-loading" style="display:none">🔎 Analizando credencial…</div>
+        <div id="credFormV" style="display:none">
+          <div class="cred-confirm-row">
+            <input type="text" id="credNombre" placeholder="Nombre completo">
+            <input type="text" id="credCedula" placeholder="Cédula / ID">
+            <input type="text" id="credEmpresa" placeholder="Empresa">
+            <input type="text" id="credCargo" placeholder="Cargo">
+          </div>
+          <button class="btn-action purple" onclick="credConfirmAdd()">➕ Agregar al Vuelo</button>
+        </div>
+        <button class="btn-start-cam" id="credStartBtn" onclick="credStartCam()">📷 Escanear Credencial</button>
+      </div>
+      <div style="color:#475569;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px" id="persTableHdr">Personal Registrado (0)</div>
+      <table class="pers-table" id="persTable">
+        <thead><tr><th>Nombre</th><th>Cédula</th><th>Empresa/Cargo</th><th>H. Extra</th><th>Tarifa $</th><th></th></tr></thead>
+        <tbody id="persTableBody"></tbody>
+      </table>
+    </div>
+
+    <button class="btn-close-m" onclick="closeM('mEquip')">Cerrar</button>
+  </div>
+</div>
+
+<!-- ═══════════ SCRIPTS ═══════════ -->
+<script>
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbxbY787RDJhZl0Hsx_IZHbVurZYTum2T8YRdpEyzCg_Qp7HQnSAwaiu7btGop4WLd4B/exec';
+const ANAMES={'DL':'Delta','WN':'Southwest','UA':'United','VB':'Viva Aerobus','AA':'American Airlines','WS':'Westjet','E9':'Iberojet','PO':'Porter','AV':'Avianca','IB':'Iberia','TS':'Air Transat','B6':'Jetblue','D0':'DHL','CG':'Cargo'};
+
+// ── STATE ──
+let U={username:'',role:'Inspector'};
+let sA='',sT='',sF='',sOrigen='',sDestino='',sPosicion='',fTS='';
+let CPS=[],photos={},beaconOff=null,incData=null,segData=null;
+let camStream=null,camTSint=null;
+let mSess=[],mPrevPhoto=null,mPrevTS=null;
+let alertInt=null;
+let chatTarget='',chatTargetClass='',chatMsgStore={};
+let eqSolTipo='',urgVal='';
+
+// Fleet state
+let flota=[
+  {id:'BANDA-01',tipo:'Banda Equipaje',emoji:'🎽',pos:'Oficina AS Rampa',status:'avail'},
+  {id:'BANDA-02',tipo:'Banda Equipaje',emoji:'🎽',pos:'A3',status:'busy'},
+  {id:'BANDA-03',tipo:'Banda Equipaje',emoji:'🎽',pos:'A7',status:'busy'},
+  {id:'TW-01',tipo:'Towbar',emoji:'🔩',pos:'Oficina AS Rampa',status:'avail'},
+  {id:'TW-02',tipo:'Towbar',emoji:'🔩',pos:'A5',status:'busy'},
+  {id:'REM-01',tipo:'Remolque',emoji:'🚛',pos:'Oficina AS Rampa',status:'avail'},
+  {id:'REM-02',tipo:'Remolque',emoji:'🚛',pos:'Remota',status:'sol'},
+  {id:'CAR-01',tipo:'Carretas',emoji:'🛒',pos:'A9',status:'busy'},
+  {id:'CAR-02',tipo:'Carretas',emoji:'🛒',pos:'Oficina AS Rampa',status:'avail'},
+  {id:'CAR-03',tipo:'Carretas',emoji:'🛒',pos:'A2',status:'busy'},
+  {id:'BARRA-01',tipo:'Barra',emoji:'🔩',pos:'Oficina AS Rampa',status:'avail'},
+  {id:'BARRA-02',tipo:'Barra',emoji:'🔩',pos:'Oficina AS Rampa',status:'avail'},
+  {id:'ESC-01',tipo:'Escalera Delantera',emoji:'🪜',pos:'Oficina AS Rampa',status:'avail'},
+  {id:'ESC-02',tipo:'Escalera Trasera',emoji:'🪜',pos:'Oficina AS Rampa',status:'avail'},
+  {id:'ESC-03',tipo:'Escalera Delantera',emoji:'🪜',pos:'A4',status:'busy'},
+];
+
+// Chat presets per role
+const PRESETS={
+  'Supervisor':['¿Estado de plataforma?','Necesito apoyo en posición','Confirmar beacon off','Retraso en operación'],
+  'Jefe de Rampa':['¿Banda disponible?','Autorizar ingreso aeronave','FOD en posición','Equipo listo para push back'],
+  'Jefe de Carga':['¿Carreta disponible?','Inicia carga bodega','Finaliza descarga','Confirmar último viaje'],
+  'Limpieza':['¿Cuándo pueden subir?','Autorizar ingreso limpieza','Ya salió limpieza','Urgente: necesito limpieza'],
+};
+
+// Beacon alerts config
+const BALERTS=[
+  {key:'planta_electrica',label:'Planta Eléctrica',warn:7,crit:12},
+  {key:'aire_acondicionado',label:'A/C',warn:7,crit:12},
+  {key:'banda',label:'Banda',warn:10,crit:15},
+  {key:'escalera',label:'Escalera',warn:10,crit:15},
+  {key:'inicia_carga_maleta',label:'1ra Maleta',warn:15,crit:22},
+  {key:'inicia_carga',label:'Inicia Carga',warn:15,crit:22},
+  {key:'waste_water',label:'Waste & Water',warn:20,crit:30},
+  {key:'limpieza_grupo',label:'Limpieza Cabina',warn:25,crit:35},
+  {key:'cierre_bines',label:'Cierre Bines',warn:55,crit:65},
+  {key:'push_back',label:'Push Back',warn:60,crit:75},
+];
+
+const BTOPICS=[
+  {id:'sg',label:'Verificar diamante de seguridad: libre de equipo, vehículo y personas'},
+  {id:'vi',label:'Revisar visualmente ambos lados antes de autorizar ingreso de aeronave'},
+  {id:'pb',label:'Confirmar que puentes de abordaje estén en su cuadro rojo'},
+  {id:'sn',label:'Verificar que señaleros estén atentos y sin distracciones'},
+  {id:'sx',label:'Recordar señal de X inmediatamente ante cualquier riesgo u obstáculo'},
+  {id:'ip',label:'Realizar inspección completa de posición antes del ingreso'},
+  {id:'ef',label:'Mantener enfoque total hasta que aeronave esté completamente posicionada y frenada'},
+  {id:'wg',label:'Mantener vigilancia constante sobre alas, motores y clearances'},
+];
+
+const QS={
+  TURN:[
+    {key:'briefing',label:'Briefing',emoji:'⚡',type:'briefing'},
+    {key:'inicio_fod',label:'Inicio FOD',emoji:'🔍'},
+    {key:'beacon_off',label:'Beacon OFF',emoji:'🚨'},
+    {key:'360_inicio',label:'360° Aeronave — Inicio',emoji:'🔄',type:'multi_photo'},
+    {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true,type:'planta'},
+    {key:'aire_acondicionado',label:'Aire Acondicionado',emoji:'❄️',optional:true},
+    {key:'banda',label:'Banda',emoji:'📦'},
+    {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
+    {key:'carga_grupo',label:'Carga (Descarga + Carga)',emoji:'🛄',type:'cargo_group',subs:['inicia_descarga_carga','finaliza_descarga_carga','inicia_carga_carga','finaliza_carga_carga'],subLabels:['Inicia Descarga Carga','Finaliza Descarga Carga','Inicia Carga Carga','Finaliza Carga Carga']},
+    {key:'waste_water',label:'Waste & Water',emoji:'💧',type:'waste_water'},
+    {key:'equipaje_grupo',label:'Equipaje (Descarga + Carga)',emoji:'🧳',type:'cargo_group',subs:['inicia_descarga_eq','finaliza_descarga_eq','inicia_carga_eq','finaliza_carga_eq'],subLabels:['Inicia Descarga Equipaje','Finaliza Descarga Equipaje','Inicia Carga Equipaje','Finaliza Carga Equipaje']},
+    {key:'limpieza_grupo',label:'Limpieza de Cabina',emoji:'🧹',type:'limpieza_group'},
+    {key:'fod_grupo',label:'FOD (1er · 2do · 3er)',emoji:'🔍',type:'fod_group'},
+    {key:'ultimo_viaje_carreta',label:'Último Viaje Carreta',emoji:'🚚'},
+    {key:'towbar',label:'Towbar',emoji:'🔧'},
+    {key:'cierre_bines',label:'Cierre Bines',emoji:'🚪',type:'bines_group'},
+    {key:'360_fin',label:'360° Aeronave — Fin',emoji:'🔄',type:'multi_photo'},
+    {key:'push_back',label:'Push Back',emoji:'⬅️'},
+  ],
+  'RON-ARRIVAL':[
+    {key:'briefing',label:'Briefing',emoji:'⚡',type:'briefing'},
+    {key:'fod',label:'FOD',emoji:'🔍'},
+    {key:'beacon_off',label:'Beacon OFF',emoji:'🚨'},
+    {key:'360_inicio',label:'360° Aeronave — Inicio',emoji:'🔄',type:'multi_photo'},
+    {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true,type:'planta'},
+    {key:'aire_acondicionado',label:'Aire Acondicionado',emoji:'❄️',optional:true},
+    {key:'banda',label:'Banda',emoji:'📦'},
+    {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
+    {key:'equipaje_grupo',label:'Equipaje (Descarga)',emoji:'🧳',type:'cargo_group',subs:['inicia_descarga_eq','finaliza_descarga_eq'],subLabels:['Inicia Descarga Equipaje','Finaliza Descarga Equipaje']},
+    {key:'waste_water',label:'Waste & Water',emoji:'💧',type:'waste_water'},
+    {key:'limpieza_grupo',label:'Limpieza de Cabina',emoji:'🧹',type:'limpieza_group'},
+    {key:'fod_grupo',label:'FOD (1er · 2do)',emoji:'🔍',type:'fod_group',subs:['fod_1','fod_2'],subLabels:['1er FOD','2do FOD']},
+    {key:'ultimo_viaje_carreta',label:'Último Viaje Carreta',emoji:'🚚'},
+    {key:'cierre_bines',label:'Cierre Bines',emoji:'🚪',type:'bines_group'},
+    {key:'360_fin',label:'360° Aeronave — Fin',emoji:'🔄',type:'multi_photo'},
+    {key:'towbar',label:'Towbar',emoji:'🔧'},
+  ],
+  'RON-DEPARTURE':[
+    {key:'briefing',label:'Briefing',emoji:'⚡',type:'briefing'},
+    {key:'fod',label:'FOD',emoji:'🔍'},
+    {key:'avion_posicion',label:'Avión en Posición',emoji:'✈️'},
+    {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true,type:'planta'},
+    {key:'aire_acondicionado',label:'Aire Acondicionado',emoji:'❄️',optional:true},
+    {key:'banda',label:'Banda',emoji:'📦'},
+    {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
+    {key:'equipaje_carga_grupo',label:'Carga + Equipaje',emoji:'🛄',type:'cargo_group',subs:['inicia_carga_eq','finaliza_carga_eq','inicia_carga_carga','finaliza_carga_carga'],subLabels:['Inicia Carga Equipaje','Finaliza Carga Equipaje','Inicia Carga Carga','Finaliza Carga Carga']},
+    {key:'waste_water',label:'Waste & Water',emoji:'💧',optional:true,type:'waste_water'},
+    {key:'fod_grupo',label:'FOD (1er · 2do)',emoji:'🔍',type:'fod_group',subs:['fod_1','fod_2'],subLabels:['1er FOD','2do FOD']},
+    {key:'towbar',label:'Towbar',emoji:'🔧'},
+    {key:'cierre_bines',label:'Cierre Bines',emoji:'🚪',type:'bines_group'},
+    {key:'360_fin',label:'360° Aeronave — Fin',emoji:'🔄',type:'multi_photo'},
+    {key:'push_back',label:'Push Back',emoji:'🔧'},
+  ]
+};
+
+// ── AUTH ──
+(()=>{
+  const r=sessionStorage.getItem('user');
+  if(r){try{const u=JSON.parse(r);U={username:u.username,role:u.role};document.getElementById('usernameDisplay').textContent=U.username;document.getElementById('userRole').textContent=U.role}catch(e){alert('Sesión inválida');location.href='login-P10.html'}}
+  else{alert('Inicie sesión primero');location.href='login-P10.html'}
+  setTimeout(checkResumeSession, 0);  // esperar a que TODO el script esté inicializado
+})();
+
+  function checkResumeSession() {
+  const raw = sessionStorage.getItem('resumeReport');
+  if (!raw) return;
+  let rep;
+  try { rep = JSON.parse(raw); } catch (e) { return; }
+  sessionStorage.removeItem('resumeReport');
+  if (!rep || !rep.airline || !rep.flightType) return;
+
+  // 1. Restaurar variables de vuelo
+  sA        = rep.airline         || '';
+  sT        = rep.flightType      || '';
+  // flightNumber puede venir como "1234/5678" o separado
+  const parts = (rep.flightNumber || '').split('/');
+  sOrigen   = rep.flightOrigen    || parts[0] || rep.flightNumber || '';
+  sDestino  = rep.flightDestino   || parts[1] || '';
+  sPosicion = rep.posicion        || '';
+  sF        = rep.flightNumber    || (sOrigen && sDestino ? `${sOrigen}/${sDestino}` : sOrigen);
+  fTS       = rep.flightTimestamp || new Date().toISOString();
+
+  // 2. Cargar checkpoints del tipo de vuelo
+  CPS = QS[sT] || [];
+
+// 3. Reconstruir fotos desde los checkpoints guardados en historial
+  photos = {};
+  console.log('🔄 Retomando — labels recibidos:', (rep.checkpoints || []).map(c => c.label));
+  (rep.checkpoints || []).forEach(cp => {
+    try {
+      const m = resolveRestoredCP(cp);
+      if (!m) return;
+      if (!photos[m.key]) photos[m.key] = [];
+      if (m.sub && photos[m.key].some(p => p.sub === m.sub)) return;
+      photos[m.key].push({
+        checkpoint: m.key,
+        label:      cp.label,
+        emoji:      cp.emoji || m.emoji || '✅',
+        timestamp:  normalizeRestoredTS(cp.timestamp),
+        photo:      null,
+        photoUrl:   cp.photoUrl || null,
+        sub:        m.sub,
+        restored:   true
+      });
+    } catch (err) {
+      console.warn('⚠ No se pudo restaurar checkpoint:', cp.label, err);
+    }
+  });
+  console.log('📦 photos restaurado:',
+    Object.keys(photos).map(k => `${k}[${photos[k].map(p => p.sub || '·').join(',')}]`).join(' | '));
+          
+  // 4. Restaurar Beacon OFF si ya fue registrado
+  if (photos['beacon_off'] && photos['beacon_off'][0]) {
+    beaconOff = new Date(photos['beacon_off'][0].timestamp);
+    startBeaconAlerts();
+  }
+
+  // 5. Restaurar servicios facturables si vienen embebidos
+  if (Array.isArray(rep.billingItems) && rep.billingItems.length > 0) {
+    billingItems = rep.billingItems;
+    updateSvcBadge();
+  }
+
+  // 6. Restaurar incidente / seguridad
+  if (rep.incident)  incData = rep.incident;
+  if (rep.seguridad) segData = rep.seguridad;
+
+  // 7. Ir directo a la pantalla de inspección
+  document.getElementById('bottomBar').style.display = 'flex';
+  document.getElementById('stepLabel').textContent =
+    `${ANAMES[sA] || sA} · ${sT} · ${sF} ✦ RETOMADO`;
+
+renderFlightBar();
+  renderMissions();
+  loadPersonalForFlight();
+  showSC('sI');
+
+  // 8. Toast de confirmación
+  const cpCount = (rep.checkpoints || []).length;
+  setTimeout(() => toast(
+    `▶ Retomando ${ANAMES[sA]||sA} ${sF} — ${cpCount} checkpoint(s) ya registrados`
+  ), 400);
+}
+
+// Helper: convierte un label a slug de clave
+function _slugify(str) {
+  return String(str)
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+
+// Normaliza un label: quita emojis, acentos y símbolos para comparar
+function _normLbl(s){
+  return String(s||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^\w\s°#\/&()—-]/g,'')
+    .replace(/\s+/g,' ').trim().toLowerCase();
+}
+
+// Resuelve un checkpoint del historial → {key, sub, emoji} del CPS actual
+function resolveRestoredCP(cp){
+  const raw = String(cp.label||'').trim();
+  const n   = _normLbl(raw);
+
+  // 1. Match exacto contra CPS
+  let def = CPS.find(c => _normLbl(c.label) === n);
+  if (def) return { key: def.key, sub: cp.sub || undefined, emoji: def.emoji };
+
+  // 2. Multi-foto 360°: "360° Aeronave — Inicio #2"
+  const mm = raw.match(/^(.*)\s#\d+\s*$/);
+  if (mm) {
+    def = CPS.find(c => _normLbl(c.label) === _normLbl(mm[1]));
+    if (def) return { key: def.key, sub: undefined, emoji: def.emoji };
+  }
+
+  // 3. Planta Eléctrica — Conecta / Desconecta / Desconecta (auto)
+  if (n.startsWith('planta electrica')) {
+    const p = CPS.find(c => c.key === 'planta_electrica');
+    if (p) {
+      const sub = /desconecta/.test(n) ? 'desconecta'
+                : /conecta/.test(n)    ? 'conecta' : undefined;
+      return { key: 'planta_electrica', sub, emoji: p.emoji };
+    }
+  }
+
+  // 4. Grupos con subs/subLabels definidos (carga, equipaje, FOD de RON…)
+  for (const c of CPS) {
+    if (c.subs && c.subLabels) {
+      const si = c.subLabels.findIndex(l => _normLbl(l) === n);
+      if (si >= 0) return { key: c.key, sub: c.subs[si], emoji: c.emoji };
+    }
+  }
+
+  // 5. FOD group por defecto (TURN): "1er FOD", "2do FOD", "3er FOD"
+  const fodMap = { '1er fod':'fod_1', '2do fod':'fod_2', '3er fod':'fod_3' };
+  if (fodMap[n]) {
+    const c = CPS.find(x => x.type === 'fod_group');
+    if (c) return { key: c.key, sub: fodMap[n], emoji: '🔍' };
+  }
+
+  // 6. Limpieza de cabina
+  const ls = LIMP_SUBS.find(s => _normLbl(s.label) === n);
+  if (ls) {
+    const c = CPS.find(x => x.type === 'limpieza_group');
+    if (c) return { key: c.key, sub: ls.key, emoji: '🧹' };
+  }
+
+  // 7. Waste & Water
+  if (/waste|aguas residuales/.test(n)) {
+    const c = CPS.find(x => x.type === 'waste_water');
+    if (c) return { key: c.key, sub: 'waste', emoji: c.emoji };
+  }
+  if (/water|agua potable/.test(n)) {
+    const c = CPS.find(x => x.type === 'waste_water');
+    if (c) return { key: c.key, sub: 'water', emoji: c.emoji };
+  }
+
+  // 8. Cierre de Bines
+  if (/bin delantero/.test(n)) {
+    const c = CPS.find(x => x.type === 'bines_group');
+    if (c) return { key: c.key, sub: 'bin_delantero', emoji: '🚪' };
+  }
+  if (/bin trasero/.test(n)) {
+    const c = CPS.find(x => x.type === 'bines_group');
+    if (c) return { key: c.key, sub: 'bin_trasero', emoji: '🚪' };
+  }
+
+  // 9. Fallback
+  return { key: _slugify(raw), sub: cp.sub || undefined };
+}
+
+// Corrige timestamps que llegan corridos o rotos desde el GAS/Sheet
+function normalizeRestoredTS(ts){
+  if (!ts) return new Date().toISOString();
+  const raw = String(ts).split('|')[0].trim();
+
+  // Formato "HH:MM" o "HH:MM:SS" (solo hora): montar sobre la fecha del vuelo
+  const t = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (t) {
+    const base = fTS ? new Date(fTS) : new Date();
+    base.setHours(+t[1], +t[2], +(t[3]||0), 0);
+    return base.toISOString();
+  }
+
+  const d = new Date(raw);
+  if (!isNaN(d.getTime())) {
+    // Celdas de solo-hora de Sheets regresan como fechas de 1899:
+    // extraer la hora y montarla sobre la fecha del vuelo
+    if (d.getFullYear() < 1990) {
+      const base = fTS ? new Date(fTS) : new Date();
+      base.setHours(d.getHours(), d.getMinutes(), d.getSeconds(), 0);
+      return base.toISOString();
+    }
+    return d.toISOString();
+  }
+  return new Date().toISOString();
+}
+
+// Miniatura de Drive para fotos restauradas (solo tenemos la URL, no el base64)
+function toDriveThumb(url){
+  if (!url) return '';
+  if (url.includes('drive.google.com')) {
+    const id = url.replace(/.*\/d\//,'').replace(/\/view.*/,'').replace(/.*id=/,'').split('&')[0];
+    return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
+  }
+  return url;
+}  
+
+// ── THREE.JS ──
+(()=>{
+  const cont=document.getElementById('canvas-container');
+  const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,1000);
+  const ren=new THREE.WebGLRenderer({alpha:true,antialias:true});
+  ren.setSize(innerWidth,innerHeight);cont.appendChild(ren.domElement);
+  const geo=new THREE.BufferGeometry();
+  const pos=new Float32Array(3000*3);for(let i=0;i<pos.length;i++)pos[i]=(Math.random()-.5)*100;
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const mat=new THREE.PointsMaterial({size:.08,color:0x3b82f6,transparent:true,opacity:.65,blending:THREE.AdditiveBlending});
+  const pts=new THREE.Points(geo,mat);sc.add(pts);cam.position.z=30;
+  (function a(){requestAnimationFrame(a);pts.rotation.y+=.001;pts.rotation.x+=.0005;ren.render(sc,cam)})();
+  window.addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight)});
+})();
+
+// ── SETUP ──
+function showSC(id){document.querySelectorAll('.sc').forEach(c=>c.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function back(si,hi,lbl){showSC(si);document.getElementById('stepLabel').textContent=lbl}
+function pickAirline(v){if(!v)return;sA=v;showSC('s1');document.getElementById('stepLabel').textContent='Tipo de Vuelo'}
+function pickType(v){if(!v)return;sT=v;showSC('s2');document.getElementById('stepLabel').textContent='Número de Vuelo'}
+function startInsp(){
+  const origen=document.getElementById('flightOrigen').value.trim();
+  const destino=document.getElementById('flightDestino').value.trim();
+  const pos=document.getElementById('posicionAeronave').value;
+  const numRx=/^\d{3,4}$/;
+  if(!numRx.test(origen)){alert('Vuelo Origen: ingrese 3 o 4 dígitos numéricos');return}
+  if(!numRx.test(destino)){alert('Vuelo Destino: ingrese 3 o 4 dígitos numéricos');return}
+  if(!pos){alert('Seleccione la posición de la aeronave');return}
+  sOrigen=origen;sDestino=destino;sPosicion=pos;sF=`${origen}/${destino}`;fTS=new Date().toISOString();
+  CPS=QS[sT]||[];photos={};beaconOff=null;incData=null;segData=null;
+  clearAlerts();showSC('sI');
+  document.getElementById('bottomBar').style.display='flex';
+  document.getElementById('stepLabel').textContent=`${ANAMES[sA]||sA} · ${sT} · ${sF}`;
+renderFlightBar();renderMissions();loadPersonalForFlight();
+}
+
+  
+
+// ── FLIGHT BAR ──
+function renderFlightBar(){
+  const tl={'TURN':'TURN','RON-ARRIVAL':'RON Llegada','RON-DEPARTURE':'RON Salida'};
+  document.getElementById('flightBar').innerHTML=`<span class="flight-badge">${ANAMES[sA]||sA}</span><span class="flight-info-t">${tl[sT]||sT}</span><span class="flight-info-t" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);padding:2px 7px;border-radius:5px;color:#60a5fa;font-size:11px">📍 ${sPosicion}</span><span class="flight-num">✈️ ${sF}</span><span class="flight-info-t" id="bTimer" style="margin-left:auto;font-size:11px"></span>`;
+}
+
+// ── MISSIONS ──
+function renderMissions(){
+  const list=document.getElementById('missionList');
+  const done=CPS.filter(cp=>photos[cp.key]&&photos[cp.key].length>0).length;
+  document.getElementById('progressBar').style.width=`${Math.round((done/CPS.length)*100)}%`;
+  document.getElementById('missHdr').textContent=`Misiones: ${done}/${CPS.length} completadas`;
+  list.innerHTML=CPS.map((cp,i)=>{
+    const isDone=cp.type==='cargo_group'||cp.type==='waste_water'||cp.type==='planta'||cp.type==='limpieza_group'||cp.type==='fod_group'||cp.type==='bines_group'
+      ?(photos[cp.key]&&photos[cp.key].length>0)
+      :!!(photos[cp.key]&&photos[cp.key].length>0);
+    const prevDone=i===0||CPS.slice(0,i).every(c=>photos[c.key]&&photos[c.key].length>0)||(CPS[i-1]&&photos[CPS[i-1].key]);
+    const isActive=!isDone&&prevDone;
+    const alertCfg=beaconOff?BALERTS.find(a=>a.key===cp.key):null;
+    let aState='',aMin=0;
+    if(alertCfg&&!isDone){aMin=Math.floor((Date.now()-beaconOff.getTime())/60000);if(aMin>=alertCfg.crit)aState='crit';else if(aMin>=alertCfg.warn)aState='warn'}
+    let cls='mi';
+    if(isDone)cls+=' done';else if(isActive)cls+=' active-now';
+    if(cp.optional)cls+=' optional-m';
+    if(cp.key==='beacon_off')cls+=' beacon-item';
+    if(aState==='warn')cls+=' warn-alert';
+    if(aState==='crit')cls+=' crit-alert';
+    const pc=isDone?(photos[cp.key].filter(p=>p.photo).length):0;
+    const ts=isDone&&photos[cp.key][0]?photos[cp.key][0].timestamp:'';
+    let meta='';
+    if(isDone&&ts)meta+=`<span class="mi-time">⏰ ${fmt(new Date(ts))}</span>`;
+    if(isDone&&pc>1)meta+=`<span style="color:#475569;font-size:9px">📸 ${pc}</span>`;
+    if(cp.optional&&!isDone)meta+=`<span class="badge-opt">Opcional</span>`;
+    if(cp.type==='briefing')meta+=`<span class="badge-type">Briefing</span>`;
+    if(cp.type==='multi_photo')meta+=`<span class="badge-type">360°</span>`;
+    let ab='';
+    if(aState==='warn')ab=`<span class="alert-badge warn">⚠️ +${aMin}m</span>`;
+    if(aState==='crit')ab=`<span class="alert-badge crit">🚨 CRÍTICO +${aMin}m</span>`;
+    return `<div class="${cls}" onclick="openCP(${i})"><div class="mi-icon">${cp.emoji}</div><div class="mi-body"><div class="mi-label">${i+1}. ${cp.label}</div><div class="mi-meta">${meta}</div></div><div class="mi-dot"></div>${ab}</div>`;
+  }).join('');
+}
+
+// ── CHECKPOINT MODAL ──
+function openCP(idx){
+  stopCam();mSess=[];mPrevPhoto=null;mPrevTS=null;
+  const cp=CPS[idx];
+  document.getElementById('mcpT').innerHTML=`${cp.emoji} ${cp.label}${cp.optional?' <span style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.22);color:#fbbf24;font-size:10px;padding:1px 7px;border-radius:4px;font-weight:600;vertical-align:middle">Opcional</span>':''}`;
+  document.getElementById('mcpS').textContent=cp.key==='beacon_off'?'Avión en posición — autorizar calzado e inicio de operaciones':cp.type==='briefing'?'Seleccione los temas tratados en el briefing':cp.type==='multi_photo'?'Recorrido 360° — capture todas las vistas necesarias':'Capture foto de evidencia de este checkpoint';
+  if(cp.type==='briefing')rBriefBody(document.getElementById('mcpB'),idx);
+  else if(cp.type==='multi_photo')rMultiBody(document.getElementById('mcpB'),idx);
+  else if(cp.type==='planta')rPlantaBody(document.getElementById('mcpB'),idx);
+  else if(cp.type==='waste_water')rWasteWaterBody(document.getElementById('mcpB'),idx);
+  else if(cp.type==='cargo_group')rCargoGroupBody(document.getElementById('mcpB'),idx);
+  else if(cp.type==='limpieza_group')rLimpiezaBody(document.getElementById('mcpB'),idx);
+  else if(cp.type==='fod_group')rFodGroupBody(document.getElementById('mcpB'),idx);
+  else if(cp.type==='bines_group')rBinesBody(document.getElementById('mcpB'),idx);
+  else rStdBody(document.getElementById('mcpB'),idx,cp);
+  openM('mCP');
+}
+function closeCP(){stopCam();closeM('mCP')}
+
+// Briefing (with camera)
+let briefPhotoData=null,briefPhotoTS=null;
+function rBriefBody(b,idx){
+  const cp=CPS[idx];const prev=photos[cp.key];
+  b.innerHTML=`${prev&&prev.length?'<div class="prev-strip"><div class="prev-strip-title">✅ Ya registrado — puede actualizar</div></div>':''}
+  <div class="brief-topics">${BTOPICS.map(t=>`<div class="topic-row"><input type="checkbox" id="bt-${t.id}" value="${t.label}"><label for="bt-${t.id}">${t.label}</label></div>`).join('')}</div>
+  <textarea class="ta" id="bNotes" placeholder="Comentarios adicionales…" style="margin-bottom:12px"></textarea>
+  <div style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📸 Foto del Briefing (recomendada)</div>
+  <div id="bCamV" style="display:none"><div class="cam-wrap"><video id="bVid" autoplay playsinline></video><div class="cam-lbl">Briefing</div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="bTs">--:--:--</div></div><button class="btn-capture" onclick="bCapture()">📸 Capturar</button><button class="btn-close-m" style="margin-bottom:9px" onclick="bStopCam()">✕ Cerrar Cámara</button></div>
+  <div id="bPrevV" style="display:none"><img class="prev-img" id="bPrevImg"><div class="prev-ts" id="bPrevTs"></div><div class="photo-act"><button class="btn-retake" onclick="bRetake()">🔄 Retomar</button><button class="btn-confirm" onclick="bClearPreview()">✓ Foto OK</button></div></div>
+  <button class="btn-start-cam" id="bStartBtn" onclick="bStartCam()">📷 Iniciar Cámara (Briefing)</button>
+  <button class="btn-confirm" style="width:100%;padding:12px;margin-top:10px;margin-bottom:8px" onclick="saveBriefing(${idx})">✓ Guardar Briefing</button>
+  <button class="btn-close-m" onclick="closeCP()">Cerrar</button>`;
+  briefPhotoData=null;briefPhotoTS=null;
+}
+async function bStartCam(){try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});document.getElementById('bVid').srcObject=camStream;document.getElementById('bCamV').style.display='block';document.getElementById('bStartBtn').style.display='none';camTSint=setInterval(()=>{const e=document.getElementById('bTs');if(e)e.textContent=fmt(new Date())},1000)}catch(e){alert('Error cámara: '+e.message)}}
+function bCapture(){const v=document.getElementById('bVid');const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);briefPhotoData=c.toDataURL('image/jpeg',.82);briefPhotoTS=new Date().toISOString();document.getElementById('bPrevImg').src=briefPhotoData;document.getElementById('bPrevTs').textContent=`⏰ ${fmt(new Date(briefPhotoTS))}`;document.getElementById('bCamV').style.display='none';document.getElementById('bPrevV').style.display='block';stopCam()}
+function bRetake(){briefPhotoData=null;briefPhotoTS=null;document.getElementById('bPrevV').style.display='none';bStartCam()}
+function bClearPreview(){document.getElementById('bPrevV').style.display='none';document.getElementById('bStartBtn').style.display='block';document.getElementById('bStartBtn').textContent='📷 Cambiar Foto'}
+function bStopCam(){stopCam();document.getElementById('bCamV').style.display='none';document.getElementById('bStartBtn').style.display='block'}
+
+function saveCP(stepIdx, itemLabel, timestamp, photoB64, extra) {
+  extra = extra || {};
+  post(Object.assign({
+    action:          'saveInspection',
+    airline:          sA,
+    flightType:       sT,
+    flightNumber:     sF,
+    flightTimestamp:  fTS,
+    inspector:        U.username,
+    role:             U.role,
+    posicion:         sPosicion,          // ← NUEVO: añade posición al sheet
+    step:             (stepIdx || 0) + 1,
+    item:             itemLabel,
+    timestamp:        timestamp || new Date().toISOString(),
+    status:           'En Proceso',
+    photoBase64:      photoB64 || null
+  }, extra));
+}
+  
+function saveBriefing(idx){
+  const cp=CPS[idx];
+  const tops=BTOPICS.map(t=>document.getElementById(`bt-${t.id}`)).filter(e=>e&&e.checked).map(e=>e.value);
+  const notes=document.getElementById('bNotes').value;
+  const ts=briefPhotoTS||new Date().toISOString();
+  photos[cp.key]=[{checkpoint:cp.key,label:cp.label,emoji:cp.emoji,timestamp:ts,photo:briefPhotoData||null}];
+
+  saveCP(idx, cp.label, ts, briefPhotoData, { briefingTopics: tops, briefingNotes: notes });
+  stopCam();closeCP();renderMissions();
+}
+
+// Standard photo
+let stPD=null,stTS=null;
+
+// ── CARGO GROUP: sub-checkpoints ──
+function rCargoGroupBody(b,idx){
+  const cp=CPS[idx];
+  const ph=photos[cp.key]||[];
+  const subs=cp.subs||[];const subLbls=cp.subLabels||subs;
+  b.innerHTML=`
+  <div style="color:#64748b;font-size:11px;line-height:1.5;margin-bottom:12px">Registre cada sub-checkpoint individualmente. Todos los marcados aparecen en el reporte.</div>
+  ${subs.map((sk,si)=>{
+    const done=ph.find(p=>p.sub===sk);
+    return `<div style="background:${done?'rgba(16,185,129,.07)':'rgba(18,28,52,.5)'};border:1px solid ${done?'rgba(16,185,129,.25)':'rgba(59,130,246,.13)'};border-radius:10px;padding:11px 13px;margin-bottom:9px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${done?'6px':'8px'}">
+        <span style="color:${done?'#6ee7b7':'#cbd5e1'};font-size:12px;font-weight:700">${si+1}. ${subLbls[si]}</span>
+        ${done?`<span style="color:#6ee7b7;font-size:10px;font-family:'Courier New',monospace">✅ ${fmt(new Date(done.timestamp))}</span>`:''}
+      </div>
+      ${done&&done.photo?`<img src="${done.photo}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:7px">`:
+        `<button class="btn-start-cam" style="margin-bottom:0" onclick="cargoSubCapture(${idx},'${sk}','${subLbls[si]}')">📷 ${done?'Actualizar':'Registrar'}</button>`}
+    </div>`;
+  }).join('')}
+  <div id="cargoSubCamArea" style="display:none;margin-top:10px">
+    <div class="cam-wrap"><video id="cargoVid" autoplay playsinline></video><div class="cam-lbl" id="cargoLbl"></div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="cargoTs">--:--:--</div></div>
+    <button class="btn-capture" id="cargoCaptureBtn" onclick="cargoDoCapture()">📸 Capturar</button>
+    <button class="btn-close-m" style="margin-bottom:8px" onclick="cargoStopCam()">✕ Cerrar</button>
+  </div>
+  <div id="cargoPrevArea" style="display:none;margin-top:10px">
+    <img class="prev-img" id="cargoPrevImg"><div class="prev-ts" id="cargoPrevTs"></div>
+    <div class="photo-act"><button class="btn-retake" onclick="cargoRetake()">🔄</button><button class="btn-confirm" id="cargoConfirmBtn" onclick="cargoConfirmSub(${idx})">✓ Confirmar</button></div>
+  </div>
+  <button class="btn-close-m" style="margin-top:10px" onclick="closeCP()">Cerrar</button>`;
+}
+let cargoCurSub='',cargoCurLbl='',cargoPhotoData=null,cargoPhotoTS=null;
+async function cargoSubCapture(idx,sk,lbl){
+  cargoCurSub=sk;cargoCurLbl=lbl;cargoPhotoData=null;cargoPhotoTS=null;
+  document.getElementById('cargoSubCamArea').style.display='block';
+  document.getElementById('cargoPrevArea').style.display='none';
+  document.getElementById('cargoLbl').textContent=lbl;
+  try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});document.getElementById('cargoVid').srcObject=camStream;camTSint=setInterval(()=>{const e=document.getElementById('cargoTs');if(e)e.textContent=fmt(new Date())},1000)}
+  catch(e){alert('Error cámara: '+e.message)}
+}
+function cargoDoCapture(){
+  const v=document.getElementById('cargoVid');const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+  cargoPhotoData=c.toDataURL('image/jpeg',.82);cargoPhotoTS=new Date().toISOString();
+  document.getElementById('cargoPrevImg').src=cargoPhotoData;document.getElementById('cargoPrevTs').textContent=`⏰ ${fmt(new Date(cargoPhotoTS))}`;
+  document.getElementById('cargoSubCamArea').style.display='none';document.getElementById('cargoPrevArea').style.display='block';stopCam();
+}
+function cargoRetake(){cargoPhotoData=null;cargoPhotoTS=null;document.getElementById('cargoPrevArea').style.display='none';document.getElementById('cargoSubCamArea').style.display='block';cargoSubCapture(-1,cargoCurSub,cargoCurLbl)}
+function cargoStopCam(){stopCam();document.getElementById('cargoSubCamArea').style.display='none'}
+function cargoConfirmSub(idx){
+  const cp=CPS[idx];if(!photos[cp.key])photos[cp.key]=[];
+  photos[cp.key]=photos[cp.key].filter(p=>p.sub!==cargoCurSub);
+  photos[cp.key].push({checkpoint:cp.key,label:cargoCurLbl,emoji:cp.emoji,photo:cargoPhotoData,timestamp:cargoPhotoTS,sub:cargoCurSub});
+  saveCP(idx, cargoCurLbl, cargoPhotoTS, cargoPhotoData, { sub: cargoCurSub });
+  cargoPhotoData=null;cargoPhotoTS=null;stopCam();
+  document.getElementById('cargoSubCamArea').style.display='none';document.getElementById('cargoPrevArea').style.display='none';
+  closeCP();renderMissions();setTimeout(()=>openCP(idx),200);
+}
+
+// ── WASTE & WATER: two separate sub-checkpoints ──
+function rWasteWaterBody(b,idx){
+  const cp=CPS[idx];
+  const ph=photos[cp.key]||[];
+  const wasteD=ph.find(p=>p.sub==='waste');const waterD=ph.find(p=>p.sub==='water');
+  const mkBlock=(sub,label,color,done)=>`
+    <div style="background:${done?'rgba(16,185,129,.07)':'rgba(18,28,52,.5)'};border:1px solid ${done?'rgba(16,185,129,.25)':'rgba(59,130,246,.13)'};border-radius:10px;padding:11px 13px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${done?'6px':'8px'}">
+        <span style="color:${done?'#6ee7b7':'#cbd5e1'};font-size:13px;font-weight:700">${label}</span>
+        ${done?`<span style="color:#6ee7b7;font-size:10px;font-family:'Courier New',monospace">✅ ${fmt(new Date(done.timestamp))}</span>`:''}
+      </div>
+      ${done&&done.photo?`<img src="${done.photo}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:7px;margin-bottom:6px">`:``}
+      <button class="btn-start-cam" style="margin-bottom:0" onclick="wwCapture(${idx},'${sub}','${label}')">${done?'📷 Actualizar':'📷 Registrar '+label}</button>
+    </div>`;
+  b.innerHTML=`
+  <div style="color:#64748b;font-size:11px;line-height:1.5;margin-bottom:11px">Registre Waste (aguas residuales) y Water (agua potable) de forma separada.</div>
+  ${mkBlock('waste','🗑️ Waste (Aguas Residuales)','#10b981',wasteD)}
+  ${mkBlock('water','💧 Water (Agua Potable)','#3b82f6',waterD)}
+  <div id="wwCamArea" style="display:none;margin-top:10px">
+    <div class="cam-wrap"><video id="wwVid" autoplay playsinline></video><div class="cam-lbl" id="wwLbl"></div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="wwTs">--:--:--</div></div>
+    <button class="btn-capture" onclick="wwDoCapture()">📸 Capturar</button>
+    <button class="btn-close-m" style="margin-bottom:8px" onclick="wwStopCam()">✕ Cerrar</button>
+  </div>
+  <div id="wwPrevArea" style="display:none;margin-top:10px">
+    <img class="prev-img" id="wwPrevImg"><div class="prev-ts" id="wwPrevTs"></div>
+    <div class="photo-act"><button class="btn-retake" onclick="wwRetake()">🔄</button><button class="btn-confirm" onclick="wwConfirm(${idx})">✓ Confirmar</button></div>
+  </div>
+  ${(cp.optional)?`<button class="btn-close-m" style="margin-bottom:8px" onclick="wwSkip(${idx})">Omitir Waste & Water</button>`:''}
+  <button class="btn-close-m" onclick="closeCP()">Cerrar</button>`;
+}
+let wwCurSub='',wwCurLbl='',wwPhotoData=null,wwPhotoTS=null;
+async function wwCapture(idx,sub,lbl){
+  wwCurSub=sub;wwCurLbl=lbl;wwPhotoData=null;wwPhotoTS=null;
+  document.getElementById('wwCamArea').style.display='block';document.getElementById('wwPrevArea').style.display='none';
+  document.getElementById('wwLbl').textContent=lbl;
+  try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});document.getElementById('wwVid').srcObject=camStream;camTSint=setInterval(()=>{const e=document.getElementById('wwTs');if(e)e.textContent=fmt(new Date())},1000)}
+  catch(e){alert('Error cámara: '+e.message)}
+}
+function wwDoCapture(){
+  const v=document.getElementById('wwVid');const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+  wwPhotoData=c.toDataURL('image/jpeg',.82);wwPhotoTS=new Date().toISOString();
+  document.getElementById('wwPrevImg').src=wwPhotoData;document.getElementById('wwPrevTs').textContent=`⏰ ${fmt(new Date(wwPhotoTS))}`;
+  document.getElementById('wwCamArea').style.display='none';document.getElementById('wwPrevArea').style.display='block';stopCam();
+}
+function wwRetake(){wwPhotoData=null;wwPhotoTS=null;document.getElementById('wwPrevArea').style.display='none';document.getElementById('wwCamArea').style.display='block';wwCapture(-1,wwCurSub,wwCurLbl)}
+function wwStopCam(){stopCam();document.getElementById('wwCamArea').style.display='none'}
+function wwConfirm(idx){
+  const cp=CPS[idx];if(!photos[cp.key])photos[cp.key]=[];
+  photos[cp.key]=photos[cp.key].filter(p=>p.sub!==wwCurSub);
+  photos[cp.key].push({checkpoint:cp.key,label:wwCurLbl,emoji:cp.emoji,photo:wwPhotoData,timestamp:wwPhotoTS,sub:wwCurSub});
+  saveCP(idx, wwCurLbl, wwPhotoTS, wwPhotoData, { sub: wwCurSub });
+  wwPhotoData=null;wwPhotoTS=null;stopCam();
+  document.getElementById('wwCamArea').style.display='none';document.getElementById('wwPrevArea').style.display='none';
+  closeCP();renderMissions();setTimeout(()=>openCP(idx),200);
+}
+function wwSkip(idx){closeCP();renderMissions()}
+function rPlantaBody(b,idx){
+  const cp=CPS[idx];
+  const ph=photos[cp.key]||[];
+  const conectado=ph.find(p=>p.sub==='conecta');
+  const desconectado=ph.find(p=>p.sub==='desconecta');
+  b.innerHTML=`
+  <div style="color:#64748b;font-size:11px;line-height:1.5;margin-bottom:12px">Registre los momentos de conexión y desconexión de la planta eléctrica. Si no se desconecta, se cerrará automáticamente al registrar Push Back.</div>
+  <!-- Conecta -->
+  <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:12px 13px;margin-bottom:10px">
+    <div style="color:#6ee7b7;font-size:11px;font-weight:700;margin-bottom:8px">⚡ CONECTA PLANTA</div>
+    ${conectado?`<div style="color:#6ee7b7;font-size:12px">✅ Registrado: ${fmt(new Date(conectado.timestamp))}</div>${conectado.photo?`<img src="${conectado.photo}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;margin-top:8px">`:''}`:`
+    <div id="plantaConCamV" style="display:none"><div class="cam-wrap"><video id="plantaConVid" autoplay playsinline></video><div class="cam-lbl">Conecta Planta</div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="plantaConTs">--:--:--</div></div><button class="btn-capture" onclick="plantaCapture(${idx},'conecta')">📸 Capturar</button><button class="btn-close-m" style="margin-bottom:8px" onclick="plantaStopCam('Con')">✕</button></div>
+    <div id="plantaConPrevV" style="display:none"><img class="prev-img" id="plantaConImg"><div class="prev-ts" id="plantaConPrevTs"></div><div class="photo-act"><button class="btn-retake" onclick="plantaRetake(${idx},'conecta')">🔄</button><button class="btn-confirm" onclick="plantaConfirm(${idx},'conecta')">✓ Confirmar</button></div></div>
+    <button class="btn-start-cam" id="plantaConStartBtn" onclick="plantaStartCam('Con')">📷 Registrar Conexión</button>`}
+  </div>
+  <!-- Desconecta -->
+  <div style="background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.18);border-radius:10px;padding:12px 13px;margin-bottom:10px">
+    <div style="color:#fca5a5;font-size:11px;font-weight:700;margin-bottom:8px">🔌 DESCONECTA PLANTA</div>
+    ${desconectado?`<div style="color:#fca5a5;font-size:12px">✅ Registrado: ${fmt(new Date(desconectado.timestamp))}</div>${desconectado.photo?`<img src="${desconectado.photo}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;margin-top:8px">`:''}`:`
+    <div id="plantaDesCamV" style="display:none"><div class="cam-wrap"><video id="plantaDesVid" autoplay playsinline></video><div class="cam-lbl">Desconecta Planta</div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="plantaDesTs">--:--:--</div></div><button class="btn-capture" onclick="plantaCapture(${idx},'desconecta')">📸 Capturar</button><button class="btn-close-m" style="margin-bottom:8px" onclick="plantaStopCam('Des')">✕</button></div>
+    <div id="plantaDesPrevV" style="display:none"><img class="prev-img" id="plantaDesImg"><div class="prev-ts" id="plantaDesPrevTs"></div><div class="photo-act"><button class="btn-retake" onclick="plantaRetake(${idx},'desconecta')">🔄</button><button class="btn-confirm" onclick="plantaConfirm(${idx},'desconecta')">✓ Confirmar</button></div></div>
+    <button class="btn-start-cam" id="plantaDesStartBtn" onclick="plantaStartCam('Des')" ${!conectado?'disabled style="opacity:.4;pointer-events:none"':''}>📷 Registrar Desconexión</button>
+    <div style="color:#64748b;font-size:10px;margin-top:6px">💡 Si no se desconecta aquí, se cerrará automáticamente al registrar Push Back.</div>`}
+  </div>
+  <button class="btn-close-m" onclick="closeCP()">Cerrar</button>`;
+}
+let plantaSubData={};
+async function plantaStartCam(side){
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    document.getElementById(`planta${side}Vid`).srcObject=camStream;
+    document.getElementById(`planta${side}CamV`).style.display='block';
+    document.getElementById(`planta${side}StartBtn`).style.display='none';
+    camTSint=setInterval(()=>{const e=document.getElementById(`planta${side}Ts`);if(e)e.textContent=fmt(new Date())},1000);
+  }catch(e){alert('Error cámara: '+e.message)}
+}
+function plantaStopCam(side){stopCam();document.getElementById(`planta${side}CamV`).style.display='none';const sb=document.getElementById(`planta${side}StartBtn`);if(sb)sb.style.display='block'}
+function plantaCapture(idx,sub){
+  const side=sub==='conecta'?'Con':'Des';
+  const v=document.getElementById(`planta${side}Vid`);
+  const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+  plantaSubData[sub]={photo:c.toDataURL('image/jpeg',.82),ts:new Date().toISOString()};
+  document.getElementById(`planta${side}Img`).src=plantaSubData[sub].photo;
+  document.getElementById(`planta${side}PrevTs`).textContent=`⏰ ${fmt(new Date(plantaSubData[sub].ts))}`;
+  document.getElementById(`planta${side}CamV`).style.display='none';
+  document.getElementById(`planta${side}PrevV`).style.display='block';
+  stopCam();
+}
+function plantaRetake(idx,sub){const side=sub==='conecta'?'Con':'Des';delete plantaSubData[sub];document.getElementById(`planta${side}PrevV`).style.display='none';plantaStartCam(side)}
+function plantaConfirm(idx,sub){
+  const cp=CPS[idx];const d=plantaSubData[sub];if(!d)return;
+  if(!photos[cp.key])photos[cp.key]=[];
+  // remove previous entry for this sub
+  photos[cp.key]=photos[cp.key].filter(p=>p.sub!==sub);
+  photos[cp.key].push({checkpoint:cp.key,label:`${cp.label} — ${sub==='conecta'?'Conecta':'Desconecta'}`,emoji:cp.emoji,photo:d.photo,timestamp:d.ts,sub});
+  saveCP(idx, `${cp.label} — ${sub === 'conecta' ? 'Conecta' : 'Desconecta'}`, d.ts, d.photo, { sub: sub });
+  stopCam();closeCP();renderMissions();
+  // reopen to show updated state
+  setTimeout(()=>openCP(idx),200);
+}
+// auto-close planta on push_back
+function autoClosePlanta(){
+  const pIdx=CPS.findIndex(c=>c.key==='planta_electrica');
+  if(pIdx<0)return;
+  const ph=photos['planta_electrica']||[];
+  const hasDesconecta=ph.some(p=>p.sub==='desconecta');
+  if(!hasDesconecta&&ph.some(p=>p.sub==='conecta')){
+    const ts=new Date().toISOString();
+    photos['planta_electrica'].push({checkpoint:'planta_electrica',label:'Planta Eléctrica — Desconecta (auto)',emoji:'⚡',timestamp:ts,sub:'desconecta',auto:true});
+    toast('⚡ Planta desconectada automáticamente al Push Back');
+    renderMissions();
+  }
+}
+function rStdBody(b,idx,cp){
+  const prev=photos[cp.key];
+  let ps='';
+  if(prev&&prev.length>0){ps=`<div class="prev-strip"><div class="prev-strip-title">✅ ${prev.length} registro(s) previo(s)</div><div class="prev-photos">${prev.filter(p=>p.photo).map(p=>`<div class="pt"><div class="pt-img"><img src="${p.photo}"></div><div class="pt-ts">${fmt(new Date(p.timestamp))}</div></div>`).join('')}</div></div>`}
+  const bn=cp.key==='beacon_off'?`<div class="beacon-notice">🟡 <strong>Avión en posición.</strong> Registre cuando el avión esté completamente detenido y seguro para calzado. A partir de este momento se activan los <strong>contadores de tiempo</strong> de servicios de apoyo.</div>`:'';
+  b.innerHTML=`${bn}${ps}<div id="sCamV" style="display:none"><div class="cam-wrap"><video id="sVid" autoplay playsinline></video><div class="cam-lbl">${cp.label}</div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="sTs">--:--:--</div></div><button class="btn-capture" onclick="stCapture(${idx})">📸 Capturar</button><button class="btn-close-m" style="margin-bottom:9px" onclick="stStopCam()">✕ Cerrar Cámara</button></div><div id="sPrevV" style="display:none"><img class="prev-img" id="sPrevImg"><div class="prev-ts" id="sPrevTs"></div><div class="photo-act"><button class="btn-retake" onclick="stRetake(${idx})">🔄 Retomar</button><button class="btn-confirm" onclick="stConfirm(${idx})">✓ Confirmar</button></div></div><button class="btn-start-cam" id="sStartBtn" onclick="stStartCam()">📷 Iniciar Cámara</button>${cp.optional?`<button class="btn-close-m" style="margin-bottom:8px" onclick="stSkip()">Omitir checkpoint</button>`:''}<button class="btn-close-m" onclick="closeCP()">Cerrar</button>`;
+}
+async function stStartCam(){try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});document.getElementById('sVid').srcObject=camStream;document.getElementById('sCamV').style.display='block';document.getElementById('sStartBtn').style.display='none';camTSint=setInterval(()=>{const e=document.getElementById('sTs');if(e)e.textContent=fmt(new Date())},1000)}catch(e){alert('Error cámara: '+e.message)}}
+function stCapture(idx){const v=document.getElementById('sVid');const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);stPD=c.toDataURL('image/jpeg',.82);stTS=new Date().toISOString();document.getElementById('sPrevImg').src=stPD;document.getElementById('sPrevTs').textContent=`⏰ ${fmt(new Date(stTS))}`;document.getElementById('sCamV').style.display='none';document.getElementById('sPrevV').style.display='block';stopCam()}
+function stRetake(idx){stPD=null;stTS=null;document.getElementById('sPrevV').style.display='none';stStartCam()}
+function stConfirm(idx){
+  const cp=CPS[idx];if(!photos[cp.key])photos[cp.key]=[];
+  photos[cp.key].push({checkpoint:cp.key,label:cp.label,emoji:cp.emoji,photo:stPD,timestamp:stTS});
+  if(cp.key==='beacon_off'&&!beaconOff){beaconOff=new Date(stTS);startBeaconAlerts()}
+  if(cp.key==='push_back')autoClosePlanta();
+  saveCP(idx, cp.label, stTS, stPD);
+  stPD=null;stTS=null;stopCam();closeCP();renderMissions();checkComplete();
+}
+function stSkip(){stopCam();closeCP();renderMissions()}
+function stStopCam(){stopCam();document.getElementById('sCamV').style.display='none';document.getElementById('sStartBtn').style.display='block'}
+
+// Multi photo
+function rMultiBody(b,idx){
+ const cp=CPS[idx];mSess=(photos[cp.key]||[]).filter(p=>p.photo||p.photoUrl).map(p=>({photo:p.photo,photoUrl:p.photoUrl,timestamp:p.timestamp,restored:p.restored}));
+  b.innerHTML=`<div style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.18);border-radius:8px;padding:8px 11px;color:#fbbf24;font-size:11px;margin-bottom:11px">📸 Capture mínimo 1 foto — cubra el 360° completo de la aeronave</div>
+  <div class="m-counter"><div class="m-count-n" id="mCnt">${mSess.length}</div><div class="m-count-l" id="mCntL">fotos capturadas</div></div>
+  <div class="m-grid" id="mTG"></div>
+  <div id="mCamV" style="display:none"><div class="cam-wrap"><video id="mVid" autoplay playsinline></video><div class="cam-lbl">${cp.label}</div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="mTs">--:--:--</div></div><button class="btn-capture" onclick="mCapture(${idx})">📸 Capturar Foto</button><button class="btn-close-m" style="margin-bottom:8px" onclick="mStopCam()">✕ Cerrar Cámara</button></div>
+  <div id="mPrevV" style="display:none"><img class="prev-img" id="mPrevImg"><div class="prev-ts" id="mPrevTs"></div><div class="photo-act"><button class="btn-retake" onclick="mRetake(${idx})">🔄 Retomar</button><button class="btn-confirm" onclick="mConfirm(${idx})">✓ Agregar</button></div></div>
+  <div id="mAddA"><button class="btn-add-ph" id="mAddBtn" onclick="mStartCam()">📷 ${mSess.length===0?'Iniciar Cámara':'Agregar Otra Foto'}</button></div>
+  <button class="btn-360-ok" id="m360B" onclick="mFinish(${idx})" ${mSess.length===0?'disabled':''}>✅ Continuar (${mSess.length} foto${mSess.length!==1?'s':''})</button>
+  <button class="btn-close-m" onclick="closeCP()">Cancelar</button>`;
+  rMThumbs();
+}
+function rMThumbs(){const g=document.getElementById('mTG');if(!g)return;g.innerHTML=mSess.map((p,i)=>`<div class="tw"><img src="${p.photo||toDriveThumb(p.photoUrl)}"><div class="tw-idx">${i+1}</div><div class="tw-t">${fmt(new Date(p.timestamp))}</div><button class="tw-del" onclick="mDel(${i})">✕</button></div>`).join('')}
+function updMUI(){const n=mSess.length;const c=document.getElementById('mCnt');if(c)c.textContent=n;const l=document.getElementById('mCntL');if(l)l.textContent=`foto${n!==1?'s':''} capturada${n!==1?'s':''}`;const b=document.getElementById('m360B');if(b){b.disabled=n===0;b.textContent=`✅ Continuar (${n} foto${n!==1?'s':''})`}const a=document.getElementById('mAddBtn');if(a)a.textContent=`📷 ${n===0?'Iniciar Cámara':'Agregar Otra Foto'}`}
+async function mStartCam(){try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});document.getElementById('mVid').srcObject=camStream;document.getElementById('mCamV').style.display='block';document.getElementById('mAddA').style.display='none';document.getElementById('mPrevV').style.display='none';camTSint=setInterval(()=>{const e=document.getElementById('mTs');if(e)e.textContent=fmt(new Date())},1000)}catch(e){alert('Error cámara: '+e.message)}}
+function mCapture(idx){const v=document.getElementById('mVid');const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);mPrevPhoto=c.toDataURL('image/jpeg',.82);mPrevTS=new Date().toISOString();document.getElementById('mPrevImg').src=mPrevPhoto;document.getElementById('mPrevTs').textContent=`⏰ ${fmt(new Date(mPrevTS))}`;document.getElementById('mCamV').style.display='none';document.getElementById('mPrevV').style.display='block';stopCam();document.getElementById('mAddA').style.display='none'}
+function mRetake(idx){mPrevPhoto=null;mPrevTS=null;document.getElementById('mPrevV').style.display='none';mStartCam()}
+function mConfirm(idx){
+  const cp=CPS[idx];mSess.push({photo:mPrevPhoto,timestamp:mPrevTS});mPrevPhoto=null;mPrevTS=null;
+  document.getElementById('mPrevV').style.display='none';document.getElementById('mAddA').style.display='block';
+photos[cp.key]=mSess.map((p,i)=>({checkpoint:cp.key,label:cp.label,emoji:cp.emoji,photo:p.photo,photoUrl:p.photoUrl||null,timestamp:p.timestamp,multiIndex:i+1,restored:p.restored}));        
+  post({action:'saveInspection',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,inspector:U.username,role:U.role,step:idx+1,item:`${cp.label} #${mSess.length}`,timestamp:mSess.slice(-1)[0].timestamp,status:'En Proceso',photoBase64:mSess.slice(-1)[0].photo});
+  rMThumbs();updMUI();
+}
+function mDel(i){mSess.splice(i,1);rMThumbs();updMUI()}
+function mStopCam(){stopCam();document.getElementById('mCamV').style.display='none';document.getElementById('mAddA').style.display='block'}
+function mFinish(idx){if(mSess.length===0){alert('Capture al menos una foto');return}const cp=CPS[idx];photos[cp.key]=mSess.map((p,i)=>({checkpoint:cp.key,label:cp.label,emoji:cp.emoji,photo:p.photo,photoUrl:p.photoUrl||null,timestamp:p.timestamp,multiIndex:i+1,restored:p.restored}));stopCam();closeCP();renderMissions();checkComplete()}
+// ── CAM UTILS ──
+function stopCam(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null}if(camTSint){clearInterval(camTSint);camTSint=null}}
+
+// ── BEACON ALERTS ──
+function startBeaconAlerts(){
+  clearAlerts();
+  alertInt=setInterval(()=>{
+    if(!beaconOff)return;
+    const el=Math.floor((Date.now()-beaconOff.getTime())/60000);
+    renderMissions();
+    const btEl=document.getElementById('bTimer');if(btEl){const col=el>60?'#fca5a5':el>30?'#fcd34d':'#6ee7b7';btEl.innerHTML=`<span style="font-family:'Courier New',monospace;color:${col};font-weight:700">B-OFF +${el}m</span>`}
+    const crits=BALERTS.filter(a=>!photos[a.key]&&el>=a.crit);
+    const warns=BALERTS.filter(a=>!photos[a.key]&&el>=a.warn&&el<a.crit);
+    const tk=document.getElementById('alertTicker');
+    if(crits.length>0){tk.className='alert-ticker visible crit';tk.innerHTML=`🚨 CRÍTICO: ${crits.map(a=>a.label).join(', ')}`}
+    else if(warns.length>0){tk.className='alert-ticker visible warn';tk.innerHTML=`⚠️ ${warns.map(a=>a.label).join(', ')} — próximo a tiempo límite`}
+    else tk.className='alert-ticker';
+  },30000);
+}
+function clearAlerts(){if(alertInt){clearInterval(alertInt);alertInt=null}const tk=document.getElementById('alertTicker');if(tk)tk.className='alert-ticker'}
+
+// ── CHECK COMPLETE ──
+function checkComplete(){
+  const req=CPS.filter(c=>!c.optional);
+  if(req.every(c=>photos[c.key]&&photos[c.key].length>0)){
+    // auto-suggest finalizing
+    const t=document.createElement('div');
+    t.style.cssText='position:fixed;bottom:155px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:11px 22px;border-radius:18px;font-size:13px;font-weight:700;z-index:200;cursor:pointer;white-space:nowrap;box-shadow:0 8px 22px rgba(16,185,129,.4)';
+    t.textContent='🎉 ¡Todos los checkpoints OK! Toca Finalizar Reporte ↓';
+    t.onclick=()=>{t.remove();openM('mFinal')};
+    document.body.appendChild(t);setTimeout(()=>t.remove&&t.remove(),6000);
+  }
+}
+
+// ── FINALIZE ──
+function finalizeInsp(obs){
+  obs=obs||'';
+  clearAlerts();stopCam();document.getElementById('bottomBar').style.display='none';
+  const tn={'TURN':'TURN (Turnaround)','RON-ARRIVAL':'RON - Llegada','RON-DEPARTURE':'RON - Salida'};
+  document.getElementById('cAirline').textContent=ANAMES[sA]||sA;
+  document.getElementById('cType').textContent=tn[sT];
+  document.getElementById('cFlight').textContent=sF;
+  document.getElementById('cInspector').textContent=U.username;
+  let ph=0,dk=0;for(const k in photos){if(photos[k]&&photos[k].length>0){dk++;photos[k].forEach(p=>{if(p.photo)ph++})}}
+  document.getElementById('cPhotos').textContent=ph;document.getElementById('cChecks').textContent=`${dk}/${CPS.length}`;
+  if(incData){document.getElementById('cIncCard').style.display='block';document.getElementById('cIncContent').innerHTML=`<div class="sum-row"><span class="sum-lab">Tipo:</span><span class="sum-val">${incData.type}</span></div><div class="sum-row"><span class="sum-lab">Severidad:</span><span class="sum-val">${incData.severity}</span></div><div class="sum-row"><span class="sum-lab">Descripción:</span><span class="sum-val">${incData.description}</span></div>`}
+  if(segData){document.getElementById('cSegCard').style.display='block';document.getElementById('cSegContent').innerHTML=`<div class="sum-row"><span class="sum-lab">Categoría:</span><span class="sum-val">${segData.categoria}</span></div><div class="sum-row"><span class="sum-lab">Riesgo:</span><span class="sum-val">${segData.riesgo}</span></div><div class="sum-row"><span class="sum-lab">Descripción:</span><span class="sum-val">${segData.descripcion}</span></div>`}
+  if(billingItems.length>0){
+    document.getElementById('cSvcCard').style.display='block';
+    document.getElementById('cSvcContent').innerHTML=billingItems.map(i=>`<div class="sum-row"><span class="sum-lab">${i.icon} ${i.name}</span><span class="sum-val">$${(i.amount||0).toFixed(2)}</span></div>`).join('');
+    const gt=billingItems.reduce((s,i)=>s+(i.amount||0),0);
+    document.getElementById('cSvcTotal').textContent=`$${gt.toFixed(2)}`;
+  }
+  const gal=[];for(const k in photos){(photos[k]||[]).forEach((p,i)=>{if(p.photo){const lab=photos[k].length>1?`${p.emoji} ${p.label} #${i+1}`:`${p.emoji} ${p.label}`;gal.push(`<div class="gal-it"><img src="${p.photo}"><div class="gal-lab">${lab}</div></div>`)}})}
+  document.getElementById('cGallery').innerHTML=gal.join('');
+  showSC('sC');document.getElementById('stepLabel').textContent='Inspección Completada';
+  post({action:'updateStatus',airline:sA,flightNumber:sF,flightType:sT,status:'Completado',flightTimestamp:fTS,incident:incData});
+}
+
+// ── INCIDENTE ──
+let incHas=true;
+function togInc(v){incHas=v;document.getElementById('incBody').style.display=v?'block':'none';document.getElementById('iSi').classList.toggle('sel',v);document.getElementById('iNo').classList.toggle('sel',!v)}
+function pickSev(val,id){['sBa','sMe','sAl'].forEach(i=>document.getElementById(i).classList.remove('sel'));document.getElementById(id).classList.add('sel');const inp=document.querySelector(`input[name="sv"][value="${val}"]`);if(inp)inp.checked=true}
+function saveInc(){
+  if(!incHas){incData=null;closeM('mInc');toast('Sin incidente registrado');return}
+  const t=document.getElementById('incType').value;const sv=document.querySelector('input[name="sv"]:checked');const d=document.getElementById('incDesc').value.trim();
+  if(!t||!sv||!d){alert('Complete todos los campos del incidente');return}
+  incData={type:t,severity:sv.value,description:d};closeM('mInc');toast('⚠️ Incidente registrado');
+}
+
+// ── SEGURIDAD OPERACIONAL ──
+let segCat='',segRisk='',segFol=false;
+function pickSegCat(el,val){document.querySelectorAll('.seg-risk-item').forEach(i=>i.classList.remove('sel'));el.classList.add('sel');segCat=val}
+function pickSegRisk(val,id){['srBa','srMe','srAl','srCr'].forEach(i=>document.getElementById(i).classList.remove('sel'));document.getElementById(id).classList.add('sel');segRisk=val}
+function pickSegFol(v){segFol=v;document.getElementById('segFolSi').classList.toggle('sel',v);document.getElementById('segFolNo').classList.toggle('sel',!v)}
+function saveSeg(){
+  if(!segCat){alert('Seleccione una categoría del evento');return}
+  if(!segRisk){alert('Seleccione el nivel de riesgo');return}
+  const desc=document.getElementById('segDesc').value.trim();
+  if(!desc){alert('Describa el evento de seguridad');return}
+  const personas=document.getElementById('segPersonas').value.trim();
+  const accion=document.getElementById('segAccion').value.trim();
+  segData={categoria:segCat,riesgo:segRisk,descripcion:desc,personas,accion,seguimiento:segFol,timestamp:new Date().toISOString()};
+  post({ action:'saveSeguridad', airline:sA, flightType:sT, flightNumber:sF, flightTimestamp:fTS, inspector:U.username, posicion:sPosicion, seguridad:segData });
+  closeM('mSeg');toast('🛡️ Reporte de seguridad enviado');
+}
+
+// ── CHAT ──
+function selContact(name,cls,init){
+  chatTarget=name;chatTargetClass=cls;
+  document.querySelectorAll('.chat-contact').forEach(c=>c.classList.remove('selected'));
+  document.getElementById(`cc-${name}`).classList.add('selected');
+  // switch to chat window
+  document.getElementById('chatContacts').style.display='none';
+  document.getElementById('chatWindow').style.display='block';
+  const winAv=document.getElementById('chatAvWin');winAv.textContent=init;winAv.className=`chat-av ${cls}`;
+  document.getElementById('chatNameWin').textContent=name;
+  const roles={'Supervisor':'Coordinador General','Jefe de Rampa':'Operaciones Rampa','Jefe de Carga':'Bodega y Carga','Limpieza':'Servicio de Cabina'};
+  document.getElementById('chatRoleWin').textContent=roles[name]||'';
+  renderChatMsgs();
+  renderPresets();
+}
+function backToContacts(){document.getElementById('chatWindow').style.display='none';document.getElementById('chatContacts').style.display='block';chatTarget=''}
+function renderChatMsgs(){
+  const box=document.getElementById('chatMsgs');
+  const msgs=chatMsgStore[chatTarget]||[];
+  box.innerHTML=msgs.length?msgs.map(m=>`<div class="msg-bubble ${m.dir}"><div class="msg-from">${m.from}</div>${m.text}<div class="msg-ts">${m.ts}</div></div>`).join(''):'<div style="text-align:center;color:#475569;font-size:12px;padding:16px 0">Inicie la conversación con '+chatTarget+'</div>';
+  box.scrollTop=box.scrollHeight;
+}
+function renderPresets(){
+  const ps=PRESETS[chatTarget]||[];
+  document.getElementById('chatPresets').innerHTML=ps.map(p=>`<button class="preset-btn" onclick="sendPreset('${p.replace(/'/g,"\\'")}')">📤 ${p}</button>`).join('');
+}
+function sendPreset(txt){document.getElementById('chatInput').value=txt;sendChat()}
+function sendChat(){
+  const inp=document.getElementById('chatInput');const txt=inp.value.trim();if(!txt||!chatTarget)return;
+  if(!chatMsgStore[chatTarget])chatMsgStore[chatTarget]=[];
+  const ts=fmt(new Date());
+  chatMsgStore[chatTarget].push({dir:'out',from:U.username,text:txt,ts});
+  inp.value='';renderChatMsgs();
+  // simulate response after 1.5s
+  setTimeout(()=>{
+    const replies={'Supervisor':['Recibido. Confirmo.','OK, en camino.','Entendido, gracias.'],'Jefe de Rampa':['Copiado.','Voy para allá.','Dame 2 minutos.'],'Jefe de Carga':['Entendido.','Ya voy.','Confirmado.'],'Limpieza':['Sí, en 5 minutos.','OK.','Recibido.']};
+    const reps=replies[chatTarget]||['Recibido.'];
+    const reply=reps[Math.floor(Math.random()*reps.length)];
+    chatMsgStore[chatTarget].push({dir:'in',from:chatTarget,text:reply,ts:fmt(new Date())});
+    renderChatMsgs();
+  },1500);
+}
+
+// ── EQUIPO ──
+function switchEqTab(tab,el){
+  document.querySelectorAll('.eq-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.eq-panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');document.getElementById(`ep-${tab}`).classList.add('active');
+  if(tab==='flota')renderFlota();
+}
+function pickEqSol(el,val){document.querySelectorAll('.r-opt').forEach(r=>{if(r.closest('#ep-solicitar'))r.classList.remove('sel')});el.classList.add('sel');eqSolTipo=val}
+function pickUrg(val,id){['urgNorm','urgUrg'].forEach(i=>document.getElementById(i).classList.remove('sel'));document.getElementById(id).classList.add('sel');urgVal=val}
+function doAsignar(){
+  const num=document.getElementById('eqNumAsign').value.trim();
+  const tipo=document.getElementById('eqTipoAsign').value;
+  const pos=document.getElementById('eqPosAsign').value;
+  if(!num||!tipo||!pos){alert('Complete todos los campos de asignación');return}
+  // update or add to flota
+  const existing=flota.find(f=>f.id.toLowerCase()===num.toLowerCase());
+  if(existing){existing.pos=pos;existing.status='busy'}
+  else{const emojis={'Banda Equipaje':'🎽','Towbar':'🔩','Remolque':'🚛','Carretas':'🛒'};flota.push({id:num,tipo,emoji:emojis[tipo]||'🔧',pos,status:'busy'})}
+  const ac=document.getElementById('assignConfirm');
+  document.getElementById('acNom').textContent=num;document.getElementById('acTipo').textContent=tipo;
+  document.getElementById('acPos').textContent=pos;document.getElementById('acHora').textContent=fmt(new Date());
+  ac.style.display='block';
+  toast(`📍 ${num} asignado a posición ${pos}`);
+  // notify via simulated chat
+  if(chatMsgStore['Jefe de Rampa']===undefined)chatMsgStore['Jefe de Rampa']=[];
+  chatMsgStore['Jefe de Rampa'].push({dir:'out',from:U.username,text:`📍 Asignación: ${num} (${tipo}) → Posición ${pos}`,ts:fmt(new Date())});
+}
+function doSolicitar(){
+  if(!eqSolTipo){alert('Seleccione el tipo de equipo');return}
+  const pos=document.getElementById('eqPosSol').value;
+  if(!pos){alert('Seleccione la posición destino');return}
+  const urg=urgVal||'Normal';
+  toast(`📥 Solicitud enviada: ${eqSolTipo} → ${pos} (${urg})`);
+  if(!chatMsgStore['Jefe de Rampa'])chatMsgStore['Jefe de Rampa']=[];
+  chatMsgStore['Jefe de Rampa'].push({dir:'out',from:U.username,text:`📥 Solicitud ${urg}: ${eqSolTipo} para posición ${pos} — Vuelo ${sF}`,ts:fmt(new Date())});
+  document.querySelectorAll('#ep-solicitar .r-opt').forEach(r=>r.classList.remove('sel'));
+  document.getElementById('eqPosSol').value='';eqSolTipo='';urgVal='';
+}
+function doLiberar(){
+  const num=document.getElementById('eqNumLib').value.trim();
+  const pos=document.getElementById('eqPosLib').value;
+  if(!num||!pos){alert('Complete número de equipo y posición');return}
+  const f=flota.find(i=>i.id.toLowerCase()===num.toLowerCase());
+  if(f){f.status='avail';f.pos=pos}
+  toast(`📤 ${num} liberado en ${pos}`);
+  document.getElementById('eqNumLib').value='';document.getElementById('eqPosLib').value='';document.getElementById('eqObsLib').value='';
+}
+function renderFlota(){
+  const statusLabel={avail:'Disponible',busy:'En uso',sol:'Solicitado'};
+  document.getElementById('flotaList').innerHTML=flota.map(f=>`
+    <div class="fleet-item">
+      <div class="fleet-icon">${f.emoji}</div>
+      <div class="fleet-body">
+        <div class="fleet-name">${f.tipo}</div>
+        <div class="fleet-loc">📍 ${f.pos}</div>
+        <div class="fleet-id">${f.id}</div>
+      </div>
+      <div class="fleet-status">
+        <span class="f-badge ${f.status}">${statusLabel[f.status]||f.status}</span>
+        <div class="fleet-act-btns">
+          <button class="f-btn s" onclick="quickSol('${f.id}')">Solicitar</button>
+          <button class="f-btn l" onclick="quickLib('${f.id}')">Liberar</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function quickSol(id){const f=flota.find(i=>i.id===id);if(f){f.status='sol';renderFlota();toast(`📥 Solicitud: ${id}`)}}
+function quickLib(id){const f=flota.find(i=>i.id===id);if(f){f.status='avail';renderFlota();toast(`📤 ${id} liberado`)}}
+
+  // ── PERSONAL / CREDENCIALES ──
+function postSync(d){
+  return fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(d)})
+    .then(r=>r.json()).catch(e=>{console.error(e);return {success:false,message:'Error de red'}});
+}
+
+let personalVuelo=[];
+let credStream=null,credTSint=null,credPhotoData=null;
+
+async function credStartCam(){
+  try{
+    credStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    document.getElementById('credVid').srcObject=credStream;
+    document.getElementById('credCamV').style.display='block';
+    document.getElementById('credStartBtn').style.display='none';
+    credTSint=setInterval(()=>{const e=document.getElementById('credTs');if(e)e.textContent=fmt(new Date())},1000);
+  }catch(e){alert('Error cámara: '+e.message)}
+}
+function credStopCredStream(){if(credStream){credStream.getTracks().forEach(t=>t.stop());credStream=null}if(credTSint){clearInterval(credTSint);credTSint=null}}
+function credStopCam(){credStopCredStream();document.getElementById('credCamV').style.display='none';document.getElementById('credStartBtn').style.display='block'}
+function credCapture(){
+  const v=document.getElementById('credVid');const c=document.createElement('canvas');
+  c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+  credPhotoData=c.toDataURL('image/jpeg',.85);
+  document.getElementById('credPrevImg').src=credPhotoData;
+  document.getElementById('credCamV').style.display='none';
+  document.getElementById('credPrevV').style.display='block';
+  credStopCredStream();
+}
+function credRetake(){credPhotoData=null;document.getElementById('credPrevV').style.display='none';credStartCam()}
+
+async function credProcess(){
+  if(!credPhotoData)return;
+  document.getElementById('credPrevV').style.display='none';
+  document.getElementById('credLoadingV').style.display='block';
+  const r=await postSync({action:'scanCredential',photoBase64:credPhotoData});
+  document.getElementById('credLoadingV').style.display='none';
+  if(!r.success){
+    alert('No se pudo leer la credencial: '+(r.message||'error desconocido'));
+    document.getElementById('credStartBtn').style.display='block';
+    return;
+  }
+  document.getElementById('credNombre').value=r.data.nombre||'';
+  document.getElementById('credCedula').value=r.data.cedula||'';
+  document.getElementById('credEmpresa').value=r.data.empresa||'';
+  document.getElementById('credCargo').value=r.data.cargo||'';
+  document.getElementById('credFormV').style.display='block';
+}
+
+async function credConfirmAdd(){
+  const persona={
+    nombre:document.getElementById('credNombre').value.trim(),
+    cedula:document.getElementById('credCedula').value.trim(),
+    empresa:document.getElementById('credEmpresa').value.trim(),
+    cargo:document.getElementById('credCargo').value.trim()
+  };
+  if(!persona.nombre){alert('Ingrese al menos el nombre');return}
+  personalVuelo.push({...persona,horasExtra:0,tarifaHoraExtra:0,montoExtra:0});
+  renderPersonalTable();
+  toast(`🪪 ${persona.nombre} agregado al vuelo`);
+
+  await postSync({
+    action:'savePersonal',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,
+    inspector:U.username,posicion:sPosicion,persona,photoBase64:credPhotoData
+  });
+
+  credPhotoData=null;
+  document.getElementById('credFormV').style.display='none';
+  document.getElementById('credStartBtn').style.display='block';
+  ['credNombre','credCedula','credEmpresa','credCargo'].forEach(id=>document.getElementById(id).value='');
+}
+
+function renderPersonalTable(){
+  const body=document.getElementById('persTableBody');
+  const hdr=document.getElementById('persTableHdr');
+  if(!body)return;
+  hdr.textContent=`Personal Registrado (${personalVuelo.length})`;
+  body.innerHTML=personalVuelo.map((p,i)=>`
+    <tr>
+      <td>${p.nombre||'—'}</td>
+      <td>${p.cedula||'—'}</td>
+      <td>${[p.empresa,p.cargo].filter(Boolean).join(' — ')||'—'}</td>
+      <td><input type="text" class="pers-hrs-input" value="${p.horasExtra||0}" onchange="updatePersHoras(${i},this.value,'horas')"></td>
+      <td><input type="text" class="pers-hrs-input" value="${p.tarifaHoraExtra||0}" onchange="updatePersHoras(${i},this.value,'tarifa')"></td>
+      <td><button class="pers-del" onclick="delPersonal(${i})">✕</button></td>
+    </tr>`).join('');
+}
+
+async function updatePersHoras(i,val,field){
+  const p=personalVuelo[i];if(!p)return;
+  if(field==='horas')p.horasExtra=parseFloat(val)||0; else p.tarifaHoraExtra=parseFloat(val)||0;
+  p.montoExtra=(p.horasExtra||0)*(p.tarifaHoraExtra||0);
+  await postSync({action:'updatePersonalHoras',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,nombre:p.nombre,horasExtra:p.horasExtra,tarifaHoraExtra:p.tarifaHoraExtra});
+  toast(`💾 Horas extra actualizadas — ${p.nombre}`);
+}
+
+function delPersonal(i){
+  const p=personalVuelo[i];if(!p)return;
+  if(!confirm(`¿Quitar a ${p.nombre} de este vuelo?`))return;
+  postSync({action:'deletePersonal',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,nombre:p.nombre});
+  personalVuelo.splice(i,1);renderPersonalTable();
+}
+
+async function loadPersonalForFlight(){
+  personalVuelo=[];
+  const r=await postSync({action:'getPersonalList',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS});
+  if(r&&r.success&&Array.isArray(r.rows))personalVuelo=r.rows;
+  renderPersonalTable();
+}
+
+// ── MODAL UTILS ──
+function openM(id){
+  if(id==='mEquip')renderFlota();
+  if(id==='mSvc')renderBillingList();
+  if(id==='mFinal')buildFinalSummary();
+  if(id==='mCancel'){
+    document.getElementById('cancelConfirmStep').style.display='block';
+    document.getElementById('cancelFormStep').classList.remove('visible');
+    cancelMotivo='';
+    document.querySelectorAll('#cancelMotivoGrid .svc-cat-item').forEach(i=>i.classList.remove('sel'));
+  }
+  document.getElementById(id).classList.add('open');
+}
+function closeM(id){document.getElementById(id).classList.remove('open')}
+function ovClose(e,id){if(e.target===document.getElementById(id))closeM(id)}
+
+// ── MISC ──
+function fmt(d){return d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove&&t.remove(),2600)}
+function post(d){fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).catch(e=>console.error(e))}
+function goToHistory(){stopCam();location.href='H99.html'}
+function logout(){if(confirm('¿Cerrar sesión?')){stopCam();sessionStorage.removeItem('user');location.href='login-P10.html'}}
+function newReport(){
+  sA='';sT='';sF='';sOrigen='';sDestino='';sPosicion='';fTS='';CPS=[];photos={};beaconOff=null;incData=null;segData=null;
+  clearAlerts();stopCam();chatMsgStore={};chatTarget='';eqSolTipo='';urgVal='';
+  billingItems=[];cancelConfirmed=false;cancelMotivo='';
+  if(coopesaInt){clearInterval(coopesaInt);coopesaInt=null}
+  if(tiempoPosInt){clearInterval(tiempoPosInt);tiempoPosInt=null}
+  document.getElementById('airlineSelect').value='';document.getElementById('flightTypeSelect').value='';
+  document.getElementById('flightOrigen').value='';document.getElementById('flightDestino').value='';document.getElementById('posicionAeronave').value='';
+  document.getElementById('progressBar').style.width='0%';document.getElementById('bottomBar').style.display='none';
+  document.getElementById('cIncCard').style.display='none';document.getElementById('cSegCard').style.display='none';
+  showSC('s0');document.getElementById('stepLabel').textContent='Seleccione aerolínea';
+}
+// ── SERVICIOS ADICIONALES ──────────────────────────────────────────────────
+let billingItems=[];
+let coopesaStartTime=null,coopesaInt=null,coopesaElapsed=0;
+let svcCatSel='',transVehiculos=1,osCount=1,fuelTipo='';
+let cancelMotivo='',cancelConfirmed=false,tiempoPosInt=null;
+
+function pickSvcCat(el,key,label,icon){
+  document.querySelectorAll('.svc-cat-item').forEach(i=>i.classList.remove('sel'));
+  el.classList.add('sel');svcCatSel=key;
+  // hide all detail blocks
+  ['Coopesa','Transporte','Traslado','Catering','Combustible','OficialSeg','EscaleraSvc','Barra','RemolqueSvc','Mecanico','Otro'].forEach(n=>{
+    const b=document.getElementById(`svcBlock${n}`);if(b)b.classList.remove('visible');
+  });
+  const map={coopesa:'Coopesa',transporte_crew:'Transporte',traslado:'Traslado',catering:'Catering',combustible:'Combustible',oficial_seg:'OficialSeg',escalera_svc:'EscaleraSvc',barra:'Barra',remolque_svc:'RemolqueSvc',mecanico:'Mecanico',otro:'Otro'};
+  const b=document.getElementById(`svcBlock${map[key]}`);if(b)b.classList.add('visible');
+}
+
+// COOPESA timer
+function coopesaStart(){
+  coopesaStartTime=new Date();
+  document.getElementById('coopesaStartLabel').textContent=`Inicio: ${fmt(coopesaStartTime)}`;
+  document.getElementById('btnCoopesaStart').style.display='none';
+  document.getElementById('btnCoopesaStop').style.display='block';
+  // also register on planta_electrica beacon timer if available
+  coopesaInt=setInterval(()=>{
+    coopesaElapsed=Math.floor((Date.now()-coopesaStartTime.getTime())/1000);
+    const h=String(Math.floor(coopesaElapsed/3600)).padStart(2,'0');
+    const m=String(Math.floor((coopesaElapsed%3600)/60)).padStart(2,'0');
+    const s=String(coopesaElapsed%60).padStart(2,'0');
+    const d=document.getElementById('coopesaDisplay');if(d)d.textContent=`${h}:${m}:${s}`;
+  },1000);
+}
+function coopesaStop(){
+  if(coopesaInt){clearInterval(coopesaInt);coopesaInt=null}
+  document.getElementById('btnCoopesaStop').style.display='none';
+  document.getElementById('btnCoopesaStart').style.display='block';
+  document.getElementById('btnCoopesaStart').textContent='▶ Reanudar';
+}
+
+function pickTransV(v,id){transVehiculos=v;['tv1','tv2','tv3','tv4'].forEach(i=>document.getElementById(i).classList.remove('sel'));document.getElementById(id).classList.add('sel')}
+function pickOS(v,id){osCount=v;['os1','os2','os3','os4'].forEach(i=>document.getElementById(i).classList.remove('sel'));document.getElementById(id).classList.add('sel')}
+function pickFuel(v,id){fuelTipo=v;['fuelJetA','fuelAvgas'].forEach(i=>document.getElementById(i).classList.remove('sel'));document.getElementById(id).classList.add('sel')}
+function pickRem(v,id){['rem1','rem2','rem3'].forEach(i=>{const el=document.getElementById(i);if(el)el.classList.remove('sel')});const el=document.getElementById(id);if(el)el.classList.add('sel')}
+
+function addSvc(type){
+  let item={type,timestamp:fmt(new Date())};
+  const icons={coopesa:'⚡',transporte_crew:'🚐',catering:'🍽️',combustible:'⛽',oficial_seg:'👮',otro:'📋'};
+  item.icon=icons[type]||'📋';
+
+  if(type==='coopesa'){
+    if(coopesaInt)coopesaStop();
+    const mins=Math.ceil(coopesaElapsed/60)||0;
+    item.name='Coopesa (GPU/APU)';item.detail=`${mins} min`;item.amount=1;item.notes=document.getElementById('coopesaObs').value;
+  }else if(type==='transporte_crew'){
+    const personas=document.getElementById('transPersonas').value||'?';
+    const ruta=document.getElementById('transRuta').value||'Sin especificar';
+    item.name='Transporte Crew';item.detail=`${transVehiculos} vehículo(s) · ${personas} personas · ${ruta}`;item.amount=1;
+  }else if(type==='traslado'){
+    const posOrigen=document.getElementById('trasladoOrigen').value;
+    const posDestino=document.getElementById('trasladoDestino').value;
+    const horario=document.getElementById('trasladoHorario').value;
+    if(!posOrigen||!posDestino){alert('Seleccione posición de origen y destino');return}
+    item.name='Traslado Aeronave';item.detail=`${posOrigen} → ${posDestino} · ${horario||'Horario no indicado'}`;item.amount=1;
+  }else if(type==='catering'){
+    const tipo=document.getElementById('cateringTipo').value||'Catering';
+    const und=parseInt(document.getElementById('cateringUnidades').value)||0;
+    item.name=`Catering — ${tipo}`;item.detail=`${und} unidades`;item.amount=1;item.proveedor=document.getElementById('cateringProveedor').value;
+  }else if(type==='combustible'){
+    if(!fuelTipo){alert('Seleccione tipo de combustible');return}
+    const gal=parseFloat(document.getElementById('fuelGalones').value)||0;
+    item.name=`Combustible ${fuelTipo}`;item.detail=`${gal.toLocaleString()} gal`;item.amount=1;item.proveedor=document.getElementById('fuelProveedor').value;
+  }else if(type==='oficial_seg'){
+    const horas=parseFloat(document.getElementById('osHoras').value)||0;
+    const cobertura=document.getElementById('osTipo').value;
+    item.name=`Oficial Seguridad — ${cobertura}`;item.detail=`${osCount} oficial(es) × ${horas}h`;item.amount=1;
+  }else if(type==='escalera_svc'){
+    const hrs=document.getElementById('escaleraHoras').value||'?';
+    const tipo=document.getElementById('escaleraTipo').value||'Escalera';
+    item.name=`Escalera — ${tipo}`;item.detail=`${hrs}`;item.amount=1;
+  }else if(type==='barra'){
+    const hrs=document.getElementById('barraHoras').value||'?';
+    item.name='Barra (Towbar)';item.detail=`Tiempo: ${hrs}`;item.amount=1;
+  }else if(type==='remolque_svc'){
+    const tramos=document.getElementById('remolqueTramos').value||'1';
+    item.name='Remolque';item.detail=`${tramos} tramo(s)`;item.amount=1;
+  }else if(type==='mecanico'){
+    const hrs=document.getElementById('mecanicoHoras').value||'?';
+    const trabajo=document.getElementById('mecanicoTrabajo').value||'Sin especificar';
+    item.name='Mecánico Aero Calidad';item.detail=`${hrs} · ${trabajo}`;item.amount=1;
+  }else if(type==='otro'){
+    const nombre=document.getElementById('otroNombre').value.trim();
+    if(!nombre){alert('Ingrese el nombre del servicio');return}
+    const monto=1;
+    item.name=nombre;item.detail=`${document.getElementById('otroCantidad').value||'—'} · ${document.getElementById('otroDesc').value||''}`;item.amount=monto;
+  }
+
+  billingItems.push(item);
+  renderBillingList();
+  updateSvcBadge();
+  // reset selection
+  document.querySelectorAll('.svc-cat-item').forEach(i=>i.classList.remove('sel'));
+  ['Coopesa','Transporte','Traslado','Catering','Combustible','OficialSeg','EscaleraSvc','Barra','RemolqueSvc','Mecanico','Otro'].forEach(n=>{const b=document.getElementById(`svcBlock${n}`);if(b)b.classList.remove('visible')});
+  svcCatSel='';
+  toast(`💰 ${item.name} registrado`);
+}
+
+function renderBillingList(){
+  const wrap=document.getElementById('billingListWrap');
+  const list=document.getElementById('billingList');
+  if(!wrap||!list)return;
+  if(billingItems.length===0){wrap.style.display='none';return}
+  wrap.style.display='block';
+  const total=billingItems.reduce((s,i)=>s+(i.amount||0),0);
+  list.innerHTML=billingItems.map((item,idx)=>`
+    <div class="billing-item">
+      <div class="billing-icon">${item.icon}</div>
+      <div class="billing-body">
+        <div class="billing-name">${item.name}</div>
+        <div class="billing-detail">${item.detail||''} · ${item.timestamp}</div>
+      </div>
+      <div class="billing-amount">$${(item.amount||0).toFixed(2)}</div>
+      <button class="billing-del" onclick="delBillingItem(${idx})">✕</button>
+    </div>`).join('');
+  const td=document.getElementById('billingTotalDisplay');if(td)td.textContent=`$${total.toFixed(2)}`;
+}
+
+function delBillingItem(idx){billingItems.splice(idx,1);renderBillingList();updateSvcBadge()}
+
+function updateSvcBadge(){
+  const b=document.getElementById('svcBadge');
+  if(!b)return;
+  if(billingItems.length>0){b.style.display='inline';b.textContent=billingItems.length}
+  else b.style.display='none';
+}
+
+// ── VUELO CANCELADO ────────────────────────────────────────────────────────
+function confirmCancelFlight(){
+  document.getElementById('cancelConfirmStep').style.display='none';
+  document.getElementById('cancelFormStep').classList.add('visible');
+  cancelConfirmed=true;
+  // calculate time in position from flight start
+  const startTime=fTS?new Date(fTS):new Date();
+  document.getElementById('tpdDesde').textContent=`Desde ${fmt(startTime)}`;
+  // live counter
+  if(tiempoPosInt)clearInterval(tiempoPosInt);
+  tiempoPosInt=setInterval(()=>{
+    const diffMs=Date.now()-startTime.getTime();
+    const h=Math.floor(diffMs/3600000),m=Math.floor((diffMs%3600000)/60000);
+    const d=document.getElementById('tpdValue');if(d)d.textContent=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    recalcCancelTotal();
+  },15000);
+  recalcCancelTotal();
+}
+
+function pickCancelMotivo(el,val){
+  document.querySelectorAll('#cancelMotivoGrid .svc-cat-item').forEach(i=>i.classList.remove('sel'));
+  el.classList.add('sel');cancelMotivo=val;
+}
+
+function recalcCancelTotal(){
+  const op=parseFloat(document.getElementById('cancelTarifaOp').value)||0;
+  const hrs=parseFloat(document.getElementById('cancelHorasPersonal').value)||0;
+  const thr=parseFloat(document.getElementById('cancelTarifaHora').value)||0;
+  // count personnel from text field (rough: count commas+1)
+  const persStr=document.getElementById('cancelPersonal').value||'';
+  const persCount=persStr?persStr.split(',').length:1;
+  const eq=parseFloat(document.getElementById('cancelCargosEq').value)||0;
+  const total=op+(hrs*thr*persCount)+eq;
+  const el=document.getElementById('cancelTotalVal');if(el)el.textContent=`$${total.toFixed(2)}`;
+}
+// live recalc on input
+['cancelTarifaOp','cancelHorasPersonal','cancelTarifaHora','cancelCargosEq'].forEach(id=>{
+  setTimeout(()=>{const el=document.getElementById(id);if(el)el.addEventListener('input',recalcCancelTotal)},500);
+});
+
+function closeCancelReport(){
+  if(!cancelMotivo){alert('Seleccione el motivo de cancelación');return}
+  if(tiempoPosInt){clearInterval(tiempoPosInt);tiempoPosInt=null}
+  const op=parseFloat(document.getElementById('cancelTarifaOp').value)||0;
+  const hrs=parseFloat(document.getElementById('cancelHorasPersonal').value)||0;
+  const thr=parseFloat(document.getElementById('cancelTarifaHora').value)||0;
+  const eq=parseFloat(document.getElementById('cancelCargosEq').value)||0;
+  const persStr=document.getElementById('cancelPersonal').value||'';
+  const persCount=persStr?persStr.split(',').length:1;
+  const total=op+(hrs*thr*persCount)+eq;
+  const cancelData={
+    motivo:cancelMotivo,horaNot:document.getElementById('cancelHoraNot').value,
+    personal:persStr,equipo:document.getElementById('cancelEquipo').value,
+    tiempoPos:document.getElementById('tpdValue').textContent,
+    facturacion:{disponibilidad:op,horasPersonal:hrs,tarifaHora:thr,cargosEquipo:eq,total},
+    observaciones:document.getElementById('cancelObs').value,
+    timestamp:new Date().toISOString()
+  };
+  post({action:'updateStatus',airline:sA,flightNumber:sF,flightType:sT,status:'Cancelado',flightTimestamp:fTS,cancelacion:cancelData,billing:billingItems});
+  closeM('mCancel');clearAlerts();stopCam();
+  document.getElementById('bottomBar').style.display='none';
+  // show cancelled completion screen
+  showCancelledCompletion(cancelData,total);
+}
+
+function showCancelledCompletion(cd,total){
+  const tn={'TURN':'TURN (Turnaround)','RON-ARRIVAL':'RON - Llegada','RON-DEPARTURE':'RON - Salida'};
+  document.getElementById('cAirline').textContent=ANAMES[sA]||sA;
+  document.getElementById('cType').textContent=tn[sT];
+  document.getElementById('cFlight').textContent=sF;
+  document.getElementById('cInspector').textContent=U.username;
+  let ph=0,dk=0;for(const k in photos){if(photos[k]&&photos[k].length>0){dk++;photos[k].forEach(p=>{if(p.photo)ph++})}}
+  document.getElementById('cPhotos').textContent=ph;document.getElementById('cChecks').textContent=`${dk}/${CPS.length}`;
+  // show billing
+  const allItems=[...billingItems,{icon:'❌',name:'Operación Disponible (Cancelado)',detail:`Disponibilidad + Personal ${cd.tiempoPos}`,amount:total}];
+  if(allItems.length>0){
+    document.getElementById('cSvcCard').style.display='block';
+    document.getElementById('cSvcContent').innerHTML=allItems.map(i=>`<div class="sum-row"><span class="sum-lab">${i.icon} ${i.name}</span><span class="sum-val">$${(i.amount||0).toFixed(2)}</span></div>`).join('');
+    const grandTotal=allItems.reduce((s,i)=>s+(i.amount||0),0)+(billingItems.reduce((s,i)=>s+(i.amount||0),0));
+    document.getElementById('cSvcTotal').textContent=`$${grandTotal.toFixed(2)}`;
+  }
+  // update title to show cancelled
+  document.querySelector('.comp-icon').textContent='❌';
+  document.querySelector('.comp-title').textContent='Vuelo Cancelado — Reporte Cerrado';
+  document.querySelector('.comp-title').style.color='#fca5a5';
+  const gal=[];for(const k in photos){(photos[k]||[]).forEach((p,i)=>{if(p.photo){const lab=photos[k].length>1?`${p.emoji} ${p.label} #${i+1}`:`${p.emoji} ${p.label}`;gal.push(`<div class="gal-it"><img src="${p.photo}"><div class="gal-lab">${lab}</div></div>`)}})}
+  document.getElementById('cGallery').innerHTML=gal.join('');
+  showSC('sC');document.getElementById('stepLabel').textContent='Vuelo Cancelado';
+}
+
+// ── LIMPIEZA DE CABINA ───────────────────────────────────────────────────
+const LIMP_SUBS=[
+  {key:'sube',label:'🧹 Sube Limpieza'},
+  {key:'baja',label:'🧹 Baja Limpieza'},
+  {key:'banios_delantero',label:'🚻 Baño Delantero'},
+  {key:'banios_trasero',label:'🚻 Baño Trasero'},
+  {key:'pasillos',label:'🛤️ Pasillos'},
+  {key:'cocina_delantera',label:'🍽️ Cocina Delantera'},
+  {key:'cocina_trasera',label:'🍽️ Cocina Trasera'},
+  {key:'basureros',label:'🗑️ Basureros'},
+  {key:'bolsas_asiento',label:'📄 Bolsas de Asiento'},
+  {key:'compartimentos',label:'🗄️ Compartimentos Superiores'},
+];
+function rLimpiezaBody(b,idx){
+  const cp=CPS[idx];const ph=photos[cp.key]||[];
+  const mkRow=(sub,si)=>{
+    const done=ph.find(p=>p.sub===sub.key);
+    const bg=done?'rgba(16,185,129,.07)':'rgba(18,28,52,.5)';
+    const br=done?'rgba(16,185,129,.22)':'rgba(59,130,246,.12)';
+    const tc=done?'#6ee7b7':'#cbd5e1';
+    const btnBg=done?'rgba(16,185,129,.18)':'rgba(59,130,246,.12)';
+    const btnBr=done?'rgba(16,185,129,.4)':'rgba(59,130,246,.3)';
+    const btnC=done?'#6ee7b7':'#60a5fa';
+    const ts=done?`<span style="color:#6ee7b7;font-size:10px;font-family:Courier New,monospace">${fmt(new Date(done.timestamp))}</span>`:'';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:${bg};border:1px solid ${br};border-radius:9px;margin-bottom:6px;gap:8px">
+      <span style="color:${tc};font-size:12px;font-weight:600;flex:1">${sub.label}</span>
+      ${ts}
+      <button style="padding:5px 11px;background:${btnBg};border:1px solid ${btnBr};border-radius:7px;color:${btnC};font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0" onclick="limpSubCapture(${idx},${si})">${done?'✓ OK':'📷'}</button>
+    </div>`;
+  };
+  b.innerHTML=`<div style="color:#64748b;font-size:11px;line-height:1.5;margin-bottom:11px">Registre cada área. Toque 📷 para foto o ✓ OK para marcar sin foto.</div>
+  ${LIMP_SUBS.map((s,i)=>mkRow(s,i)).join('')}
+  <div id="limpCamArea" style="display:none;margin-top:10px">
+    <div class="cam-wrap"><video id="limpVid" autoplay playsinline></video><div class="cam-lbl" id="limpLbl"></div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="limpTs">--:--:--</div></div>
+    <button class="btn-capture" onclick="limpDoCapture()">📸 Capturar</button>
+    <button class="btn-close-m" style="margin-bottom:8px" onclick="limpStopCam()">✕ Sin foto — marcar OK</button>
+  </div>
+  <div id="limpPrevArea" style="display:none;margin-top:10px">
+    <img class="prev-img" id="limpPrevImg"><div class="prev-ts" id="limpPrevTs"></div>
+    <div class="photo-act"><button class="btn-retake" onclick="limpRetake()">🔄</button><button class="btn-confirm" onclick="limpConfirm(${idx})">✓ Confirmar</button></div>
+  </div>
+  <button class="btn-close-m" style="margin-top:10px" onclick="closeCP()">Cerrar</button>`;
+}
+let limpCurSub='',limpCurLbl='',limpPD=null,limpTS=null,limpIdx=-1;
+async function limpSubCapture(idx,si){
+  const sub=LIMP_SUBS[si];
+  limpIdx=idx;limpCurSub=sub.key;limpCurLbl=sub.label;limpPD=null;limpTS=null;
+  document.getElementById('limpCamArea').style.display='block';
+  document.getElementById('limpPrevArea').style.display='none';
+  document.getElementById('limpLbl').textContent=limpCurLbl;
+  try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});document.getElementById('limpVid').srcObject=camStream;camTSint=setInterval(()=>{const e=document.getElementById('limpTs');if(e)e.textContent=fmt(new Date())},1000)}
+  catch(e){alert('Error cámara: '+e.message)}
+}
+function limpDoCapture(){const v=document.getElementById('limpVid');const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);limpPD=c.toDataURL('image/jpeg',.82);limpTS=new Date().toISOString();document.getElementById('limpPrevImg').src=limpPD;document.getElementById('limpPrevTs').textContent=`⏰ ${fmt(new Date(limpTS))}`;document.getElementById('limpCamArea').style.display='none';document.getElementById('limpPrevArea').style.display='block';stopCam()}
+function limpRetake(){
+  limpPD=null;limpTS=null;
+  document.getElementById('limpPrevArea').style.display='none';
+  document.getElementById('limpCamArea').style.display='block';
+  // restart camera for same sub
+  const si=LIMP_SUBS.findIndex(s=>s.key===limpCurSub);
+  limpSubCapture(limpIdx,si);
+}
+function limpStopCam(){stopCam();document.getElementById('limpCamArea').style.display='none';limpTS=new Date().toISOString();limpSave(limpIdx,null)}
+function limpConfirm(idx){limpSave(idx,limpPD)}
+function limpSave(idx,photo){
+  const cp=CPS[idx];if(!photos[cp.key])photos[cp.key]=[];
+  photos[cp.key]=photos[cp.key].filter(p=>p.sub!==limpCurSub);
+  const ts=limpTS||new Date().toISOString();
+  photos[cp.key].push({checkpoint:cp.key,label:limpCurLbl,emoji:'🧹',photo:photo||null,timestamp:ts,sub:limpCurSub});
+  saveCP(idx, limpCurLbl, ts, photo, { sub: limpCurSub });
+  limpPD=null;limpTS=null;stopCam();
+  document.getElementById('limpCamArea').style.display='none';document.getElementById('limpPrevArea').style.display='none';
+  closeCP();renderMissions();setTimeout(()=>openCP(idx),150);
+}
+
+// ── FOD GROUP ────────────────────────────────────────────────────────────
+function rFodGroupBody(b,idx){
+  const cp=CPS[idx];const ph=photos[cp.key]||[];
+  const subs=cp.subs||['fod_1','fod_2','fod_3'];
+  const subLabels=cp.subLabels||['1er FOD','2do FOD','3er FOD'];
+  const mkRow=(sk,lbl)=>{
+    const done=ph.find(p=>p.sub===sk);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:${done?'rgba(16,185,129,.07)':'rgba(18,28,52,.55)'};border:1px solid ${done?'rgba(16,185,129,.25)':'rgba(59,130,246,.13)'};border-radius:10px;margin-bottom:8px;gap:8px">
+      <div style="flex:1"><div style="color:${done?'#6ee7b7':'#cbd5e1'};font-size:13px;font-weight:700">🔍 ${lbl}</div>${done?`<div style="color:#6ee7b7;font-size:10px;font-family:'Courier New',monospace;margin-top:2px">✅ ${fmt(new Date(done.timestamp))}</div>`:''}</div>
+      ${done&&done.photo?`<img src="${done.photo}" style="width:52px;aspect-ratio:4/3;object-fit:cover;border-radius:5px;flex-shrink:0">`:''}
+      <button style="padding:7px 13px;background:${done?'rgba(16,185,129,.18)':'rgba(59,130,246,.15)'};border:1px solid ${done?'rgba(16,185,129,.4)':'rgba(59,130,246,.4)'};border-radius:8px;color:${done?'#6ee7b7':'#60a5fa'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0" onclick="fodCapture(${idx},'${sk}','${lbl}')">${done?'✓ OK':'📷'}</button>
+    </div>`;
+  };
+  b.innerHTML=`<div style="color:#64748b;font-size:11px;line-height:1.5;margin-bottom:11px">Documente cada FOD con foto. La foto confirma el área libre de objetos extraños.</div>
+  ${subs.map((sk,i)=>mkRow(sk,subLabels[i])).join('')}
+  <div id="fodCamArea" style="display:none;margin-top:10px">
+    <div class="cam-wrap"><video id="fodVid" autoplay playsinline></video><div class="cam-lbl" id="fodLbl"></div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="fodTs">--:--:--</div></div>
+    <button class="btn-capture" onclick="fodDoCapture()">📸 Capturar</button>
+    <button class="btn-close-m" style="margin-bottom:8px" onclick="fodStopCam()">✕ Cerrar</button>
+  </div>
+  <div id="fodPrevArea" style="display:none;margin-top:10px">
+    <img class="prev-img" id="fodPrevImg"><div class="prev-ts" id="fodPrevTs"></div>
+    <div class="photo-act"><button class="btn-retake" onclick="fodRetake()">🔄</button><button class="btn-confirm" onclick="fodConfirm(${idx})">✓ Confirmar FOD</button></div>
+  </div>
+  <button class="btn-close-m" style="margin-top:10px" onclick="closeCP()">Cerrar</button>`;
+}
+let fodCurSub='',fodCurLbl='',fodPD=null,fodTS=null,fodIdx=-1;
+async function fodCapture(idx,sk,lbl){
+  fodIdx=idx;fodCurSub=sk;fodCurLbl=lbl;fodPD=null;fodTS=null;
+  document.getElementById('fodCamArea').style.display='block';document.getElementById('fodPrevArea').style.display='none';
+  document.getElementById('fodLbl').textContent=lbl;
+  try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});document.getElementById('fodVid').srcObject=camStream;camTSint=setInterval(()=>{const e=document.getElementById('fodTs');if(e)e.textContent=fmt(new Date())},1000)}
+  catch(e){alert('Error cámara: '+e.message)}
+}
+function fodDoCapture(){const v=document.getElementById('fodVid');const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);fodPD=c.toDataURL('image/jpeg',.82);fodTS=new Date().toISOString();document.getElementById('fodPrevImg').src=fodPD;document.getElementById('fodPrevTs').textContent=`⏰ ${fmt(new Date(fodTS))}`;document.getElementById('fodCamArea').style.display='none';document.getElementById('fodPrevArea').style.display='block';stopCam()}
+function fodRetake(){fodPD=null;fodTS=null;document.getElementById('fodPrevArea').style.display='none';document.getElementById('fodCamArea').style.display='block';fodCapture(fodIdx,fodCurSub,fodCurLbl)}
+function fodStopCam(){stopCam();document.getElementById('fodCamArea').style.display='none'}
+function fodConfirm(idx){
+  const cp=CPS[idx];if(!photos[cp.key])photos[cp.key]=[];
+  photos[cp.key]=photos[cp.key].filter(p=>p.sub!==fodCurSub);
+  photos[cp.key].push({checkpoint:cp.key,label:fodCurLbl,emoji:'🔍',photo:fodPD,timestamp:fodTS,sub:fodCurSub});
+  saveCP(idx, fodCurLbl, fodTS, fodPD, { sub: fodCurSub });
+  fodPD=null;fodTS=null;stopCam();document.getElementById('fodCamArea').style.display='none';document.getElementById('fodPrevArea').style.display='none';
+  closeCP();renderMissions();setTimeout(()=>openCP(idx),150);
+}
+
+// ── CIERRE DE BINES ──────────────────────────────────────────────────────
+function rBinesBody(b,idx){
+  const cp=CPS[idx];const ph=photos[cp.key]||[];
+  const binDel=ph.find(p=>p.sub==='bin_delantero');const binTra=ph.find(p=>p.sub==='bin_trasero');
+  const mkBin=(sk,lbl,done)=>`
+    <div style="background:${done?'rgba(16,185,129,.07)':'rgba(18,28,52,.5)'};border:1px solid ${done?'rgba(16,185,129,.25)':'rgba(59,130,246,.13)'};border-radius:10px;padding:12px 13px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${done?'7px':'9px'}">
+        <span style="color:${done?'#6ee7b7':'#cbd5e1'};font-size:13px;font-weight:700">${lbl}</span>
+        ${done?`<span style="color:#6ee7b7;font-size:10px;font-family:'Courier New',monospace">✅ ${fmt(new Date(done.timestamp))}</span>`:''}
+      </div>
+      ${done&&done.photo?`<img src="${done.photo}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:7px;margin-bottom:8px">`:``}
+      <button class="btn-start-cam" style="margin-bottom:0" onclick="binCapture(${idx},'${sk}','${lbl}')">${done?'📷 Actualizar':'📷 Registrar Cierre'}</button>
+    </div>`;
+  b.innerHTML=`<div style="color:#64748b;font-size:11px;line-height:1.5;margin-bottom:11px">Registre el cierre de bines con foto de evidencia.</div>
+  ${mkBin('bin_delantero','🚪 Bin Delantero',binDel)}
+  ${mkBin('bin_trasero','🚪 Bin Trasero',binTra)}
+  <div id="binCamArea" style="display:none;margin-top:10px">
+    <div class="cam-wrap"><video id="binVid" autoplay playsinline></video><div class="cam-lbl" id="binLbl"></div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="binTs">--:--:--</div></div>
+    <button class="btn-capture" onclick="binDoCapture()">📸 Capturar</button>
+    <button class="btn-close-m" style="margin-bottom:8px" onclick="binStopCam()">✕ Cerrar</button>
+  </div>
+  <div id="binPrevArea" style="display:none;margin-top:10px">
+    <img class="prev-img" id="binPrevImg"><div class="prev-ts" id="binPrevTs"></div>
+    <div class="photo-act"><button class="btn-retake" onclick="binRetake()">🔄</button><button class="btn-confirm" onclick="binConfirm(${idx})">✓ Confirmar</button></div>
+  </div>
+  <button class="btn-close-m" style="margin-top:10px" onclick="closeCP()">Cerrar</button>`;
+}
+let binCurSub='',binCurLbl='',binPD=null,binTS=null,binIdx=-1;
+async function binCapture(idx,sk,lbl){
+  binIdx=idx;binCurSub=sk;binCurLbl=lbl;binPD=null;binTS=null;
+  document.getElementById('binCamArea').style.display='block';document.getElementById('binPrevArea').style.display='none';
+  document.getElementById('binLbl').textContent=lbl;
+  try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});document.getElementById('binVid').srcObject=camStream;camTSint=setInterval(()=>{const e=document.getElementById('binTs');if(e)e.textContent=fmt(new Date())},1000)}
+  catch(e){alert('Error cámara: '+e.message)}
+}
+function binDoCapture(){const v=document.getElementById('binVid');const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);binPD=c.toDataURL('image/jpeg',.82);binTS=new Date().toISOString();document.getElementById('binPrevImg').src=binPD;document.getElementById('binPrevTs').textContent=`⏰ ${fmt(new Date(binTS))}`;document.getElementById('binCamArea').style.display='none';document.getElementById('binPrevArea').style.display='block';stopCam()}
+function binRetake(){binPD=null;binTS=null;document.getElementById('binPrevArea').style.display='none';document.getElementById('binCamArea').style.display='block';binCapture(binIdx,binCurSub,binCurLbl)}
+function binStopCam(){stopCam();document.getElementById('binCamArea').style.display='none'}
+function binConfirm(idx){
+  const cp=CPS[idx];if(!photos[cp.key])photos[cp.key]=[];
+  photos[cp.key]=photos[cp.key].filter(p=>p.sub!==binCurSub);
+  photos[cp.key].push({checkpoint:cp.key,label:binCurLbl,emoji:'🚪',photo:binPD,timestamp:binTS,sub:binCurSub});
+  saveCP(idx, binCurLbl, binTS, binPD, { sub: binCurSub });
+  binPD=null;binTS=null;stopCam();document.getElementById('binCamArea').style.display='none';document.getElementById('binPrevArea').style.display='none';
+  closeCP();renderMissions();setTimeout(()=>openCP(idx),150);
+}
+
+// ── FINALIZAR REPORTE ────────────────────────────────────────────────────
+function buildFinalSummary(){
+  const tn={'TURN':'TURN (Turnaround)','RON-ARRIVAL':'RON - Llegada','RON-DEPARTURE':'RON - Salida'};
+  const done=CPS.filter(c=>photos[c.key]&&photos[c.key].length>0).length;
+  const total=CPS.length;
+  const pending=CPS.filter(c=>!c.optional&&!(photos[c.key]&&photos[c.key].length>0));
+  let ph=0;for(const k in photos)(photos[k]||[]).forEach(p=>{if(p.photo)ph++});
+
+  // summary rows
+  document.getElementById('finalSummaryRows').innerHTML=`
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(16,185,129,.1)"><span style="color:#64748b;font-size:12px">Aerolínea / Vuelo</span><span style="color:#fff;font-size:12px;font-weight:700">${ANAMES[sA]||sA} · ${sF}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(16,185,129,.1)"><span style="color:#64748b;font-size:12px">Tipo / Posición</span><span style="color:#fff;font-size:12px;font-weight:700">${tn[sT]} · ${sPosicion}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(16,185,129,.1)"><span style="color:#64748b;font-size:12px">Inspector</span><span style="color:#fff;font-size:12px;font-weight:700">${U.username}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(16,185,129,.1)"><span style="color:#64748b;font-size:12px">Checkpoints</span><span style="color:${done===total?'#6ee7b7':'#fbbf24'};font-size:12px;font-weight:700">${done}/${total}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:#64748b;font-size:12px">Fotos capturadas</span><span style="color:#fff;font-size:12px;font-weight:700">${ph}</span></div>`;
+
+  // pending warning
+  const warn=document.getElementById('finalPendingWarn');
+  if(pending.length>0){
+    warn.style.display='block';
+    warn.innerHTML=`⚠️ <strong>${pending.length} checkpoint(s) obligatorio(s) pendiente(s):</strong> ${pending.map(c=>c.label).join(', ')}. Puede finalizar igualmente, pero quedará registrado como incompleto.`;
+  }else{warn.style.display='none'}
+
+  // billing
+  const bb=document.getElementById('finalBillingBox');
+  const br=document.getElementById('finalBillingRows');
+  const bt=document.getElementById('finalBillingTotal');
+  if(billingItems.length>0){
+    bb.style.display='block';
+    br.innerHTML=billingItems.map(i=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span style="color:#94a3b8">${i.icon} ${i.name}</span><span style="color:#2dd4bf;font-weight:600">${i.detail||'—'}</span></div>`).join('');
+    bt.textContent=`${billingItems.length} servicio(s)`;
+  }else{bb.style.display='none'}
+}
+
+function confirmFinalReport(){
+  const obs=document.getElementById('finalObs').value.trim();
+  closeM('mFinal');
+  finalizeInsp(obs);
+}
+
+console.log('✈️ Turnaround Check v6');
+</script>
+</body>
+</html>
