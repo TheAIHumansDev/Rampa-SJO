@@ -322,6 +322,9 @@ textarea.ta:focus{border-color:#3b82f6}
 .pers-hrs-input{width:52px;padding:5px 6px;background:rgba(18,28,52,.8);border:1px solid rgba(59,130,246,.25);border-radius:6px;color:#fff;font-size:12px;text-align:center;font-family:inherit}
 .pers-del{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:10px;font-family:inherit}
 
+.pers-vig-ok{color:#6ee7b7}
+.pers-vig-warn{color:#fca5a5;font-weight:700}
+
 /* Fleet list */
 .fleet-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(18,28,52,.5);border:1px solid rgba(59,130,246,.1);border-radius:10px;margin-bottom:7px}
 .fleet-icon{font-size:20px;flex-shrink:0}
@@ -1412,15 +1415,16 @@ textarea.ta:focus{border-color:#3b82f6}
             <input type="text" id="credNombre" placeholder="Nombre completo">
             <input type="text" id="credCedula" placeholder="Cédula / ID">
             <input type="text" id="credEmpresa" placeholder="Empresa">
-            <input type="text" id="credCargo" placeholder="Cargo">
+            <input type="text" id="credVigencia" placeholder="Vigencia (dd/mm/aaaa)">
+            <input type="text" id="credNumCred" placeholder="No. Credencial">
           </div>
           <button class="btn-action purple" onclick="credConfirmAdd()">➕ Agregar al Vuelo</button>
         </div>
         <button class="btn-start-cam" id="credStartBtn" onclick="credStartCam()">📷 Escanear Credencial</button>
       </div>
       <div style="color:#475569;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px" id="persTableHdr">Personal Registrado (0)</div>
-      <table class="pers-table" id="persTable">
-        <thead><tr><th>Nombre</th><th>Cédula</th><th>Empresa/Cargo</th><th>H. Extra</th><th>Tarifa $</th><th></th></tr></thead>
+   <table class="pers-table" id="persTable">
+        <thead><tr><th>Nombre</th><th>Cédula</th><th>Empresa</th><th>Vigencia</th><th>No. Cred.</th><th>H. Extra</th><th>Tarifa $</th><th></th></tr></thead>
         <tbody id="persTableBody"></tbody>
       </table>
     </div>
@@ -2399,7 +2403,8 @@ async function credProcess(){
   document.getElementById('credNombre').value=r.data.nombre||'';
   document.getElementById('credCedula').value=r.data.cedula||'';
   document.getElementById('credEmpresa').value=r.data.empresa||'';
-  document.getElementById('credCargo').value=r.data.cargo||'';
+  document.getElementById('credVigencia').value=r.data.vigencia||'';
+  document.getElementById('credNumCred').value=r.data.numero_credencial||'';
   document.getElementById('credFormV').style.display='block';
 }
 
@@ -2408,7 +2413,8 @@ async function credConfirmAdd(){
     nombre:document.getElementById('credNombre').value.trim(),
     cedula:document.getElementById('credCedula').value.trim(),
     empresa:document.getElementById('credEmpresa').value.trim(),
-    cargo:document.getElementById('credCargo').value.trim()
+    vigencia:document.getElementById('credVigencia').value.trim(),
+    numeroCredencial:document.getElementById('credNumCred').value.trim()
   };
   if(!persona.nombre){alert('Ingrese al menos el nombre');return}
   personalVuelo.push({...persona,horasExtra:0,tarifaHoraExtra:0,montoExtra:0});
@@ -2423,23 +2429,35 @@ async function credConfirmAdd(){
   credPhotoData=null;
   document.getElementById('credFormV').style.display='none';
   document.getElementById('credStartBtn').style.display='block';
-  ['credNombre','credCedula','credEmpresa','credCargo'].forEach(id=>document.getElementById(id).value='');
+  ['credNombre','credCedula','credEmpresa','credVigencia','credNumCred'].forEach(id=>document.getElementById(id).value='');
 }
-
+        
+function parseVigenciaDMY(v){
+  if(!v)return null;
+  const m=String(v).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(!m)return null;
+  return new Date(+m[3], +m[2]-1, +m[1]);
+}
 function renderPersonalTable(){
   const body=document.getElementById('persTableBody');
   const hdr=document.getElementById('persTableHdr');
   if(!body)return;
   hdr.textContent=`Personal Registrado (${personalVuelo.length})`;
-  body.innerHTML=personalVuelo.map((p,i)=>`
-    <tr>
+  const hoy=new Date();
+  body.innerHTML=personalVuelo.map((p,i)=>{
+    const vd=parseVigenciaDMY(p.vigencia);
+    const vencida=vd&&vd<hoy;
+    return `<tr>
       <td>${p.nombre||'—'}</td>
       <td>${p.cedula||'—'}</td>
-      <td>${[p.empresa,p.cargo].filter(Boolean).join(' — ')||'—'}</td>
+      <td>${p.empresa||'—'}</td>
+      <td class="${vencida?'pers-vig-warn':'pers-vig-ok'}">${p.vigencia||'—'}${vencida?' ⚠️':''}</td>
+      <td>${p.numeroCredencial||'—'}</td>
       <td><input type="text" class="pers-hrs-input" value="${p.horasExtra||0}" onchange="updatePersHoras(${i},this.value,'horas')"></td>
       <td><input type="text" class="pers-hrs-input" value="${p.tarifaHoraExtra||0}" onchange="updatePersHoras(${i},this.value,'tarifa')"></td>
       <td><button class="pers-del" onclick="delPersonal(${i})">✕</button></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 async function updatePersHoras(i,val,field){
