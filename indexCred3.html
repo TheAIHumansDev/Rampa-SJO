@@ -316,15 +316,29 @@ textarea.ta:focus{border-color:#3b82f6}
 .cred-loading{text-align:center;color:#c4b5fd;font-size:12px;padding:14px 0}
 .cred-confirm-row{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
 .cred-confirm-row input{padding:9px 11px;background:rgba(18,28,52,.8);border:1px solid rgba(139,92,246,.25);border-radius:8px;color:#fff;font-size:12px;font-family:inherit}
-.pers-table{width:100%;border-collapse:collapse;margin-bottom:11px}
-.pers-table th{color:#64748b;font-size:9px;text-transform:uppercase;letter-spacing:.4px;text-align:left;padding:6px}
-.pers-table td{padding:7px 6px;font-size:12px;color:#e2e8f0;border-bottom:1px solid rgba(59,130,246,.08)}
-.pers-hrs-input{width:52px;padding:5px 6px;background:rgba(18,28,52,.8);border:1px solid rgba(59,130,246,.25);border-radius:6px;color:#fff;font-size:12px;text-align:center;font-family:inherit}
-.pers-del{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:10px;font-family:inherit}
 
-.pers-vig-ok{color:#6ee7b7}
-.pers-vig-warn{color:#fca5a5;font-weight:700}
-
+.pers-card{background:rgba(18,28,52,.55);border:1px solid rgba(139,92,246,.15);border-radius:12px;padding:12px 13px;margin-bottom:9px}
+.pers-card-top{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}
+.pers-photo{width:52px;height:52px;border-radius:9px;object-fit:cover;flex-shrink:0;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25)}
+.pers-photo-ph{width:52px;height:52px;border-radius:9px;flex-shrink:0;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25);display:flex;align-items:center;justify-content:center;font-size:20px}
+.pers-info{flex:1;min-width:0}
+.pers-nombre{color:#e2e8f0;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pers-meta{color:#64748b;font-size:11px;margin-top:2px}
+.pers-vig-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;margin-top:5px}
+.pers-vig-badge.ok{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3)}
+.pers-vig-badge.warn{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.3)}
+.pers-vig-badge.exp{background:rgba(239,68,68,.18);color:#fca5a5;border:1px solid rgba(239,68,68,.4)}
+.pers-del-top{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.28);color:#fca5a5;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;flex-shrink:0;font-family:inherit}
+.pers-block-title{color:#475569;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;margin-top:10px}
+.pers-extra-row select{width:100%;padding:9px;background:rgba(10,17,35,.7);border:1px solid rgba(59,130,246,.18);border-radius:8px;color:#fff;font-size:12px;font-family:inherit;margin-bottom:7px}
+.pers-jornada-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:7px}
+.pers-jornada-item{padding:7px 6px;background:rgba(10,17,35,.6);border:2px solid rgba(59,130,246,.13);border-radius:8px;text-align:center;cursor:pointer;font-size:10.5px;color:#94a3b8;font-weight:600;transition:all .2s}
+.pers-jornada-item.sel{border-color:#8b5cf6;background:rgba(139,92,246,.15);color:#c4b5fd}
+.pers-mixta-row{display:none;gap:7px;margin-bottom:7px}
+.pers-mixta-row.visible{display:flex}
+.pers-mixta-row select{width:100%;padding:8px;background:rgba(10,17,35,.7);border:1px solid rgba(59,130,246,.18);border-radius:8px;color:#fff;font-size:11px;font-family:inherit}
+.pers-mixta-lbl{color:#64748b;font-size:9px;display:block;margin-bottom:3px}
+.pers-alert-nostart{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.32);border-radius:7px;padding:6px 9px;color:#fca5a5;font-size:10.5px;font-weight:700;margin-top:6px;margin-bottom:2px;text-align:center}
 /* Fleet list */
 .fleet-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(18,28,52,.5);border:1px solid rgba(59,130,246,.1);border-radius:10px;margin-bottom:7px}
 .fleet-icon{font-size:20px;flex-shrink:0}
@@ -1422,11 +1436,8 @@ textarea.ta:focus{border-color:#3b82f6}
         </div>
         <button class="btn-start-cam" id="credStartBtn" onclick="credStartCam()">📷 Escanear Credencial</button>
       </div>
-      <div style="color:#475569;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px" id="persTableHdr">Personal Registrado (0)</div>
-   <table class="pers-table" id="persTable">
-        <thead><tr><th>Nombre</th><th>Cédula</th><th>Empresa</th><th>Vigencia</th><th>No. Cred.</th><th>H. Extra</th><th>Tarifa $</th><th></th></tr></thead>
-        <tbody id="persTableBody"></tbody>
-      </table>
+     <div style="color:#475569;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px" id="persTableHdr">Personal Registrado (0)</div>
+      <div id="persCardsList"></div>
     </div>
 
     <button class="btn-close-m" onclick="closeM('mEquip')">Cerrar</button>
@@ -2417,7 +2428,7 @@ async function credConfirmAdd(){
     numeroCredencial:document.getElementById('credNumCred').value.trim()
   };
   if(!persona.nombre){alert('Ingrese al menos el nombre');return}
-  personalVuelo.push({...persona,horasExtra:0,tarifaHoraExtra:0,montoExtra:0});
+  personalVuelo.push({...persona,horasExtra:0,jornada:'',horasDiurnas:0,horasNocturnas:0,fotoLocal:credPhotoData});
   renderPersonalTable();
   toast(`🪪 ${persona.nombre} agregado al vuelo`);
 
@@ -2438,33 +2449,88 @@ function parseVigenciaDMY(v){
   if(!m)return null;
   return new Date(+m[3], +m[2]-1, +m[1]);
 }
+function vigenciaStatus(vigenciaStr){
+  const vd=parseVigenciaDMY(vigenciaStr);
+  if(!vd)return 'unknown';
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const diffDays=Math.floor((vd-hoy)/86400000);
+  if(diffDays<0)return 'exp';
+  if(diffDays<=30)return 'warn';
+  return 'ok';
+}
+const HORAS_OPTS=['0','0.5','1','1.5','2','2.5','3','3.5','4'];
 function renderPersonalTable(){
-  const body=document.getElementById('persTableBody');
+  const list=document.getElementById('persCardsList');
   const hdr=document.getElementById('persTableHdr');
-  if(!body)return;
+  if(!list)return;
   hdr.textContent=`Personal Registrado (${personalVuelo.length})`;
-  const hoy=new Date();
-  body.innerHTML=personalVuelo.map((p,i)=>{
-    const vd=parseVigenciaDMY(p.vigencia);
-    const vencida=vd&&vd<hoy;
-    return `<tr>
-      <td>${p.nombre||'—'}</td>
-      <td>${p.cedula||'—'}</td>
-      <td>${p.empresa||'—'}</td>
-      <td class="${vencida?'pers-vig-warn':'pers-vig-ok'}">${p.vigencia||'—'}${vencida?' ⚠️':''}</td>
-      <td>${p.numeroCredencial||'—'}</td>
-      <td><input type="text" class="pers-hrs-input" value="${p.horasExtra||0}" onchange="updatePersHoras(${i},this.value,'horas')"></td>
-      <td><input type="text" class="pers-hrs-input" value="${p.tarifaHoraExtra||0}" onchange="updatePersHoras(${i},this.value,'tarifa')"></td>
-      <td><button class="pers-del" onclick="delPersonal(${i})">✕</button></td>
-    </tr>`;
+  const jornadas=[['diurna','☀️ Diurna'],['tarde','🌤️ Tarde'],['nocturna','🌙 Nocturna'],['mixta','🔀 Mixta']];
+  list.innerHTML=personalVuelo.map((p,i)=>{
+    const status=vigenciaStatus(p.vigencia);
+    const badgeTxt=status==='exp'?`⛔ Vencida ${p.vigencia||''}`:status==='warn'?`⚠️ Vence pronto ${p.vigencia||''}`:status==='ok'?`✅ Vigente ${p.vigencia||''}`:'— Sin vigencia';
+    const badgeCls=status==='unknown'?'warn':status;
+    const photoSrc=p.fotoLocal||toDriveThumb(p.fotoUrl)||'';
+    const photoEl=photoSrc?`<img class="pers-photo" src="${photoSrc}">`:`<div class="pers-photo-ph">🪪</div>`;
+    const jornada=p.jornada||'';
+    return `<div class="pers-card">
+      <div class="pers-card-top">
+        ${photoEl}
+        <div class="pers-info">
+          <div class="pers-nombre">${p.nombre||'—'}</div>
+          <div class="pers-meta">🪪 ${p.cedula||'—'} · ${p.empresa||'—'}</div>
+          <div class="pers-meta">No. Cred: ${p.numeroCredencial||'—'}</div>
+          <span class="pers-vig-badge ${badgeCls}">${badgeTxt}</span>
+        </div>
+        <button class="pers-del-top" onclick="delPersonal(${i})">✕</button>
+      </div>
+      ${status==='exp'?`<div class="pers-alert-nostart">⛔ Credencial vencida — no puede ingresar a operación</div>`:''}
+      <div class="pers-block-title">⏱️ Horas Extra</div>
+      <div class="pers-extra-row" style="${jornada==='mixta'?'display:none':''}">
+        <select onchange="updatePersExtra(${i},'horasExtra',this.value)">
+          ${HORAS_OPTS.map(h=>`<option value="${h}" ${String(p.horasExtra||0)===h?'selected':''}>${h==='0'?'Sin extra':h+' h'}</option>`).join('')}
+        </select>
+      </div>
+      <div class="pers-jornada-grid">
+        ${jornadas.map(([k,l])=>`<div class="pers-jornada-item ${jornada===k?'sel':''}" onclick="updatePersExtra(${i},'jornada','${k}')">${l}</div>`).join('')}
+      </div>
+      <div class="pers-mixta-row ${jornada==='mixta'?'visible':''}">
+        <div style="flex:1"><span class="pers-mixta-lbl">Horas Diurnas</span>
+          <select onchange="updatePersExtra(${i},'horasDiurnas',this.value)">
+            ${HORAS_OPTS.map(h=>`<option value="${h}" ${String(p.horasDiurnas||0)===h?'selected':''}>${h} h</option>`).join('')}
+          </select>
+        </div>
+        <div style="flex:1"><span class="pers-mixta-lbl">Horas Nocturnas</span>
+          <select onchange="updatePersExtra(${i},'horasNocturnas',this.value)">
+            ${HORAS_OPTS.map(h=>`<option value="${h}" ${String(p.horasNocturnas||0)===h?'selected':''}>${h} h</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>`;
   }).join('');
 }
 
-async function updatePersHoras(i,val,field){
+async function updatePersExtra(i,field,value){
   const p=personalVuelo[i];if(!p)return;
-  if(field==='horas')p.horasExtra=parseFloat(val)||0; else p.tarifaHoraExtra=parseFloat(val)||0;
-  p.montoExtra=(p.horasExtra||0)*(p.tarifaHoraExtra||0);
-  await postSync({action:'updatePersonalHoras',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,nombre:p.nombre,horasExtra:p.horasExtra,tarifaHoraExtra:p.tarifaHoraExtra});
+  if(field==='jornada'){
+    p.jornada=value;
+    if(value==='mixta'){
+      p.horasDiurnas=p.horasDiurnas||0;p.horasNocturnas=p.horasNocturnas||0;
+      p.horasExtra=Math.min((parseFloat(p.horasDiurnas)||0)+(parseFloat(p.horasNocturnas)||0),4);
+    }
+  }else if(field==='horasDiurnas'||field==='horasNocturnas'){
+    p[field]=parseFloat(value)||0;
+    const total=(parseFloat(p.horasDiurnas)||0)+(parseFloat(p.horasNocturnas)||0);
+    if(total>4)alert('El máximo de horas extra por persona es 4. Ajuste los valores.');
+    p.horasExtra=Math.min(total,4);
+  }else if(field==='horasExtra'){
+    p.horasExtra=parseFloat(value)||0;
+  }
+  renderPersonalTable();
+  await postSync({
+    action:'updatePersonalHoras',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,
+    nombre:p.nombre,horasExtra:p.horasExtra,jornada:p.jornada||'',
+    horasDiurnas:p.horasDiurnas||0,horasNocturnas:p.horasNocturnas||0
+  });
   toast(`💾 Horas extra actualizadas — ${p.nombre}`);
 }
 
