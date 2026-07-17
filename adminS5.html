@@ -1065,17 +1065,66 @@ html, body {
 
 <div class="an-section-label" style="margin-top:24px;">horas extra</div>
 
-    <div class="analytics-grid single" style="margin-bottom:16px;">
+<div class="analytics-grid single" style="margin-bottom:16px;">
         <div class="an-card ac-red">
             <div class="an-card-title">⏱️ Horas Extra Reportadas por Día</div>
             <div id="heDailyList"></div>
         </div>
     </div>
 
+    <div class="an-section-label">métricas y patrones · horas extra</div>
+
+    <div class="kpi-row" style="margin-bottom:16px;">
+        <div class="kpi-card blue"><div class="kpi-label">Horas Extra Totales</div><div class="kpi-value blue" id="heKpiTotalHoras">–</div><div class="kpi-sub">período completo</div></div>
+        <div class="kpi-card cyan"><div class="kpi-label">Promedio por Solicitud</div><div class="kpi-value cyan" id="heKpiPromedio">–</div><div class="kpi-sub">horas</div></div>
+        <div class="kpi-card purple"><div class="kpi-label">Usuario con Más Horas</div><div class="kpi-value" id="heKpiTop" style="font-size:18px;color:#c4b5fd;">–</div><div class="kpi-sub" id="heKpiTopSub">–</div></div>
+        <div class="kpi-card yellow"><div class="kpi-label">Pendientes de Revisión</div><div class="kpi-value yellow" id="heKpiPendientes">–</div><div class="kpi-sub">requieren aprobación</div></div>
+    </div>
+
+    <div class="analytics-grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px;">
+        <div class="an-card ac-blue">
+            <div class="an-card-title">
+                🏆 Horas Acumuladas por Usuario
+                <div class="rank-toggle" id="heRankToggle">
+                    <button class="rank-toggle-btn active" onclick="setHeRankMode('desc',this)">↓ Mayor</button>
+                    <button class="rank-toggle-btn" onclick="setHeRankMode('asc',this)">↑ Menor</button>
+                </div>
+            </div>
+            <div class="rank-table" id="heRankUsuarios"></div>
+        </div>
+        <div class="an-card ac-purple">
+            <div class="an-card-title">📁 Distribución por Motivo</div>
+            <div class="chart-wrap donut"><canvas id="chartHeMotivo"></canvas></div>
+        </div>
+    </div>
+
+    <div class="analytics-grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px;">
+        <div class="an-card ac-yellow">
+            <div class="an-card-title">📅 Horas Extra por Día de Semana</div>
+            <div class="chart-wrap"><canvas id="chartHeWeekday"></canvas></div>
+        </div>
+        <div class="an-card ac-cyan">
+            <div class="an-card-title">📈 Tendencia — Últimos 14 Días</div>
+            <div class="chart-wrap"><canvas id="chartHeTrend"></canvas></div>
+        </div>
+    </div>
+
     <div class="analytics-grid single" style="margin-bottom:16px;">
         <div class="an-card ac-purple">
             <div class="an-card-title">📋 Detalle de Horas Extra <span class="an-count" id="heDetailCount">0</span></div>
+            
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                <span class="filter-label">Ordenar por</span>
+                <select class="filter-select" id="heSortField" onchange="applyHeSort()">
+                    <option value="fecha">Fecha</option>
+                    <option value="duracion">Duración</option>
+                    <option value="usuario">Usuario</option>
+                    <option value="estado">Estado</option>
+                </select>
+                <button class="rank-toggle-btn active" id="heSortDirBtn" onclick="toggleHeSortDir()">↓ Descendente</button>
+            </div>
             <div class="report-table-wrap" style="background:transparent;border:none;">
+                
 <div class="rt-head" style="grid-template-columns:0.9fr 0.9fr 0.9fr 1.6fr 0.6fr 0.7fr 0.8fr 1.3fr;">
                     <div class="rt-head-cell">Usuario</div>
                     <div class="rt-head-cell"># Vuelo</div>
@@ -1173,6 +1222,7 @@ var allWchReports = [], filteredWchReports = [];
 var wchDateFilter = 'today';
 var activeWchAeropuertoFilter = 'all', activeWchAerolineaFilter = 'all', activeWchTipoFilter = 'all', activeWchEstadoFilter = 'all';
 var allHeReports = [], heDailyTotals = [];
+var heSortField = 'fecha', heSortDir = 'desc', heRankMode = 'desc';
 
 function loadWchReports(manual) {
     manual = !!manual;
@@ -1202,11 +1252,12 @@ function loadWchReports(manual) {
     // Horas extra se carga junto con WCH (misma pestaña)
     jsonpFetch('jst_he', SCRIPT_URL_WCH + '?action=getHorasExtra', 9000,
         data => {
-            if (data && data.success) {
+if (data && data.success) {
                 allHeReports = data.reports || [];
                 heDailyTotals = data.dailyTotals || [];
                 renderHeDaily();
                 renderHeDetailTable();
+                renderHeMetrics();
                 updateWchKPIs(); // depende de heDailyTotals para "horas extra hoy"
             }
         },
@@ -1358,6 +1409,40 @@ function parseHeDateClient(r) {
     return new Date(+parts[0], +parts[1] - 1, +parts[2], t ? +t[1] : 0, t ? +t[2] : 0).getTime();
 }
 
+function sortHeReports(list) {
+    const field = heSortField, dir = heSortDir === 'asc' ? 1 : -1;
+    return [...list].sort((a, b) => {
+        let va, vb;
+        if (field === 'fecha') { va = parseHeDateClient(a); vb = parseHeDateClient(b); }
+        else if (field === 'duracion') { va = a.duracionHoras || 0; vb = b.duracionHoras || 0; }
+        else if (field === 'usuario') { va = (a.usuario || '').toLowerCase(); vb = (b.usuario || '').toLowerCase(); }
+        else if (field === 'estado') { va = (a.estado || '').toLowerCase(); vb = (b.estado || '').toLowerCase(); }
+        else { va = 0; vb = 0; }
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+    });
+}
+
+function applyHeSort() {
+    heSortField = document.getElementById('heSortField').value;
+    renderHeDetailTable();
+}
+
+function toggleHeSortDir() {
+    heSortDir = heSortDir === 'desc' ? 'asc' : 'desc';
+    const btn = document.getElementById('heSortDirBtn');
+    btn.textContent = heSortDir === 'desc' ? '↓ Descendente' : '↑ Ascendente';
+    renderHeDetailTable();
+}
+
+function setHeRankMode(mode, el) {
+    heRankMode = mode;
+    el.closest('.rank-toggle').querySelectorAll('.rank-toggle-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    renderHeRankUsuarios();
+}
+
 function heEstadoClass(estado) {
     if (estado === 'Aprobado') return 'he-aprobado';
     if (estado === 'Rechazado') return 'he-rechazado';
@@ -1370,7 +1455,7 @@ function renderHeDetailTable() {
     if (!body) return;
     if (countEl) countEl.textContent = allHeReports.length;
     if (!allHeReports.length) { body.innerHTML = '<div class="empty-row">📭 Sin horas extra registradas</div>'; return; }
-    const display = [...allHeReports].sort((a, b) => parseHeDateClient(b) - parseHeDateClient(a));
+    const display = sortHeReports(allHeReports);
     body.innerHTML = display.map((r, i) => {
         const esVuelo = (r.tipo || '').toLowerCase() === 'vuelo';
         const vueloTxt = esVuelo ? ((r.aerolinea || '') + ' ' + (r.vuelo || '')).trim() || '–' : '–';
@@ -1396,6 +1481,116 @@ function renderHeDetailTable() {
             <div class="rt-cell" style="gap:6px;">${acciones}</div>
         </div>`;
     }).join('');
+}
+
+function buildHeUserStats() {
+    const map = {};
+    allHeReports.forEach(r => {
+        const name = r.usuario || '–';
+        if (!map[name]) map[name] = { name, totalHoras: 0, count: 0 };
+        map[name].totalHoras += (r.duracionHoras || 0);
+        map[name].count++;
+    });
+    return Object.values(map);
+}
+
+function updateHeKPIs() {
+    const total = allHeReports.length;
+    const totalHoras = allHeReports.reduce((s, r) => s + (r.duracionHoras || 0), 0);
+    const promedio = total > 0 ? totalHoras / total : 0;
+    const pendientes = allHeReports.filter(r => r.estado === 'Pendiente').length;
+    const stats = buildHeUserStats().sort((a, b) => b.totalHoras - a.totalHoras);
+    const topUser = stats[0];
+    document.getElementById('heKpiTotalHoras').textContent = totalHoras.toFixed(1) + 'h';
+    document.getElementById('heKpiPromedio').textContent = promedio.toFixed(1) + 'h';
+    document.getElementById('heKpiTop').textContent = topUser ? topUser.name : '–';
+    document.getElementById('heKpiTopSub').textContent = topUser ? topUser.totalHoras.toFixed(1) + 'h acumuladas' : '–';
+    document.getElementById('heKpiPendientes').textContent = pendientes;
+}
+
+function renderHeRankUsuarios() {
+    const stats = buildHeUserStats();
+    const sorted = [...stats].sort((a, b) => heRankMode === 'desc' ? b.totalHoras - a.totalHoras : a.totalHoras - b.totalHoras).slice(0, 20);
+    const max = Math.max(...sorted.map(s => s.totalHoras), 1);
+    const posColors = ['gold', 'silver', 'bronze'];
+    const el = document.getElementById('heRankUsuarios');
+    if (!el) return;
+    if (!sorted.length) { el.innerHTML = '<div class="empty-row">📭 Sin datos</div>'; return; }
+    el.innerHTML = sorted.map((s, i) => {
+        const c = getInspectorColor(s.name);
+        return `<div class="rank-row">
+            <div class="rank-pos ${posColors[i] || 'rest'}">${i + 1}</div>
+            <div class="rank-name" style="color:${c.text};">${s.name}</div>
+            <div class="rank-bar-wrap"><div class="rank-bar-bg"><div class="rank-bar-fill" style="width:${Math.round(s.totalHoras / max * 100)}%;background:${c.dot};"></div></div></div>
+            <div class="rank-val" style="color:${c.dot};">${s.totalHoras.toFixed(1)}h</div>
+        </div>`;
+    }).join('');
+}
+
+function renderHeWeekdayChart() {
+    const buckets = [0, 0, 0, 0, 0, 0, 0]; // Dom..Sáb
+    allHeReports.forEach(r => {
+        const ts = parseHeDateClient(r);
+        if (!ts) return;
+        buckets[new Date(ts).getDay()] += (r.duracionHoras || 0);
+    });
+    const labels = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    destroyChart('chartHeWeekday');
+    chartInstances.chartHeWeekday = new Chart(document.getElementById('chartHeWeekday'), {
+        type: 'bar',
+        data: { labels, datasets: [{ data: buckets.map(v => +v.toFixed(1)), backgroundColor: 'rgba(245,158,11,0.7)', borderRadius: 6, borderSkipped: false }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: l => l.raw + 'h' } } }, scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(59,130,246,0.06)' }, ticks: { callback: v => v + 'h' } } } }
+    });
+}
+
+function renderHeMotivoChart() {
+    const map = {};
+    allHeReports.forEach(r => {
+        const esVuelo = (r.tipo || '').toLowerCase() === 'vuelo';
+        const label = esVuelo ? 'Vuelo' : (r.categoriaOtro === 'Otro' && r.submotivo ? r.submotivo : (r.categoriaOtro || '–'));
+        map[label] = (map[label] || 0) + (r.duracionHoras || 0);
+    });
+    const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]);
+    destroyChart('chartHeMotivo');
+    chartInstances.chartHeMotivo = new Chart(document.getElementById('chartHeMotivo'), {
+        type: 'doughnut',
+        data: { labels: sorted.map(e => e[0]), datasets: [{ data: sorted.map(e => +e[1].toFixed(1)), backgroundColor: sorted.map(e => airlineColor(e[0])), borderWidth: 1, borderColor: 'rgba(5,8,22,0.8)', hoverOffset: 8 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 10 } } }, tooltip: { callbacks: { label: l => l.label + ': ' + l.raw + 'h' } } } }
+    });
+}
+
+function renderHeTrendChart() {
+    const sorted = [...heDailyTotals]
+        .map(d => ({ key: normalizeHeDateKey(d.fecha), horas: d.horas }))
+        .filter(d => d.key)
+        .sort((a, b) => a.key.localeCompare(b.key))
+        .slice(-14);
+    const labels = sorted.map(d => { const p = d.key.split('-'); return p[2] + '/' + p[1]; });
+    const data = sorted.map(d => +d.horas.toFixed(1));
+    destroyChart('chartHeTrend');
+    chartInstances.chartHeTrend = new Chart(document.getElementById('chartHeTrend'), {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Horas Extra', data, borderColor: 'rgba(6,182,212,0.9)', backgroundColor: 'rgba(6,182,212,0.08)', tension: .4, fill: true, pointBackgroundColor: 'rgba(6,182,212,1)', pointRadius: 4, pointHoverRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: l => l.raw + 'h' } } }, scales: { x: { grid: { display: false } }, y: { min: 0, grid: { color: 'rgba(59,130,246,0.06)' }, ticks: { callback: v => v + 'h' } } } }
+    });
+}
+
+function renderHeMetrics() {
+    if (!allHeReports.length) {
+        ['chartHeWeekday', 'chartHeMotivo', 'chartHeTrend'].forEach(id => destroyChart(id));
+        document.getElementById('heKpiTotalHoras').textContent = '0h';
+        document.getElementById('heKpiPromedio').textContent = '0h';
+        document.getElementById('heKpiTop').textContent = '–';
+        document.getElementById('heKpiTopSub').textContent = '–';
+        document.getElementById('heKpiPendientes').textContent = '0';
+        document.getElementById('heRankUsuarios').innerHTML = '<div class="empty-row">📭 Sin datos</div>';
+        return;
+    }
+    updateHeKPIs();
+    renderHeRankUsuarios();
+    renderHeWeekdayChart();
+    renderHeMotivoChart();
+    renderHeTrendChart();
 }
 
 function heSetEstado(ticket, estado) {
@@ -2269,6 +2464,7 @@ function switchTab(name,el){
     el.classList.add('active');
     document.getElementById('tab-'+name).classList.add('active');
     if(name==='analytics')renderAnalytics();
+    if(name==='wch')renderHeMetrics();
 }
 
 // ══════════════════════════════════════════════════════
