@@ -213,6 +213,7 @@ select option{background:#111e3a;color:#fff}
 .btn-start-cam{width:100%;padding:13px;background:rgba(59,130,246,.1);border:2px dashed rgba(59,130,246,.38);border-radius:11px;color:#60a5fa;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:9px;transition:all .2s;font-family:inherit}
 .btn-start-cam:hover{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.65)}
 .btn-close-m{width:100%;padding:10px;background:rgba(51,65,85,.28);border:1px solid rgba(51,65,85,.42);border-radius:10px;color:#94a3b8;font-size:13px;font-weight:600;cursor:pointer;margin-top:7px;font-family:inherit}
+#btnNoAirlineSup.sel{background:rgba(239,68,68,.22);border-color:rgba(239,68,68,.6);color:#fca5a5;font-weight:700}
 
 /* FORM ELEMENTS */
 .form-lbl{color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;display:block}
@@ -535,6 +536,12 @@ textarea.ta:focus{border-color:#3b82f6}
           <span class="sum-val" id="cSvcTotal" style="color:#2dd4bf;font-size:15px;font-family:'Courier New',monospace"></span>
         </div>
       </div>
+
+<div class="sum-card" id="cFirmaCard" style="display:none">
+        <div class="sum-card-t" style="color:#60a5fa">✍️ Firmas y Cierre</div>
+        <div id="cFirmaContent"></div>
+      </div>
+            
       <div class="sum-card">
         <div class="sum-card-t">🖼️ Galería</div>
         <div class="photo-gal" id="cGallery"></div>
@@ -588,6 +595,23 @@ textarea.ta:focus{border-color:#3b82f6}
     <h2 class="modal-title">✅ Finalizar Reporte</h2>
     <p class="modal-sub">Cierre y confirme la inspección completa de este vuelo. Esta acción no se puede deshacer.</p>
     <!-- Summary preview -->
+
+<!-- Planta Eléctrica — tiempo excedido -->
+    <div id="plantaChargeBox" style="display:none;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.28);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="color:#fbbf24;font-size:12px;font-weight:700;margin-bottom:8px">⚡ Planta Eléctrica — Tiempo Excedido</div>
+      <div id="plantaChargeText" style="color:#fcd34d;font-size:12px;line-height:1.5;margin-bottom:10px"></div>
+      <div class="form-g">
+        <label class="form-lbl">Tarifa por minuto adicional ($)</label>
+        <input type="text" id="plantaTarifaExtra" placeholder="Ej: 2.50" oninput="recalcPlantaExtra()">
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="color:#94a3b8;font-size:12px">Monto a cobrar:</span>
+        <span id="plantaMontoExtra" style="color:#fcd34d;font-size:16px;font-weight:800;font-family:'Courier New',monospace">$0.00</span>
+      </div>
+      <button class="btn-action amber" id="btnAddPlantaExtra" onclick="addPlantaExtraCharge()">+ Agregar a Facturación</button>
+      <input type="hidden" id="plantaAddedFlag" value="">
+    </div>
+          
     <div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:14px;margin-bottom:14px" id="finalSummaryBox">
       <div style="color:#6ee7b7;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Resumen de la Operación</div>
       <div id="finalSummaryRows"></div>
@@ -604,6 +628,36 @@ textarea.ta:focus{border-color:#3b82f6}
     </div>
 
     <!-- Pending checkpoints warning -->
+<!-- Firmas del reporte -->
+    <div style="background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.18);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="color:#60a5fa;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">✍️ Firmas del Reporte</div>
+
+      <div class="form-g">
+        <label class="form-lbl">Nombre completo — Encargado AS</label>
+        <input type="text" id="asNombreSup" placeholder="Nombre del supervisor/inspector AS">
+      </div>
+      <div class="form-g">
+        <label class="form-lbl">Firma — Encargado AS</label>
+        <canvas id="asSignCanvas" width="560" height="140" style="width:100%;height:110px;background:#fff;border-radius:9px;touch-action:none;display:block"></canvas>
+        <button class="btn-close-m" style="margin-top:6px;margin-bottom:0" onclick="clearSignaturePad('asSignCanvas')">🧹 Borrar Firma</button>
+      </div>
+
+      <div id="airlineSignBox" style="margin-top:14px">
+        <div class="form-g">
+          <label class="form-lbl">Nombre completo — Supervisor Aerolínea</label>
+          <input type="text" id="airlineNombreSup" placeholder="Nombre del supervisor de la aerolínea">
+        </div>
+        <div class="form-g">
+          <label class="form-lbl">Firma — Supervisor Aerolínea</label>
+          <canvas id="airlineSignCanvas" width="560" height="140" style="width:100%;height:110px;background:#fff;border-radius:9px;touch-action:none;display:block"></canvas>
+          <button class="btn-close-m" style="margin-top:6px;margin-bottom:0" onclick="clearSignaturePad('airlineSignCanvas')">🧹 Borrar Firma</button>
+        </div>
+      </div>
+
+      <button class="btn-close-m" id="btnNoAirlineSup" style="margin-top:10px;border-color:rgba(239,68,68,.35);color:#fca5a5" onclick="toggleNoAirlineSupervisor()">🚫 No se encontró supervisor de la aerolínea</button>
+    </div>
+
+          
     <div id="finalPendingWarn" style="display:none;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:11px 13px;margin-bottom:14px;color:#fcd34d;font-size:12px;line-height:1.5"></div>
 
     <!-- Confirmation -->
@@ -1456,6 +1510,8 @@ let CPS=[],photos={},beaconOff=null,incData=null,segData=null;
 let camStream=null,camTSint=null;
 let mSess=[],mPrevPhoto=null,mPrevTS=null;
 let alertInt=null;
+let _plantaExtraMin=0, noAirlineSupervisorFlag=false, firmaFinalData=null, _sigPadsInit=false;
+const sigState={}; 
 let chatTarget='',chatTargetClass='',chatMsgStore={};
 let eqSolTipo='',urgVal='';
 
@@ -1657,6 +1713,93 @@ renderFlightBar();
   ), 400);
 }
 
+// ── FIRMA DIGITAL (canvas) ──
+function initSignaturePad(id){
+  const canvas=document.getElementById(id);
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle='#111';ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';
+  sigState[id]={drawing:false,hasDrawn:false,ctx,canvas};
+  const getPos=(e)=>{
+    const r=canvas.getBoundingClientRect();
+    const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+    const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+    return {x:cx*(canvas.width/r.width), y:cy*(canvas.height/r.height)};
+  };
+  const start=(e)=>{e.preventDefault();const s=sigState[id];s.drawing=true;s.hasDrawn=true;const p=getPos(e);s.ctx.beginPath();s.ctx.moveTo(p.x,p.y)};
+  const move=(e)=>{const s=sigState[id];if(!s.drawing)return;e.preventDefault();const p=getPos(e);s.ctx.lineTo(p.x,p.y);s.ctx.stroke()};
+  const end=()=>{sigState[id].drawing=false};
+  canvas.addEventListener('mousedown',start);canvas.addEventListener('mousemove',move);window.addEventListener('mouseup',end);
+  canvas.addEventListener('touchstart',start,{passive:false});canvas.addEventListener('touchmove',move,{passive:false});canvas.addEventListener('touchend',end);
+}
+function clearSignaturePad(id){
+  const s=sigState[id];if(!s)return;
+  s.ctx.fillStyle='#fff';s.ctx.fillRect(0,0,s.canvas.width,s.canvas.height);
+  s.hasDrawn=false;
+}
+function getSignatureDataURL(id){
+  const s=sigState[id];
+  if(!s||!s.hasDrawn)return null;
+  return s.canvas.toDataURL('image/png');
+}
+function toggleNoAirlineSupervisor(){
+  noAirlineSupervisorFlag=!noAirlineSupervisorFlag;
+  const box=document.getElementById('airlineSignBox');
+  const btn=document.getElementById('btnNoAirlineSup');
+  if(noAirlineSupervisorFlag){
+    box.style.display='none';
+    btn.classList.add('sel');
+    btn.textContent='✓ Marcado: Sin supervisor de aerolínea — Factura quedará PENDIENTE';
+  }else{
+    box.style.display='block';
+    btn.classList.remove('sel');
+    btn.textContent='🚫 No se encontró supervisor de la aerolínea';
+  }
+}
+function initFinalSignatures(){
+  if(!_sigPadsInit){
+    initSignaturePad('asSignCanvas');
+    initSignaturePad('airlineSignCanvas');
+    _sigPadsInit=true;
+  }else{
+    clearSignaturePad('asSignCanvas');
+    clearSignaturePad('airlineSignCanvas');
+  }
+  noAirlineSupervisorFlag=false;
+  document.getElementById('airlineSignBox').style.display='block';
+  document.getElementById('btnNoAirlineSup').classList.remove('sel');
+  document.getElementById('btnNoAirlineSup').textContent='🚫 No se encontró supervisor de la aerolínea';
+  document.getElementById('asNombreSup').value='';
+  document.getElementById('airlineNombreSup').value='';
+}
+
+// ── PLANTA ELÉCTRICA — TIEMPO EXCEDIDO ──
+function calcPlantaExtra(){
+  const ph=photos['planta_electrica']||[];
+  const con=ph.find(p=>p.sub==='conecta');
+  const des=ph.find(p=>p.sub==='desconecta');
+  if(!con||!des)return null;
+  const mins=Math.round((new Date(des.timestamp)-new Date(con.timestamp))/60000);
+  return {mins, conTs:con.timestamp, desTs:des.timestamp};
+}
+function recalcPlantaExtra(){
+  const tarifa=parseFloat(document.getElementById('plantaTarifaExtra').value)||0;
+  const monto=(_plantaExtraMin||0)*tarifa;
+  document.getElementById('plantaMontoExtra').textContent=`$${monto.toFixed(2)}`;
+}
+function addPlantaExtraCharge(){
+  const tarifa=parseFloat(document.getElementById('plantaTarifaExtra').value)||0;
+  if(tarifa<=0){alert('Ingrese la tarifa por minuto adicional');return}
+  const monto=_plantaExtraMin*tarifa;
+  billingItems.push({type:'planta_extra',icon:'⚡',name:'Planta Eléctrica — Tiempo Adicional',detail:`${_plantaExtraMin} min adicionales × $${tarifa.toFixed(2)}`,amount:monto,timestamp:fmt(new Date())});
+  renderBillingList();updateSvcBadge();
+  document.getElementById('plantaAddedFlag').value='yes';
+  document.getElementById('btnAddPlantaExtra').disabled=true;
+  document.getElementById('btnAddPlantaExtra').textContent='✓ Agregado a Facturación';
+  toast('⚡ Cargo por tiempo adicional agregado');
+  buildFinalSummary();
+}
+        
 // Helper: convierte un label a slug de clave
 function _slugify(str) {
   return String(str)
@@ -2223,6 +2366,20 @@ function finalizeInsp(obs){
     const gt=billingItems.reduce((s,i)=>s+(i.amount||0),0);
     document.getElementById('cSvcTotal').textContent=`$${gt.toFixed(2)}`;
   }
+
+if(firmaFinalData){
+    document.getElementById('cFirmaCard').style.display='block';
+    const f=firmaFinalData;
+    let html=`<div class="sum-row"><span class="sum-lab">Encargado AS:</span><span class="sum-val">${f.asNombre}</span></div>`;
+    if(f.noAirline){
+      html+=`<div class="sum-row"><span class="sum-lab">Supervisor Aerolínea:</span><span class="sum-val" style="color:#fca5a5">⚠️ No disponible</span></div>`;
+      html+=`<div class="sum-row"><span class="sum-lab">Estado Factura:</span><span class="sum-val" style="color:#fbbf24">🕓 PENDIENTE DE FIRMA</span></div>`;
+    }else{
+      html+=`<div class="sum-row"><span class="sum-lab">Supervisor Aerolínea:</span><span class="sum-val">${f.airlineNombre}</span></div>`;
+    }
+    document.getElementById('cFirmaContent').innerHTML=html;
+  }
+        
   const gal=[];for(const k in photos){(photos[k]||[]).forEach((p,i)=>{if(p.photo){const lab=photos[k].length>1?`${p.emoji} ${p.label} #${i+1}`:`${p.emoji} ${p.label}`;gal.push(`<div class="gal-it"><img src="${p.photo}"><div class="gal-lab">${lab}</div></div>`)}})}
   document.getElementById('cGallery').innerHTML=gal.join('');
   showSC('sC');document.getElementById('stepLabel').textContent='Inspección Completada';
@@ -2552,7 +2709,7 @@ async function loadPersonalForFlight(){
 function openM(id){
   if(id==='mEquip')renderFlota();
   if(id==='mSvc')renderBillingList();
-  if(id==='mFinal')buildFinalSummary();
+    if(id==='mFinal'){buildFinalSummary();initFinalSignatures();}
   if(id==='mCancel'){
     document.getElementById('cancelConfirmStep').style.display='block';
     document.getElementById('cancelFormStep').classList.remove('visible');
@@ -2574,6 +2731,7 @@ function newReport(){
   sA='';sT='';sF='';sOrigen='';sDestino='';sPosicion='';fTS='';CPS=[];photos={};beaconOff=null;incData=null;segData=null;
   clearAlerts();stopCam();chatMsgStore={};chatTarget='';eqSolTipo='';urgVal='';
   billingItems=[];cancelConfirmed=false;cancelMotivo='';
+  _plantaExtraMin=0;noAirlineSupervisorFlag=false;firmaFinalData=null;
   if(coopesaInt){clearInterval(coopesaInt);coopesaInt=null}
   if(tiempoPosInt){clearInterval(tiempoPosInt);tiempoPosInt=null}
   document.getElementById('airlineSelect').value='';document.getElementById('flightTypeSelect').value='';
@@ -2982,6 +3140,18 @@ function buildFinalSummary(){
   const total=CPS.length;
   const pending=CPS.filter(c=>!c.optional&&!(photos[c.key]&&photos[c.key].length>0));
   let ph=0;for(const k in photos)(photos[k]||[]).forEach(p=>{if(p.photo)ph++});
+
+        // Planta eléctrica — tiempo excedido
+  const planta=calcPlantaExtra();
+  const plantaBox=document.getElementById('plantaChargeBox');
+  if(planta && planta.mins>60){
+    _plantaExtraMin=planta.mins-60;
+    plantaBox.style.display='block';
+    document.getElementById('plantaChargeText').innerHTML=`La planta eléctrica estuvo conectada <strong>${planta.mins} minutos</strong> (Conecta: ${fmt(new Date(planta.conTs))} → Desconecta: ${fmt(new Date(planta.desTs))}).<br>Exceso sobre el límite de 60 min: <strong>${_plantaExtraMin} minutos</strong> a cobrar.`;
+  }else{
+    plantaBox.style.display='none';
+    _plantaExtraMin=0;
+  }
 
   // summary rows
   document.getElementById('finalSummaryRows').innerHTML=`
