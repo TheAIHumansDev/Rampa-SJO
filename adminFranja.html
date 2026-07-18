@@ -224,6 +224,8 @@
 
         /* Shift distribution */
         .shift-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+        .shift-grid.four{grid-template-columns:repeat(4,1fr)}
+        .shift-count.dawn{color:#818cf8}
         .shift-card{background:rgba(15,23,42,0.6);border:1px solid rgba(59,130,246,0.1);border-radius:12px;padding:14px 12px;text-align:center;transition:all .2s}
         .shift-card:hover{border-color:rgba(59,130,246,0.3);transform:translateY(-2px)}
         .shift-icon{font-size:24px;margin-bottom:6px}
@@ -1039,10 +1041,14 @@ html, body {
         </div>
     </div>
 
-    <div class="analytics-grid single" style="margin-bottom:16px;">
+    <div class="analytics-grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px;">
         <div class="an-card ac-purple">
             <div class="an-card-title">🔷 Servicios por Tipo</div>
             <div class="rank-table" id="wchRankTipos"></div>
+        </div>
+        <div class="an-card ac-cyan">
+            <div class="an-card-title">🕐 Servicios por Franja Horaria</div>
+            <div class="shift-grid four" id="wchFranjaGrid"></div>
         </div>
     </div>
 
@@ -1279,6 +1285,35 @@ function renderWchTable() {
     </div>`).join('');
 }
 
+function getWchTimeBand(ts) {
+    if (!ts) return null;
+    const h = new Date(ts).getHours();
+    if (h >= 0 && h < 6) return 'madrugada';
+    if (h >= 6 && h < 12) return 'manana';
+    if (h >= 12 && h < 18) return 'tarde';
+    return 'noche';
+}
+
+function renderWchFranjaHoraria() {
+    const el = document.getElementById('wchFranjaGrid');
+    if (!el) return;
+    const counts = { madrugada: 0, manana: 0, tarde: 0, noche: 0 };
+    filteredWchReports.forEach(r => {
+        const band = getWchTimeBand(parseWchDateClient(r));
+        if (band) counts[band]++;
+    });
+    const total = filteredWchReports.length || 1;
+    if (!filteredWchReports.length) {
+        el.innerHTML = '<div style="color:var(--muted);font-size:12px;grid-column:1/-1;padding:20px;text-align:center;">Sin datos para el período seleccionado</div>';
+        return;
+    }
+    el.innerHTML = `
+        <div class="shift-card"><div class="shift-icon">🌌</div><div class="shift-label">Madrugada</div><div class="shift-count dawn">${counts.madrugada}</div><div class="shift-pct">${Math.round(counts.madrugada / total * 100)}%</div><div class="shift-range">00:00–06:00</div></div>
+        <div class="shift-card"><div class="shift-icon">🌅</div><div class="shift-label">Mañana</div><div class="shift-count morning">${counts.manana}</div><div class="shift-pct">${Math.round(counts.manana / total * 100)}%</div><div class="shift-range">06:00–12:00</div></div>
+        <div class="shift-card"><div class="shift-icon">☀️</div><div class="shift-label">Tarde</div><div class="shift-count afternoon">${counts.tarde}</div><div class="shift-pct">${Math.round(counts.tarde / total * 100)}%</div><div class="shift-range">12:00–18:00</div></div>
+        <div class="shift-card"><div class="shift-icon">🌙</div><div class="shift-label">Noche</div><div class="shift-count night">${counts.noche}</div><div class="shift-pct">${Math.round(counts.noche / total * 100)}%</div><div class="shift-range">18:00–00:00</div></div>`;
+}
+
 function buildWchRanking(field) {
     const map = {};
     filteredWchReports.forEach(r => {
@@ -1303,6 +1338,7 @@ function renderWchRankings() {
     renderRankList('wchRankUsuarios', buildWchRanking('usuario'), '#3b82f6');
     renderRankList('wchRankAerolineas', buildWchRanking('aerolinea'), '#06b6d4');
     renderRankList('wchRankTipos', buildWchRanking('tipoServicio'), '#8b5cf6');
+    renderWchFranjaHoraria();
 }
 
 function updateWchKPIs() {
