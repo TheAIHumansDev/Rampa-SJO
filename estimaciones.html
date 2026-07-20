@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AS Handling · Plataforma Operativa — Costos e Infraestructura</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#4285F4;
+    --blue-dark:#1a56c4;
+    --red:#EA4335;
+    --yellow:#FBBC04;
+    --green:#34A853;
+    --purple:#A142F4;
+    --ink:#202124;
+    --ink-soft:#5F6368;
+    --line:#DADCE0;
+    --bg:#FFFFFF;
+    --bg-alt:#F8F9FA;
+    --bg-deep:#F1F3F4;
+    --radius:12px;
+    --shadow-1: 0 1px 2px 0 rgba(60,64,67,.08), 0 1px 3px 1px rgba(60,64,67,.08);
+    --shadow-2: 0 1px 3px 0 rgba(60,64,67,.15), 0 4px 12px 3px rgba(60,64,67,.10);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    font-family:'Roboto',Arial,sans-serif;
+    color:var(--ink);
+    background:var(--bg);
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'Roboto Mono',monospace;}
+  a{color:inherit;}
+  img,svg{display:block;}
+
+  /* ---------- NAV ---------- */
+  header.nav{
+    position:sticky; top:0; z-index:100;
+    background:rgba(255,255,255,.92);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{
+    max-width:1180px; margin:0 auto; padding:14px 24px;
+    display:flex; align-items:center; justify-content:space-between; gap:24px;
+  }
+  .brand{display:flex; align-items:center; gap:10px; font-weight:500; font-size:16px;}
+  .brand .dot4{display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; width:18px; height:18px; gap:2px;}
+  .brand .dot4 span{border-radius:50%;}
+  .brand .dot4 span:nth-child(1){background:var(--blue);}
+  .brand .dot4 span:nth-child(2){background:var(--red);}
+  .brand .dot4 span:nth-child(3){background:var(--yellow);}
+  .brand .dot4 span:nth-child(4){background:var(--green);}
+  .brand small{color:var(--ink-soft); font-weight:400; font-size:12px; display:block; margin-top:1px;}
+  nav.links{display:flex; gap:28px; font-size:14px; color:var(--ink-soft);}
+  nav.links a{text-decoration:none; padding:4px 0; border-bottom:2px solid transparent; transition:border-color .15s, color .15s;}
+  nav.links a:hover{color:var(--ink); border-color:var(--blue);}
+  .nav-cta{
+    background:var(--blue); color:#fff; border:none; padding:9px 18px;
+    border-radius:6px; font-size:14px; font-weight:500; cursor:pointer;
+    font-family:inherit;
+  }
+  .nav-cta:hover{background:var(--blue-dark);}
+  @media (max-width:860px){ nav.links{display:none;} }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    max-width:1180px; margin:0 auto; padding:72px 24px 40px;
+    display:grid; grid-template-columns:1.1fr .9fr; gap:56px; align-items:center;
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:13px; font-weight:500; color:var(--blue-dark);
+    background:#E8F0FE; padding:6px 14px; border-radius:20px; margin-bottom:20px;
+  }
+  .eyebrow .pulse{width:7px;height:7px;border-radius:50%;background:var(--green); animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  h1{
+    font-size:46px; line-height:1.12; font-weight:700; letter-spacing:-0.5px;
+    margin:0 0 20px;
+  }
+  h1 .accent{color:var(--blue);}
+  .hero p.lead{font-size:17px; line-height:1.6; color:var(--ink-soft); max-width:520px; margin:0 0 28px;}
+  .hero-ctas{display:flex; gap:12px; margin-bottom:36px;}
+  .btn-primary{
+    background:var(--ink); color:#fff; border:none; padding:12px 22px; border-radius:6px;
+    font-size:14.5px; font-weight:500; cursor:pointer; font-family:inherit;
+  }
+  .btn-primary:hover{background:#000;}
+  .btn-ghost{
+    background:#fff; color:var(--ink); border:1px solid var(--line); padding:12px 22px; border-radius:6px;
+    font-size:14.5px; font-weight:500; cursor:pointer; font-family:inherit;
+  }
+  .btn-ghost:hover{border-color:var(--ink);}
+  .stat-row{display:flex; gap:0; flex-wrap:wrap; border-top:1px solid var(--line); padding-top:22px;}
+  .stat-row .stat{padding-right:28px; margin-right:28px; border-right:1px solid var(--line);}
+  .stat-row .stat:last-child{border-right:none;}
+  .stat-num{font-size:26px; font-weight:700; font-family:'Roboto Mono',monospace;}
+  .stat-label{font-size:12.5px; color:var(--ink-soft); margin-top:2px;}
+
+  .hero-visual{
+    background:linear-gradient(160deg,#0B1F45 0%, #123B8F 55%, #1a56c4 100%);
+    border-radius:20px; padding:28px; position:relative; overflow:hidden;
+    box-shadow:var(--shadow-2);
+    min-height:380px;
+  }
+  .hero-visual::before{
+    content:''; position:absolute; inset:0;
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,.14) 1px, transparent 1px);
+    background-size:22px 22px;
+  }
+  .hv-header{position:relative; color:#dce6ff; font-size:12.5px; display:flex; justify-content:space-between; margin-bottom:18px;}
+  .hv-title{position:relative; color:#fff; font-size:15px; font-weight:500; margin-bottom:16px;}
+  .hv-bars{position:relative; display:flex; align-items:flex-end; gap:10px; height:170px; padding:0 4px;}
+  .hv-bars .col{flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;}
+  .hv-bars .bar{width:100%; border-radius:6px 6px 3px 3px; background:linear-gradient(180deg,#8ab4ff,#4285F4);}
+  .hv-bars .col-label{font-size:10.5px; color:#b9cbf5; font-family:'Roboto Mono',monospace;}
+  .hv-foot{position:relative; margin-top:18px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,.18); padding-top:14px;}
+  .hv-foot .badge{background:rgba(52,168,83,.18); color:#8fe3a8; font-size:12px; font-weight:500; padding:5px 10px; border-radius:6px; display:flex; gap:6px; align-items:center;}
+
+  /* ---------- SECTION shells ---------- */
+  section{max-width:1180px; margin:0 auto; padding:64px 24px;}
+  section.alt{max-width:none; background:var(--bg-alt); border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
+  section.alt > .inner{max-width:1180px; margin:0 auto;}
+  .sec-head{max-width:640px; margin-bottom:40px;}
+  .sec-kicker{font-size:13px; font-weight:500; color:var(--blue); text-transform:uppercase; letter-spacing:.6px; margin-bottom:10px;}
+  .sec-head h2{font-size:32px; font-weight:700; margin:0 0 12px; letter-spacing:-.3px;}
+  .sec-head p{font-size:15.5px; color:var(--ink-soft); line-height:1.6; margin:0;}
+
+  /* ---------- APP CARDS ---------- */
+  .apps-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:16px;}
+  @media (max-width:1000px){ .apps-grid{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:560px){ .apps-grid{grid-template-columns:1fr;} }
+  .app-card{
+    background:#fff; border:1px solid var(--line); border-radius:var(--radius);
+    padding:22px 18px; transition:box-shadow .18s, transform .18s;
+  }
+  .app-card:hover{box-shadow:var(--shadow-2); transform:translateY(-2px);}
+  .app-icon{
+    width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    margin-bottom:16px;
+  }
+  .app-card h3{font-size:15.5px; font-weight:500; margin:0 0 6px;}
+  .app-card p{font-size:13px; color:var(--ink-soft); line-height:1.5; margin:0 0 14px; min-height:58px;}
+  .app-meta{display:flex; justify-content:space-between; align-items:center; font-size:11.5px; border-top:1px solid var(--bg-deep); padding-top:12px;}
+  .app-meta .price{font-family:'Roboto Mono',monospace; font-weight:700; font-size:14px; color:var(--ink);}
+  .status-dot{display:inline-flex; align-items:center; gap:5px; color:var(--green); font-weight:500;}
+  .status-dot::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--green);}
+  .status-dot.muted{color:var(--ink-soft);}
+  .status-dot.muted::before{background:var(--line);}
+
+  /* ---------- COST TABLE ---------- */
+  .cost-table{width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;}
+  .cost-table thead th{
+    text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-soft);
+    background:var(--bg-alt); padding:14px 20px; font-weight:500; border-bottom:1px solid var(--line);
+  }
+  .cost-table td{padding:16px 20px; border-bottom:1px solid var(--bg-deep); font-size:14.5px; vertical-align:middle;}
+  .cost-table tr:last-child td{border-bottom:none;}
+  .cost-table tbody tr:hover{background:#FAFBFF;}
+  .row-icon{display:flex; align-items:center; gap:12px;}
+  .row-icon .ic{width:30px;height:30px;border-radius:7px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .concept-name{font-weight:500;}
+  .concept-sub{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+  .amount{font-family:'Roboto Mono',monospace; text-align:right; font-weight:500;}
+  .cost-table td.amount-cell{text-align:right;}
+  .total-row td{background:var(--bg-deep); font-weight:700; font-size:15.5px;}
+  .total-row .amount{font-size:17px;}
+
+  /* ---------- CALCULATOR ---------- */
+  .calc-shell{
+    background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow-1);
+    display:grid; grid-template-columns:340px 1fr; overflow:hidden;
+  }
+  @media (max-width:880px){ .calc-shell{grid-template-columns:1fr;} }
+  .calc-controls{padding:32px 28px; background:var(--bg-alt); border-right:1px solid var(--line);}
+  .calc-controls h3{font-size:15px; margin:0 0 22px; font-weight:500;}
+  .control{margin-bottom:26px;}
+  .control label{display:flex; justify-content:space-between; font-size:13px; font-weight:500; margin-bottom:10px;}
+  .control label .val{font-family:'Roboto Mono',monospace; color:var(--blue-dark); font-weight:700;}
+  input[type=range]{
+    -webkit-appearance:none; width:100%; height:4px; border-radius:2px; background:var(--line); outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--blue);
+    cursor:pointer; border:3px solid #fff; box-shadow:0 0 0 1px var(--blue);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:16px; height:16px; border-radius:50%; background:var(--blue); cursor:pointer; border:3px solid #fff; box-shadow:0 0 0 1px var(--blue);
+  }
+  .control .range-labels{display:flex; justify-content:space-between; font-size:10.5px; color:var(--ink-soft); margin-top:6px;}
+  .toggle-list{display:flex; flex-direction:column; gap:8px;}
+  .toggle-row{
+    display:flex; align-items:center; justify-content:space-between; background:#fff; border:1px solid var(--line);
+    border-radius:8px; padding:9px 12px; font-size:13px;
+  }
+  .switch{position:relative; width:34px; height:19px; flex-shrink:0;}
+  .switch input{opacity:0; width:0; height:0;}
+  .slider-tog{position:absolute; cursor:pointer; inset:0; background:var(--line); border-radius:20px; transition:.15s;}
+  .slider-tog::before{content:''; position:absolute; width:14px; height:14px; left:2.5px; top:2.5px; background:#fff; border-radius:50%; transition:.15s;}
+  .switch input:checked + .slider-tog{background:var(--green);}
+  .switch input:checked + .slider-tog::before{transform:translateX(15px);}
+
+  .calc-output{padding:32px 32px;}
+  .out-cards{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:28px;}
+  @media (max-width:640px){ .out-cards{grid-template-columns:1fr;} }
+  .out-card{border:1px solid var(--line); border-radius:10px; padding:16px 18px; background:#fff;}
+  .out-card .lbl{font-size:11.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.4px; margin-bottom:8px;}
+  .out-card .num{font-family:'Roboto Mono',monospace; font-size:24px; font-weight:700;}
+  .out-card .sub{font-size:12px; color:var(--ink-soft); margin-top:4px;}
+  .out-card.accent{background:#0B1F45; border-color:#0B1F45;}
+  .out-card.accent .lbl{color:#9db6ea;}
+  .out-card.accent .num{color:#fff;}
+  .out-card.accent .sub{color:#b9cbf5;}
+
+  .scale-chart{margin-top:8px;}
+  .scale-chart .chart-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;}
+  .scale-chart .chart-head h4{font-size:13.5px; font-weight:500; margin:0;}
+  .scale-chart .chart-head span{font-size:12px; color:var(--ink-soft);}
+  .bars-wrap{display:flex; align-items:flex-end; gap:14px; height:150px; padding:0 4px 0;}
+  .bars-wrap .bcol{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:8px;}
+  .bars-wrap .bcol .bval{font-size:11px; font-family:'Roboto Mono',monospace; color:var(--ink-soft);}
+  .bars-wrap .bcol .bfill{width:100%; border-radius:5px 5px 2px 2px; background:linear-gradient(180deg,#8ab4ff,var(--blue)); transition:height .5s cubic-bezier(.2,.8,.2,1);}
+  .bars-wrap .bcol.current .bfill{background:linear-gradient(180deg,#6fe39f,var(--green));}
+  .bars-wrap .bcol .blabel{font-size:11px; color:var(--ink-soft); margin-top:6px; font-family:'Roboto Mono',monospace;}
+
+  /* ---------- SAVINGS ---------- */
+  .savings-wrap{
+    background:linear-gradient(160deg,#0B1F45 0%, #123B8F 60%, #1a56c4 100%);
+    border-radius:20px; padding:48px 40px; color:#fff; position:relative; overflow:hidden;
+  }
+  .savings-wrap::before{
+    content:''; position:absolute; inset:0;
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,.10) 1px, transparent 1px);
+    background-size:24px 24px; pointer-events:none;
+  }
+  .savings-grid{position:relative; display:grid; grid-template-columns:.9fr 1.1fr; gap:48px; align-items:center;}
+  @media (max-width:900px){ .savings-grid{grid-template-columns:1fr;} }
+  .savings-left .sec-kicker{color:#9db6ea;}
+  .savings-left h2{color:#fff; font-size:30px; margin:0 0 14px; font-weight:700;}
+  .savings-left p{color:#c3d3f7; font-size:14.5px; line-height:1.65; margin:0 0 24px;}
+  .big-pct{font-family:'Roboto Mono',monospace; font-size:76px; font-weight:700; line-height:1; color:#8fe3a8;}
+  .big-pct + span{color:#c3d3f7; font-size:13px; display:block; margin-top:6px;}
+
+  .savings-controls{display:flex; flex-direction:column; gap:18px; margin-top:26px;}
+  .savings-controls .control label{color:#dce6ff;}
+  .savings-controls .control label .val{color:#8fe3a8;}
+  .savings-controls input[type=range]{background:rgba(255,255,255,.25);}
+  .savings-controls input[type=range]::-webkit-slider-thumb{background:#8fe3a8; box-shadow:0 0 0 1px #8fe3a8;}
+  .savings-controls input[type=range]::-moz-range-thumb{background:#8fe3a8; box-shadow:0 0 0 1px #8fe3a8;}
+  .savings-controls .range-labels{color:#9db6ea;}
+
+  .compare-panel{position:relative; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:14px; padding:26px 26px 22px;}
+  .compare-row{margin-bottom:20px;}
+  .compare-row:last-child{margin-bottom:0;}
+  .compare-row .crlabel{display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;}
+  .compare-row .crlabel .amt{font-family:'Roboto Mono',monospace; font-weight:700;}
+  .cr-track{height:14px; border-radius:8px; background:rgba(255,255,255,.12); overflow:hidden;}
+  .cr-fill{height:100%; border-radius:8px; transition:width .5s cubic-bezier(.2,.8,.2,1);}
+  .cr-fill.manual{background:linear-gradient(90deg,#ff9d8a,var(--red));}
+  .cr-fill.auto{background:linear-gradient(90deg,#8fe3a8,var(--green));}
+  .savings-badge{
+    margin-top:22px; display:flex; align-items:center; gap:14px; background:rgba(143,227,168,.14);
+    border:1px solid rgba(143,227,168,.35); border-radius:10px; padding:14px 16px;
+  }
+  .savings-badge .sb-num{font-family:'Roboto Mono',monospace; font-size:22px; font-weight:700; color:#8fe3a8;}
+  .savings-badge .sb-text{font-size:12.5px; color:#dce6ff; line-height:1.5;}
+
+  /* ---------- BREAKDOWN LIST (savings source detail) ---------- */
+  .source-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:36px;}
+  @media (max-width:880px){ .source-grid{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:520px){ .source-grid{grid-template-columns:1fr;} }
+  .source-card{background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px;}
+  .source-card .sc-icon{width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; margin-bottom:12px;}
+  .source-card h4{font-size:13.5px; font-weight:500; margin:0 0 6px;}
+  .source-card p{font-size:12px; color:var(--ink-soft); line-height:1.55; margin:0;}
+
+  /* ---------- FOOTER CTA ---------- */
+  .cta-band{
+    max-width:1180px; margin:0 auto 64px; padding:0 24px;
+  }
+  .cta-box{
+    border:1px solid var(--line); border-radius:16px; padding:40px; display:flex; align-items:center; justify-content:space-between; gap:24px;
+    background:var(--bg-alt);
+  }
+  @media (max-width:700px){ .cta-box{flex-direction:column; align-items:flex-start;} }
+  .cta-box h3{font-size:20px; margin:0 0 6px; font-weight:700;}
+  .cta-box p{margin:0; color:var(--ink-soft); font-size:14px;}
+
+  footer{border-top:1px solid var(--line); padding:28px 24px; text-align:center; color:var(--ink-soft); font-size:12.5px;}
+  footer strong{color:var(--ink);}
+
+  .print-btn{display:inline-flex; align-items:center; gap:6px;}
+
+  @media print{
+    header.nav, .hero-ctas, .print-hide{display:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <div class="brand">
+      <div class="dot4"><span></span><span></span><span></span><span></span></div>
+      <div>AS Handling — Plataforma Operativa
+        <small>Costos de infraestructura · Presentación para CTO</small>
+      </div>
+    </div>
+    <nav class="links">
+      <a href="#apps">Aplicaciones</a>
+      <a href="#calculadora">Escalamiento</a>
+      <a href="#ahorro">Ahorro</a>
+    </nav>
+    <button class="nav-cta print-hide" onclick="window.print()">Exportar / Imprimir</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div>
+    <div class="eyebrow"><span class="pulse"></span> 5 aplicaciones en producción · operación 24/7</div>
+    <h1>El costo real de <span class="accent">digitalizar rampa, sillas, AVSEC, SMS y cargo</span></h1>
+    <p class="lead">Un solo stack de Google Cloud sostiene las cinco aplicaciones que hoy usan 138 personas en SJO y LIR, todos los días del año, sin interrupciones. Esta es la fotografía de lo que cuesta — y de lo que evita perder.</p>
+    <div class="hero-ctas">
+      <button class="btn-primary" onclick="document.getElementById('calculadora').scrollIntoView({behavior:'smooth'})">Ver calculadora de escalamiento</button>
+      <button class="btn-ghost" onclick="document.getElementById('ahorro').scrollIntoView({behavior:'smooth'})">Ver el ahorro proyectado</button>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="stat-num">5</div><div class="stat-label">apps activas</div></div>
+      <div class="stat"><div class="stat-num">138</div><div class="stat-label">usuarios operativos</div></div>
+      <div class="stat"><div class="stat-num">24/7</div><div class="stat-label">×7 días, sin pausas</div></div>
+      <div class="stat"><div class="stat-num">2</div><div class="stat-label">estaciones · SJO / LIR</div></div>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <div class="hv-header"><span>infraestructura.actual</span><span class="mono">USD / mes</span></div>
+    <div class="hv-title">Distribución del gasto por aplicación</div>
+    <div class="hv-bars" id="heroBars"></div>
+    <div class="hv-foot">
+      <span class="mono" style="color:#dce6ff; font-size:13px;">Total estimado: <strong id="heroTotal" style="color:#fff;">$1,462</strong>/mes</span>
+      <span class="badge">▼ ~75% vs. operación manual</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= APPS ================= -->
+<section id="apps">
+  <div class="sec-head">
+    <div class="sec-kicker">Las 5 aplicaciones</div>
+    <h2>Un app por operación crítica</h2>
+    <p>Cada aplicación resuelve un proceso que antes vivía en papel, WhatsApp o Excel. Todas comparten la misma base en Google Cloud, lo que mantiene el costo marginal de cada una bajo.</p>
+  </div>
+  <div class="apps-grid" id="appsGrid"></div>
+</section>
+
+<!-- ================= CALCULADORA ================= -->
+<section id="calculadora">
+  <div class="sec-head">
+    <div class="sec-kicker">Proyección dinámica</div>
+    <h2>Así crece el costo conforme escalamos</h2>
+    <p>Mueve los controles para simular más usuarios, más estaciones o desactivar aplicaciones, y observa cómo se mueve el costo total y el costo por usuario en tiempo real.</p>
+  </div>
+
+  <div class="calc-shell">
+    <div class="calc-controls">
+      <h3>Parámetros de la operación</h3>
+
+      <div class="control">
+        <label>Usuarios activos <span class="val" id="valUsers">138</span></label>
+        <input type="range" id="rangeUsers" min="50" max="800" step="1" value="138">
+        <div class="range-labels"><span>50</span><span>800</span></div>
+      </div>
+
+      <div class="control">
+        <label>Estaciones / aeropuertos <span class="val" id="valStations">2</span></label>
+        <input type="range" id="rangeStations" min="2" max="8" step="1" value="2">
+        <div class="range-labels"><span>SJO+LIR</span><span>8 estaciones</span></div>
+      </div>
+
+      <div class="control">
+        <h3 style="margin-bottom:12px;">Aplicaciones activas</h3>
+        <div class="toggle-list" id="appToggles"></div>
+      </div>
+    </div>
+
+    <div class="calc-output">
+      <div class="out-cards">
+        <div class="out-card">
+          <div class="lbl">Costo mensual total</div>
+          <div class="num">$<span id="outMonthly">0</span></div>
+          <div class="sub" id="outMonthlyAnnual">$0 / año</div>
+        </div>
+        <div class="out-card">
+          <div class="lbl">Costo por usuario</div>
+          <div class="num">$<span id="outPerUser">0</span></div>
+          <div class="sub">por persona / mes</div>
+        </div>
+        <div class="out-card accent">
+          <div class="lbl">Ahorro vs. operación manual</div>
+          <div class="num" id="outSavingsPct">0%</div>
+          <div class="sub" id="outSavingsAmt">$0 ahorrados / mes</div>
+        </div>
+      </div>
+
+      <div class="scale-chart">
+        <div class="chart-head">
+          <h4>Costo total al escalar usuarios (aplicaciones y estaciones actuales)</h4>
+          <span>El costo por usuario baja al crecer</span>
+        </div>
+        <div class="bars-wrap" id="scaleBars"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= AHORRO ================= -->
+<section class="alt" id="ahorro">
+  <div class="inner">
+    <div class="savings-wrap">
+      <div class="savings-grid">
+        <div class="savings-left">
+          <div class="sec-kicker">El argumento central</div>
+          <h2>El monitoreo automático — incluidas las horas extra — es lo que paga la plataforma</h2>
+          <p>Antes de estas 5 apps, controlar turnos, horas extra, reportes de seguridad y servicios facturables dependía de planillas, papel y revisión manual. Ese trabajo tiene un costo real, y hoy la plataforma lo reduce entre 70% y 80%.</p>
+          <div class="big-pct" id="bigPct">75%</div>
+          <span>de ahorro estimado frente al proceso manual equivalente</span>
+
+          <div class="savings-controls">
+            <div class="control">
+              <label>Costo por hora de personal <span class="val" id="valRate">$12</span></label>
+              <input type="range" id="rangeRate" min="6" max="25" step="0.5" value="12">
+              <div class="range-labels"><span>$6</span><span>$25</span></div>
+            </div>
+            <div class="control">
+              <label>Horas extra no autorizadas evitadas / mes <span class="val" id="valHours">180</span></label>
+              <input type="range" id="rangeHours" min="40" max="400" step="5" value="180">
+              <div class="range-labels"><span>40h</span><span>400h</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="compare-panel">
+          <div class="compare-row">
+            <div class="crlabel"><span>Operación manual (sin plataforma)</span><span class="amt" id="manualAmt">$5,750</span></div>
+            <div class="cr-track"><div class="cr-fill manual" id="manualBar" style="width:100%"></div></div>
+          </div>
+          <div class="compare-row">
+            <div class="crlabel"><span>Con AS Handling Ops Platform</span><span class="amt" id="autoAmt">$1,462</span></div>
+            <div class="cr-track"><div class="cr-fill auto" id="autoBar" style="width:25%"></div></div>
+          </div>
+          <div class="savings-badge">
+            <div class="sb-num" id="badgePct">74.6%</div>
+            <div class="sb-text">Ahorro mensual estimado de <strong id="badgeAmt" style="color:#fff;">$4,288</strong>, resultado directo de eliminar supervisión manual de turnos, digitación de reportes en papel y conciliación de servicios facturables en Excel.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="source-grid">
+      <div class="source-card">
+        <div class="sc-icon" style="background:#FEE9E7;"></div>
+        <h4>Supervisión de turnos y horas extra</h4>
+        <p>Hoy 3 supervisores revisan planillas manualmente cada semana para detectar horas extra no autorizadas. El dashboard de AS Handling lo hace en tiempo real, desde Beacon OFF.</p>
+      </div>
+      <div class="source-card">
+        <div class="sc-icon" style="background:#FEF3D6;"></div>
+        <h4>Reportes SMS en papel</h4>
+        <p>Los reportes de seguridad operacional se digitalizaban a mano después de cada turno. Ahora el formulario móvil envía el reporte y las fotos directo a Sheets y Drive.</p>
+      </div>
+      <div class="source-card">
+        <div class="sc-icon" style="background:#E6F4EA;"></div>
+        <h4>Auditorías AVSEC manuales</h4>
+        <p>Verificar carnés y accesos con bitácora de papel tomaba horas por estación. El OCR de badges y el registro de accesos corren solos.</p>
+      </div>
+      <div class="source-card">
+        <div class="sc-icon" style="background:#F3E8FD;"></div>
+        <h4>Conciliación de servicios facturables</h4>
+        <p>Los servicios de sillas de ruedas (WCH) se conciliaban en Excel al cierre de mes, con riesgo de servicios no capturados y facturación perdida.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<div class="cta-band">
+  <div class="cta-box">
+    <div>
+      <h3>Listo para revisión con el CTO</h3>
+      <p>Todos los números en esta página son editables en vivo — ajusta los controles antes de la reunión para reflejar el escenario que quieras discutir.</p>
+    </div>
+    <button class="btn-primary print-hide" onclick="window.print()">Exportar como PDF</button>
+  </div>
+</div>
+
+<footer>
+  Preparado para <strong>AS Handling</strong> · SJO / LIR · Costos estimados con base en uso actual de Cloud Run, Firestore, Storage y servicios asociados. Cifras de referencia, ajustables según facturación real de Google Cloud.
+</footer>
+
+<script>
+/* ---------------- ICONS (inline, stroke-based) ---------------- */
+const ICONS = {
+  plane: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 13.5 3 11l1-2 8 1.5V6a2 2 0 0 1 4 0v4.5l8-1.5 1 2-7.5 2.5v3.7l3 1.6v1.6L14 19l-.5 2h-1L12 19l-4.5.9v-1.6l3-1.6z"/></svg>`,
+  wheelchair: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="16.5" cy="18" r="2.5"/><circle cx="12" cy="5" r="1.6"/><path d="M12 7v6l3 3h3M9 13H5.5A2.5 2.5 0 0 1 6 8h3l2 5"/></svg>`,
+  shield: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>`,
+  alert: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2 20h20z"/><path d="M12 10v4"/><circle cx="12" cy="17" r="0.6" fill="currentColor" stroke="none"/></svg>`,
+  box: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v9l9 4 9-4V8"/><path d="M12 12v9"/></svg>`,
+  server: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><circle cx="7" cy="7" r=".6" fill="currentColor" stroke="none"/><circle cx="7" cy="17" r=".6" fill="currentColor" stroke="none"/></svg>`,
+  image: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 15l-5-5-9 9"/></svg>`,
+  db: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="2.8"/><path d="M4 5.5V12c0 1.5 3.6 2.8 8 2.8s8-1.3 8-2.8V5.5"/><path d="M4 12v6.5c0 1.5 3.6 2.8 8 2.8s8-1.3 8-2.8V12"/></svg>`,
+  fn: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l-6 9h6l-8 9 2-9H4z"/></svg>`,
+  bot: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="2"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1"/><circle cx="9" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1" fill="currentColor" stroke="none"/><path d="M9 17h6"/></svg>`,
+  ws: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>`,
+  globe: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 6 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-6-3.8-9s1.3-6.3 3.8-9z"/></svg>`,
+  bell: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 3h16z"/><path d="M9.5 19a2.5 2.5 0 0 0 5 0"/></svg>`,
+  backup: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 2.3 5.6"/><path d="M4 17v-5h5"/></svg>`,
+  key: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14 9l2 2"/></svg>`,
+};
+
+/* ---------------- APPS DEFINITION ---------------- */
+/* fixed = infraestructura base independiente de usuarios | perUser = costo variable por usuario (a 138 usuarios) */
+/* fixed = costo base mensual asignado a la app | perUser = variable estimada por usuario, calibrada para que a 138 usuarios el total coincida con el costo mensual asignado */
+const APPS = [
+  { key:'rampa',  name:'Turnaround Check', tag:'Rampa', icon:ICONS.plane,      color:'#4285F4', bg:'#E8F0FE',
+    desc:'Inspección de rampa en tiempo real: checkpoints, fotos, equipos y seguridad operacional.',
+    fixed:412.50, perUser:2.4457 },
+  { key:'sillas', name:'WCH Assistance', tag:'Sillas de ruedas', icon:ICONS.wheelchair, color:'#EA4335', bg:'#FEE9E7',
+    desc:'Servicio de pasajeros con silla de ruedas, tramos, pools compartidos y facturación ADES.',
+    fixed:82.50, perUser:0.4891 },
+  { key:'avsec',  name:'AVSEC PRO', tag:'Seguridad', icon:ICONS.shield,        color:'#34A853', bg:'#E6F4EA',
+    desc:'Inspecciones de seguridad, OCR de carnés y control de accesos en SJO / MROC.',
+    fixed:0, perUser:0 },
+  { key:'sms',    name:'SMS Reporting', tag:'Reportes de seguridad', icon:ICONS.alert, color:'#FBBC04', bg:'#FEF3D6',
+    desc:'Reportes de seguridad operacional con foto, ruteo por estación y niveles de riesgo.',
+    fixed:0, perUser:0 },
+  { key:'cargo',  name:'Cargo Ops', tag:'Carga', icon:ICONS.box,               color:'#A142F4', bg:'#F3E8FD',
+    desc:'Trazabilidad de manejo de carga entre bodega, rampa y aeronave.',
+    fixed:55, perUser:0.3261 },
+];
+
+/* ---------------- RENDER STATIC ---------------- */
+function fmt(n){ return Math.round(n).toLocaleString('en-US'); }
+function fmt1(n){ return n.toLocaleString('en-US', {minimumFractionDigits:1, maximumFractionDigits:1}); }
+
+// hero bars
+(function renderHeroBars(){
+  const wrap = document.getElementById('heroBars');
+  const max = Math.max(...APPS.map(a=>a.fixed+a.perUser*138));
+  APPS.forEach(a=>{
+    const val = a.fixed + a.perUser*138;
+    const h = 12 + (val/max)*128;
+    const col = document.createElement('div');
+    col.className='col';
+    col.innerHTML = `<div class="col-label">$${fmt(val)}</div><div class="bar" style="height:${h}px; background:linear-gradient(180deg, ${a.color}cc, ${a.color})"></div><div class="col-label" style="color:#fff;">${a.tag}</div>`;
+    wrap.appendChild(col);
+  });
+  document.getElementById('heroTotal').textContent = '$'+fmt(APPS.reduce((s,a)=>s+a.fixed+a.perUser*138,0));
+})();
+
+// app cards
+(function renderApps(){
+  const grid = document.getElementById('appsGrid');
+  APPS.forEach(a=>{
+    const val = a.fixed + a.perUser*138;
+    const card = document.createElement('div');
+    card.className='app-card';
+    const statusHtml = val > 0
+      ? `<span class="status-dot">En producción</span>`
+      : `<span class="status-dot muted">Próximamente</span>`;
+    card.innerHTML = `
+      <div class="app-icon" style="background:${a.bg}; color:${a.color}">${a.icon}</div>
+      <h3>${a.name}</h3>
+      <p>${a.desc}</p>
+      <div class="app-meta">
+        ${statusHtml}
+        <span class="price">$${fmt(val)}/mes</span>
+      </div>`;
+    grid.appendChild(card);
+  });
+})();
+
+/* ---------------- CALCULATOR STATE ---------------- */
+const state = {
+  users: 138,
+  stations: 2,
+  active: { rampa:true, sillas:true, avsec:true, sms:true, cargo:true },
+  rate: 12,
+  hoursAvoided: 180,
+};
+
+// app toggles
+(function renderToggles(){
+  const wrap = document.getElementById('appToggles');
+  APPS.forEach(a=>{
+    const row = document.createElement('div');
+    row.className='toggle-row';
+    row.innerHTML = `
+      <span style="display:flex; align-items:center; gap:8px;"><span style="color:${a.color}">${a.icon}</span>${a.tag}</span>
+      <label class="switch">
+        <input type="checkbox" checked data-app="${a.key}">
+        <span class="slider-tog"></span>
+      </label>`;
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll('input[type=checkbox]').forEach(inp=>{
+    inp.addEventListener('change', e=>{
+      state.active[e.target.dataset.app] = e.target.checked;
+      update();
+    });
+  });
+})();
+
+function stationFactor(stations){ return 1 + Math.max(0, stations-2)*0.12; }
+
+function automatedCost(users, stations, active){
+  const sf = stationFactor(stations);
+  let total = 0;
+  APPS.forEach(a=>{
+    if(!active[a.key]) return;
+    total += a.fixed*sf + a.perUser*users;
+  });
+  return total;
+}
+
+function manualCost(users, rate, hoursAvoided, active){
+  const coordPerApp = 317.8;
+  let coord = 0;
+  APPS.forEach(a=>{ if(active[a.key]) coord += coordPerApp; });
+  const missedBilling = 14.5 * users;
+  return hoursAvoided*rate + missedBilling + coord;
+}
+
+function update(){
+  const auto = automatedCost(state.users, state.stations, state.active);
+  const manual = manualCost(state.users, state.rate, state.hoursAvoided, state.active);
+  const savingsPct = manual>0 ? ((manual-auto)/manual*100) : 0;
+  const savingsAmt = manual - auto;
+
+  document.getElementById('outMonthly').textContent = fmt(auto);
+  document.getElementById('outMonthlyAnnual').textContent = `$${fmt(auto*12)} / año`;
+  document.getElementById('outPerUser').textContent = fmt1(auto/state.users);
+  document.getElementById('outSavingsPct').textContent = `${savingsPct.toFixed(0)}%`;
+  document.getElementById('outSavingsAmt').textContent = `$${fmt(savingsAmt)} ahorrados / mes`;
+
+  // scale bars
+  const points = [138, 250, 400, 600, 800];
+  const wrap = document.getElementById('scaleBars');
+  wrap.innerHTML = '';
+  const maxVal = Math.max(...points.map(p=>automatedCost(p, state.stations, state.active)));
+  points.forEach(p=>{
+    const val = automatedCost(p, state.stations, state.active);
+    const h = 14 + (val/maxVal)*118;
+    const isCurrent = Math.abs(p-state.users) < 60 && p===closest(points, state.users);
+    const col = document.createElement('div');
+    col.className = 'bcol' + (isCurrent ? ' current':'');
+    col.innerHTML = `<div class="bval">$${fmt(val)}</div><div class="bfill" style="height:${h}px"></div><div class="blabel">${p}u</div>`;
+    wrap.appendChild(col);
+  });
+
+  // savings panel
+  document.getElementById('manualAmt').textContent = `$${fmt(manual)}`;
+  document.getElementById('autoAmt').textContent = `$${fmt(auto)}`;
+  document.getElementById('manualBar').style.width = '100%';
+  document.getElementById('autoBar').style.width = `${Math.max(6, (auto/manual*100))}%`;
+  document.getElementById('badgePct').textContent = `${savingsPct.toFixed(1)}%`;
+  document.getElementById('badgeAmt').textContent = `$${fmt(savingsAmt)}`;
+  document.getElementById('bigPct').textContent = `${savingsPct.toFixed(0)}%`;
+}
+function closest(arr, val){ return arr.reduce((a,b)=> Math.abs(b-val)<Math.abs(a-val)?b:a); }
+
+// wire sliders
+const rangeUsers = document.getElementById('rangeUsers');
+const rangeStations = document.getElementById('rangeStations');
+const rangeRate = document.getElementById('rangeRate');
+const rangeHours = document.getElementById('rangeHours');
+
+rangeUsers.addEventListener('input', e=>{
+  state.users = +e.target.value;
+  document.getElementById('valUsers').textContent = state.users;
+  update();
+});
+rangeStations.addEventListener('input', e=>{
+  state.stations = +e.target.value;
+  document.getElementById('valStations').textContent = state.stations;
+  update();
+});
+rangeRate.addEventListener('input', e=>{
+  state.rate = +e.target.value;
+  document.getElementById('valRate').textContent = `$${state.rate}`;
+  update();
+});
+rangeHours.addEventListener('input', e=>{
+  state.hoursAvoided = +e.target.value;
+  document.getElementById('valHours').textContent = state.hoursAvoided;
+  update();
+});
+
+update();
+</script>
+</body>
+</html>
