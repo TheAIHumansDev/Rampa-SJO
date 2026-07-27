@@ -1500,7 +1500,7 @@ textarea.ta:focus{border-color:#3b82f6}
 
 <!-- ═══════════ SCRIPTS ═══════════ -->
 <script>
-const SCRIPT_URL='https://script.google.com/macros/s/AKfycby9r3GynE0q4mMCOMZAle6b_xI8YeX9YSctYA1XM9gdThgn0zQDMDyUA_7lwZg7MREs/exec';
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbxfPZ_Jt2Dswi73fZHul6dW30mxhPjigtP8f-Fm4xIAYapbrrbTS69xdP1YBb6JinAd/exec';
 const ANAMES={'DL':'Delta','WN':'Southwest','UA':'United','VB':'Viva Aerobus','AA':'American Airlines','WS':'Westjet','E9':'Iberojet','PO':'Porter','AV':'Avianca','IB':'Iberia','TS':'Air Transat','B6':'Jetblue','D0':'DHL','CG':'Cargo'};
 
 // ── STATE ──
@@ -1547,7 +1547,7 @@ const PRESETS={
 // Beacon alerts config
 const BALERTS=[
   {key:'planta_electrica',label:'Planta Eléctrica',warn:7,crit:12},
-  {key:'aire_acondicionado',label:'A/C',warn:7,crit:12},
+  {key:'aire_acondicionado_grupo',label:'A/C',warn:7,crit:12},
   {key:'banda',label:'Banda',warn:10,crit:15},
   {key:'escalera',label:'Escalera',warn:10,crit:15},
   {key:'inicia_carga_maleta',label:'1ra Maleta',warn:15,crit:22},
@@ -1576,8 +1576,7 @@ const QS={
     {key:'beacon_off',label:'Beacon OFF',emoji:'🚨'},
     {key:'360_inicio',label:'360° Aeronave — Inicio',emoji:'🔄',type:'multi_photo'},
     {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true,type:'planta'},
-    {key:'aire_acondicionado',label:'Aire Acondicionado',emoji:'❄️',optional:true},
-    {key:'aire_acondicionado_fin',label:'Finaliza Aire Acondicionado',emoji:'❄️',optional:true},
+    {key:'aire_acondicionado_grupo',label:'Aire Acondicionado (Inicio + Fin)',emoji:'❄️',optional:true,type:'cargo_group',subs:['inicio','fin'],subLabels:['Aire Acondicionado','Finaliza Aire Acondicionado']},
     {key:'banda',label:'Banda',emoji:'📦'},
     {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
     {key:'carga_grupo',label:'Carga (Descarga + Carga)',emoji:'🛄',type:'cargo_group',subs:['inicia_descarga_carga','finaliza_descarga_carga','inicia_carga_carga','finaliza_carga_carga'],subLabels:['Inicia Descarga Carga','Finaliza Descarga Carga','Inicia Carga Carga','Finaliza Carga Carga']},
@@ -1598,8 +1597,7 @@ const QS={
     {key:'beacon_off',label:'Beacon OFF',emoji:'🚨'},
     {key:'360_inicio',label:'360° Aeronave — Inicio',emoji:'🔄',type:'multi_photo'},
     {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true,type:'planta'},
-    {key:'aire_acondicionado',label:'Aire Acondicionado',emoji:'❄️',optional:true},
-    {key:'aire_acondicionado_fin',label:'Finaliza Aire Acondicionado',emoji:'❄️',optional:true},
+    {key:'aire_acondicionado_grupo',label:'Aire Acondicionado (Inicio + Fin)',emoji:'❄️',optional:true,type:'cargo_group',subs:['inicio','fin'],subLabels:['Aire Acondicionado','Finaliza Aire Acondicionado']},
     {key:'banda',label:'Banda',emoji:'📦'},
     {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
     {key:'equipaje_grupo',label:'Equipaje (Descarga)',emoji:'🧳',type:'cargo_group',subs:['inicia_descarga_eq','finaliza_descarga_eq'],subLabels:['Inicia Descarga Equipaje','Finaliza Descarga Equipaje']},
@@ -1617,8 +1615,7 @@ const QS={
     {key:'fod',label:'FOD',emoji:'🔍'},
     {key:'avion_posicion',label:'Avión en Posición',emoji:'✈️'},
     {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true,type:'planta'},
-    {key:'aire_acondicionado',label:'Aire Acondicionado',emoji:'❄️',optional:true},
-    {key:'aire_acondicionado_fin',label:'Finaliza Aire Acondicionado',emoji:'❄️',optional:true},
+    {key:'aire_acondicionado_grupo',label:'Aire Acondicionado (Inicio + Fin)',emoji:'❄️',optional:true,type:'cargo_group',subs:['inicio','fin'],subLabels:['Aire Acondicionado','Finaliza Aire Acondicionado']},
     {key:'banda',label:'Banda',emoji:'📦'},
     {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
     {key:'equipaje_carga_grupo',label:'Carga + Equipaje',emoji:'🛄',type:'cargo_group',subs:['inicia_carga_eq','finaliza_carga_eq','inicia_carga_carga','finaliza_carga_carga'],subLabels:['Inicia Carga Equipaje','Finaliza Carga Equipaje','Inicia Carga Carga','Finaliza Carga Carga']},
