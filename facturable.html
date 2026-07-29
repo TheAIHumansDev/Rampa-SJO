@@ -2412,8 +2412,20 @@ if(firmaFinalData){
         
   const gal=[];for(const k in photos){(photos[k]||[]).forEach((p,i)=>{if(p.photo){const lab=photos[k].length>1?`${p.emoji} ${p.label} #${i+1}`:`${p.emoji} ${p.label}`;gal.push(`<div class="gal-it"><img src="${p.photo}"><div class="gal-lab">${lab}</div></div>`)}})}
   document.getElementById('cGallery').innerHTML=gal.join('');
-  showSC('sC');document.getElementById('stepLabel').textContent='Inspección Completada';
-  post({action:'updateStatus',airline:sA,flightNumber:sF,flightType:sT,status:'Completado',flightTimestamp:fTS,incident:incData});
+showSC('sC');document.getElementById('stepLabel').textContent='Inspección Completada';
+  post({
+    action:          'updateStatus',
+    airline:          sA,
+    flightNumber:     sF,
+    flightType:       sT,
+    status:           'Completado',
+    flightTimestamp:  fTS,
+    inspector:        U.username,
+    posicion:         sPosicion,
+    observaciones:    obs,
+    incident:         incData,
+    billing:          billingItems
+  });
 }
 
 // ── INCIDENTE ──
