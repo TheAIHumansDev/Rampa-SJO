@@ -105,12 +105,12 @@
         .count-tag{padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:rgba(59,130,246,0.15);color:var(--blue);font-family:'JetBrains Mono',monospace}
 
         /* ══ REPORT TABLE ══ */
-        .report-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow-x:auto;overflow-y:hidden;backdrop-filter:blur(12px);-webkit-overflow-scrolling:touch}
-.rt-head{display:grid;grid-template-columns:2fr 1.1fr 0.7fr 1fr 0.8fr 0.7fr 0.8fr 1fr 0.8fr;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(20,30,58,0.5);min-width:960px}
-        .rt-head-cell{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-family:'JetBrains Mono',monospace}
-        .rt-body{max-height:480px;overflow-y:auto}
-        .rt-body::-webkit-scrollbar{width:4px}
-        .rt-body::-webkit-scrollbar-thumb{background:rgba(59,130,246,0.3);border-radius:4px}
+.report-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:auto;max-height:530px;backdrop-filter:blur(12px);-webkit-overflow-scrolling:touch}
+.rt-head{display:grid;grid-template-columns:2fr 1.1fr 0.7fr 1fr 0.8fr 0.7fr 0.8fr 1fr 0.8fr;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(15,23,42,0.97);backdrop-filter:blur(8px);min-width:960px;position:sticky;top:0;z-index:5}
+.rt-head-cell{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.rt-body{}
+.report-table-wrap::-webkit-scrollbar{width:4px;height:6px}
+.report-table-wrap::-webkit-scrollbar-thumb{background:rgba(59,130,246,0.3);border-radius:4px}
         .rt-row{display:grid;grid-template-columns:2fr 1.1fr 0.7fr 1fr 0.8fr 0.7fr 0.8fr 1fr 0.8fr;gap:0;padding:10px 16px;border-bottom:1px solid rgba(30,41,59,0.6);transition:background .15s;cursor:pointer;animation:rowIn .3s ease both;min-width:960px}
         @keyframes rowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
         .rt-row:hover{background:rgba(59,130,246,0.05)}
@@ -1152,7 +1152,8 @@ html, body {
         <div class="fdm-airline-logo" id="fdmAirlineIcon">✈️</div>
         <div><div class="fdm-flight-num" id="fdmFlightNum">–</div><div class="fdm-flight-meta" id="fdmFlightMeta">–</div></div>
       </div>
-      <div class="fdm-header-right">
+<div class="fdm-header-right">
+        <button class="fdm-ai-btn" onclick="openPhotoViewer(event, fdmCurrentReport.flightKey)">📸 Ver Fotos</button>
         <div id="fdmStatusBadge" class="fdm-status-live">⏺ EN PROCESO</div>
         <button class="fdm-close" onclick="closeFDM()">✕</button>
       </div>
