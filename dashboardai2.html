@@ -1809,7 +1809,7 @@ function normalizeReport(r){
     const flightTs=get('Fecha/Hora','flightTimestamp')||'';
     const inspector=get('Inspector','inspector')||'–';
     const role=get('Rol','role')||'–';
-    const posicion=get('Posición','Posicion','POSICION','Position','position')||'';
+    const posicion=get('posicion','Posición','Posicion','POSICION','Position','position')||'';
     const aeropuerto=get('Aeropuerto','aeropuerto')||'–';
     const itemsDone=parseInt(get('Items Completados','itemsCompletados')||0);
     const cpCols=getCpCols(flightType);
