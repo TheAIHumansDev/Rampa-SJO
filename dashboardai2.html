@@ -105,13 +105,13 @@
         .count-tag{padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:rgba(59,130,246,0.15);color:var(--blue);font-family:'JetBrains Mono',monospace}
 
         /* ══ REPORT TABLE ══ */
-        .report-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;backdrop-filter:blur(12px)}
-        .rt-head{display:grid;grid-template-columns:2fr 1.2fr 1fr 0.8fr 0.8fr 0.8fr 1fr 0.8fr;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(20,30,58,0.5)}
+        .report-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow-x:auto;overflow-y:hidden;backdrop-filter:blur(12px);-webkit-overflow-scrolling:touch}
+.rt-head{display:grid;grid-template-columns:2fr 1.1fr 0.7fr 1fr 0.8fr 0.7fr 0.8fr 1fr 0.8fr;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(20,30,58,0.5);min-width:960px}
         .rt-head-cell{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-family:'JetBrains Mono',monospace}
         .rt-body{max-height:480px;overflow-y:auto}
         .rt-body::-webkit-scrollbar{width:4px}
         .rt-body::-webkit-scrollbar-thumb{background:rgba(59,130,246,0.3);border-radius:4px}
-        .rt-row{display:grid;grid-template-columns:2fr 1.2fr 1fr 0.8fr 0.8fr 0.8fr 1fr 0.8fr;gap:0;padding:10px 16px;border-bottom:1px solid rgba(30,41,59,0.6);transition:background .15s;cursor:pointer;animation:rowIn .3s ease both}
+        .rt-row{display:grid;grid-template-columns:2fr 1.1fr 0.7fr 1fr 0.8fr 0.7fr 0.8fr 1fr 0.8fr;gap:0;padding:10px 16px;border-bottom:1px solid rgba(30,41,59,0.6);transition:background .15s;cursor:pointer;animation:rowIn .3s ease both;min-width:960px}
         @keyframes rowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
         .rt-row:hover{background:rgba(59,130,246,0.05)}
         .rt-row:last-child{border-bottom:none}
@@ -366,18 +366,14 @@
         .fdm-ring-fill{fill:none;stroke-linecap:round;transition:stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)}
 
      
-        @media(max-width:768px){
-            .analytics-grid{grid-template-columns:1fr!important}
-            .rt-head,.rt-row{grid-template-columns:2fr 1fr 1fr .8fr}
-            .rt-head-cell:nth-child(3),.rt-head-cell:nth-child(5),.rt-cell:nth-child(3),.rt-cell:nth-child(5){display:none}
-        }
-        @media(max-width:520px){
-            .rt-head,.rt-row{grid-template-columns:2fr 1fr .8fr}
-            .rt-head-cell:nth-child(4),.rt-cell:nth-child(4){display:none}
-            .kpi-row{grid-template-columns:repeat(2,1fr)}
-            .filter-select{max-width:140px;font-size:10px}
-            .shift-grid{grid-template-columns:1fr}
-        }
+@media(max-width:768px){
+    .analytics-grid{grid-template-columns:1fr!important}
+}
+@media(max-width:520px){
+    .kpi-row{grid-template-columns:repeat(2,1fr)}
+    .filter-select{max-width:140px;font-size:10px}
+    .shift-grid{grid-template-columns:1fr}
+}
 
 .photo-btn {
   display:inline-flex;align-items:center;gap:4px;
@@ -752,6 +748,7 @@ html, body {
             <div class="report-table-wrap">
                 <div class="rt-head">
                     <div class="rt-head-cell">Vuelo</div>
+                    <div class="rt-head-cell">Posición</div>
                     <div class="rt-head-cell">Inspector</div>
                     <div class="rt-head-cell">Fecha / Hora</div>
                     <div class="rt-head-cell">Aerolínea</div>
@@ -1993,10 +1990,10 @@ const photoBtnClass=effectiveCount>0?'has-photos':'no-photos';
 const photoBtnTitle=effectiveCount>0?(effectiveCount+' foto(s) disponibles'):'Sin fotos registradas';
         return`<div class="rt-row" style="animation-delay:${i*.03}s;opacity:${rowOpacity};transition:opacity .25s;${leftAccent}" onclick="openFlightDetail('${safeKey}')" title="Ver detalle">
             <div class="rt-cell flight">${r.airlineName||r.airline||'–'} ${r.flightNumber||'–'}${incBadge}<span style="margin-left:5px;">${sheetBadge}</span></div>
-            <div class="rt-cell" style="flex-direction:column;align-items:flex-start;gap:2px;">
+           <div class="rt-cell">
     <div class="user-pill" style="--ipill-bg:${c.bg};--ipill-border:${c.border};--ipill-text:${c.text};"><div class="user-avatar" style="--iavatar-bg:${c.grad};--iavatar-glow:${c.glow};">${initials}</div><span class="user-name-text">${inspector}</span></div>
-    ${r.posicion ? `<span style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;padding-left:2px;">📍 ${r.posicion}</span>` : ''}
 </div>
+            <div class="rt-cell">${r.posicion||'–'}</div>
             <div class="rt-cell">${dt}</div>
             <div class="rt-cell">${r.airline||'–'}</div>
             <div class="rt-cell">${typeTag}</div>
