@@ -596,20 +596,16 @@ textarea.ta:focus{border-color:#3b82f6}
     <p class="modal-sub">Cierre y confirme la inspección completa de este vuelo. Esta acción no se puede deshacer.</p>
     <!-- Summary preview -->
 
-<!-- Planta Eléctrica — tiempo excedido -->
+<!-- Planta Eléctrica — tiempo excedido (automático) -->
     <div id="plantaChargeBox" style="display:none;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.28);border-radius:12px;padding:14px;margin-bottom:14px">
       <div style="color:#fbbf24;font-size:12px;font-weight:700;margin-bottom:8px">⚡ Planta Eléctrica — Tiempo Excedido</div>
-      <div id="plantaChargeText" style="color:#fcd34d;font-size:12px;line-height:1.5;margin-bottom:10px"></div>
-      <div class="form-g">
-        <label class="form-lbl">Tarifa por minuto adicional ($)</label>
-        <input type="text" id="plantaTarifaExtra" placeholder="Ej: 2.50" oninput="recalcPlantaExtra()">
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="color:#94a3b8;font-size:12px">Monto a cobrar:</span>
-        <span id="plantaMontoExtra" style="color:#fcd34d;font-size:16px;font-weight:800;font-family:'Courier New',monospace">$0.00</span>
-      </div>
-      <button class="btn-action amber" id="btnAddPlantaExtra" onclick="addPlantaExtraCharge()">+ Agregar a Facturación</button>
-      <input type="hidden" id="plantaAddedFlag" value="">
+      <div id="plantaChargeText" style="color:#fcd34d;font-size:12px;line-height:1.5"></div>
+    </div>
+
+    <!-- Aire Acondicionado — tiempo excedido (automático) -->
+    <div id="acChargeBox" style="display:none;background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.28);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="color:#60a5fa;font-size:12px;font-weight:700;margin-bottom:8px">❄️ Aire Acondicionado — Tiempo Excedido</div>
+      <div id="acChargeText" style="color:#93c5fd;font-size:12px;line-height:1.5"></div>
     </div>
           
     <div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:14px;margin-bottom:14px" id="finalSummaryBox">
@@ -1500,7 +1496,7 @@ textarea.ta:focus{border-color:#3b82f6}
 
 <!-- ═══════════ SCRIPTS ═══════════ -->
 <script>
-const SCRIPT_URL='https://script.google.com/macros/s/AKfycbxfPZ_Jt2Dswi73fZHul6dW30mxhPjigtP8f-Fm4xIAYapbrrbTS69xdP1YBb6JinAd/exec';
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbwsxX8zWQ5ExqiatzsTgUZjfxo-7jsAej9JSkfLdVOOxEZlUPzG5hBnSvFsGFRbe8Ko/exec';
 const ANAMES={'DL':'Delta','WN':'Southwest','UA':'United','VB':'Viva Aerobus','AA':'American Airlines','WS':'Westjet','E9':'Iberojet','PO':'Porter','AV':'Avianca','IB':'Iberia','TS':'Air Transat','B6':'Jetblue','D0':'DHL','CG':'Cargo'};
 
 // ── STATE ──
@@ -1511,6 +1507,8 @@ let camStream=null,camTSint=null;
 let mSess=[],mPrevPhoto=null,mPrevTS=null;
 let alertInt=null;
 let _plantaExtraMin=0, noAirlineSupervisorFlag=false, firmaFinalData=null, _sigPadsInit=false;
+const LIMITE_MIN_PLANTA=60, TARIFA_POR_MINUTO_PLANTA=5;
+const LIMITE_MIN_AC=60, TARIFA_POR_MINUTO_AC=5;  
 const sigState={}; 
 let chatTarget='',chatTargetClass='',chatMsgStore={};
 let eqSolTipo='',urgVal='';
@@ -1778,7 +1776,7 @@ function initFinalSignatures(){
   document.getElementById('airlineNombreSup').value='';
 }
 
-// ── PLANTA ELÉCTRICA — TIEMPO EXCEDIDO ──
+// ── PLANTA ELÉCTRICA / A.C — TIEMPO EXCEDIDO (AUTOMÁTICO) ──
 function calcPlantaExtra(){
   const ph=photos['planta_electrica']||[];
   const con=ph.find(p=>p.sub==='conecta');
@@ -1787,24 +1785,51 @@ function calcPlantaExtra(){
   const mins=Math.round((new Date(des.timestamp)-new Date(con.timestamp))/60000);
   return {mins, conTs:con.timestamp, desTs:des.timestamp};
 }
-function recalcPlantaExtra(){
-  const tarifa=parseFloat(document.getElementById('plantaTarifaExtra').value)||0;
-  const monto=(_plantaExtraMin||0)*tarifa;
-  document.getElementById('plantaMontoExtra').textContent=`$${monto.toFixed(2)}`;
+
+function calcACExtra(){
+  const ph=photos['aire_acondicionado_grupo']||[];
+  const ini=ph.find(p=>p.sub==='inicio');
+  const fin=ph.find(p=>p.sub==='fin');
+  if(!ini||!fin)return null;
+  const mins=Math.round((new Date(fin.timestamp)-new Date(ini.timestamp))/60000);
+  return {mins, iniTs:ini.timestamp, finTs:fin.timestamp};
 }
-function addPlantaExtraCharge(){
-  const tarifa=parseFloat(document.getElementById('plantaTarifaExtra').value)||0;
-  if(tarifa<=0){alert('Ingrese la tarifa por minuto adicional');return}
-  const monto=_plantaExtraMin*tarifa;
-  billingItems.push({type:'planta_extra',icon:'⚡',name:'Planta Eléctrica — Tiempo Adicional',detail:`${_plantaExtraMin} min adicionales × $${tarifa.toFixed(2)}`,amount:monto,timestamp:fmt(new Date())});
-  renderBillingList();updateSvcBadge();
-  document.getElementById('plantaAddedFlag').value='yes';
-  document.getElementById('btnAddPlantaExtra').disabled=true;
-  document.getElementById('btnAddPlantaExtra').textContent='✓ Agregado a Facturación';
-  toast('⚡ Cargo por tiempo adicional agregado');
-  buildFinalSummary();
-}
-        
+
+// Calcula y agrega (o quita si ya no aplica) los cargos automáticos de
+// Planta Eléctrica y Aire Acondicionado en la lista de facturación.
+function autoAddExcessCharges(){
+  // Limpia cargos automáticos previos para recalcular siempre con datos frescos
+  billingItems=billingItems.filter(i=>i.type!=='planta_extra_auto' && i.type!=='ac_extra_auto');
+
+  // ── Planta Eléctrica ──
+  const planta=calcPlantaExtra();
+  const plantaBox=document.getElementById('plantaChargeBox');
+  if(planta && planta.mins>LIMITE_MIN_PLANTA){
+    const exceso=planta.mins-LIMITE_MIN_PLANTA;
+    const monto=exceso*TARIFA_POR_MINUTO_PLANTA;
+    billingItems.push({type:'planta_extra_auto',icon:'⚡',name:'Planta Eléctrica — Tiempo Adicional',detail:`${exceso} min excedentes × $${TARIFA_POR_MINUTO_PLANTA.toFixed(2)} (Total conectada: ${planta.mins} min)`,amount:monto,timestamp:fmt(new Date())});
+    plantaBox.style.display='block';
+    document.getElementById('plantaChargeText').innerHTML=`La planta eléctrica estuvo conectada <strong>${planta.mins} minutos</strong> (Conecta: ${fmt(new Date(planta.conTs))} → Desconecta: ${fmt(new Date(planta.desTs))}).<br>Exceso sobre el límite de ${LIMITE_MIN_PLANTA} min: <strong>${exceso} minutos</strong> — <strong>$${monto.toFixed(2)}</strong> agregado automáticamente a facturación.`;
+  }else{
+    plantaBox.style.display='none';
+  }
+
+  // ── Aire Acondicionado ──
+  const ac=calcACExtra();
+  const acBox=document.getElementById('acChargeBox');
+  if(ac && ac.mins>LIMITE_MIN_AC){
+    const exceso=ac.mins-LIMITE_MIN_AC;
+    const monto=exceso*TARIFA_POR_MINUTO_AC;
+    billingItems.push({type:'ac_extra_auto',icon:'❄️',name:'Aire Acondicionado — Tiempo Adicional',detail:`${exceso} min excedentes × $${TARIFA_POR_MINUTO_AC.toFixed(2)} (Total: ${ac.mins} min)`,amount:monto,timestamp:fmt(new Date())});
+    acBox.style.display='block';
+    document.getElementById('acChargeText').innerHTML=`El aire acondicionado estuvo activo <strong>${ac.mins} minutos</strong> (Inicio: ${fmt(new Date(ac.iniTs))} → Fin: ${fmt(new Date(ac.finTs))}).<br>Exceso sobre el límite de ${LIMITE_MIN_AC} min: <strong>${exceso} minutos</strong> — <strong>$${monto.toFixed(2)}</strong> agregado automáticamente a facturación.`;
+  }else{
+    acBox.style.display='none';
+  }
+
+  renderBillingList();
+  updateSvcBadge();
+}        
 // Helper: convierte un label a slug de clave
 function _slugify(str) {
   return String(str)
@@ -2387,8 +2412,20 @@ if(firmaFinalData){
         
   const gal=[];for(const k in photos){(photos[k]||[]).forEach((p,i)=>{if(p.photo){const lab=photos[k].length>1?`${p.emoji} ${p.label} #${i+1}`:`${p.emoji} ${p.label}`;gal.push(`<div class="gal-it"><img src="${p.photo}"><div class="gal-lab">${lab}</div></div>`)}})}
   document.getElementById('cGallery').innerHTML=gal.join('');
-  showSC('sC');document.getElementById('stepLabel').textContent='Inspección Completada';
-  post({action:'updateStatus',airline:sA,flightNumber:sF,flightType:sT,status:'Completado',flightTimestamp:fTS,incident:incData});
+showSC('sC');document.getElementById('stepLabel').textContent='Inspección Completada';
+  post({
+    action:          'updateStatus',
+    airline:          sA,
+    flightNumber:     sF,
+    flightType:       sT,
+    status:           'Completado',
+    flightTimestamp:  fTS,
+    inspector:        U.username,
+    posicion:         sPosicion,
+    observaciones:    obs,
+    incident:         incData,
+    billing:          billingItems
+  });
 }
 
 // ── INCIDENTE ──
@@ -3167,16 +3204,8 @@ function buildFinalSummary(){
   let ph=0;for(const k in photos)(photos[k]||[]).forEach(p=>{if(p.photo)ph++});
 
         // Planta eléctrica — tiempo excedido
-  const planta=calcPlantaExtra();
-  const plantaBox=document.getElementById('plantaChargeBox');
-  if(planta && planta.mins>60){
-    _plantaExtraMin=planta.mins-60;
-    plantaBox.style.display='block';
-    document.getElementById('plantaChargeText').innerHTML=`La planta eléctrica estuvo conectada <strong>${planta.mins} minutos</strong> (Conecta: ${fmt(new Date(planta.conTs))} → Desconecta: ${fmt(new Date(planta.desTs))}).<br>Exceso sobre el límite de 60 min: <strong>${_plantaExtraMin} minutos</strong> a cobrar.`;
-  }else{
-    plantaBox.style.display='none';
-    _plantaExtraMin=0;
-  }
+// Planta eléctrica y Aire Acondicionado — tiempo excedido (automático)
+  autoAddExcessCharges();
 
   // summary rows
   document.getElementById('finalSummaryRows').innerHTML=`
