@@ -420,7 +420,10 @@
 .he-btn-reject{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:#fca5a5;}
 .he-btn-reject:hover{background:rgba(239,68,68,0.2);}
 .he-btn-reset{background:rgba(100,116,139,0.12);border-color:rgba(100,116,139,0.3);color:#94a3b8;}
-.he-btn-reset:hover{background:rgba(100,116,139,0.22);}        
+.he-btn-reset:hover{background:rgba(100,116,139,0.22);}     
+.jornada-badge{padding:2px 9px;border-radius:6px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;}
+.jornada-diurna{background:rgba(251,191,36,0.15);color:#fcd34d;border:1px solid rgba(251,191,36,0.3);}
+.jornada-nocturna{background:rgba(139,92,246,0.15);color:#c4b5fd;border:1px solid rgba(139,92,246,0.3);}
 .lbx-overlay {
   position:fixed;inset:0;z-index:900;
   background:rgba(2,5,18,0.96);
@@ -1123,16 +1126,19 @@ html, body {
             </div>
             <div class="report-table-wrap" style="background:transparent;border:none;">
                 
-<div class="rt-head" style="grid-template-columns:0.9fr 0.9fr 0.9fr 1.6fr 0.6fr 0.7fr 0.8fr 1.3fr;">
-                    <div class="rt-head-cell">Usuario</div>
-                    <div class="rt-head-cell"># Vuelo</div>
-                    <div class="rt-head-cell">Motivo</div>
-                    <div class="rt-head-cell">Descripción</div>
-                    <div class="rt-head-cell">Duración</div>
-                    <div class="rt-head-cell">Fecha</div>
-                    <div class="rt-head-cell">Estado</div>
-                    <div class="rt-head-cell">Acciones</div>
-                </div>
+<div class="rt-head" style="grid-template-columns:0.9fr 0.9fr 0.8fr 1.3fr 0.6fr 0.6fr 0.8fr 0.6fr 0.7fr 0.7fr 1.2fr;">
+    <div class="rt-head-cell">Usuario</div>
+    <div class="rt-head-cell"># Vuelo</div>
+    <div class="rt-head-cell">Motivo</div>
+    <div class="rt-head-cell">Descripción</div>
+    <div class="rt-head-cell">Hora Inicio</div>
+    <div class="rt-head-cell">Hora Fin</div>
+    <div class="rt-head-cell">Jornada</div>
+    <div class="rt-head-cell">Duración</div>
+    <div class="rt-head-cell">Fecha</div>
+    <div class="rt-head-cell">Estado</div>
+    <div class="rt-head-cell">Acciones</div>
+</div>
                 <div class="rt-body" id="heDetailTableBody">
                     <div class="empty-row">📭 Sin horas extra registradas</div>
                 </div>
@@ -1447,6 +1453,25 @@ function heEstadoClass(estado) {
     return 'he-pendiente';
 }
 
+    // Diurna: 05:00 – 18:59 · Nocturna: 19:00 – 04:59
+// Se calcula a partir de la Hora Inicio (columna J)
+function determineJornada(horaInicio) {
+    const m = String(horaInicio || '').match(/(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    const totalMin = (+m[1]) * 60 + (+m[2]);
+    const DIURNA_INICIO = 5 * 60;   // 05:00 → 300
+    const DIURNA_FIN    = 19 * 60;  // 19:00 → 1140 (18:59 = 1139, última hora diurna)
+    return (totalMin >= DIURNA_INICIO && totalMin < DIURNA_FIN) ? 'Diurna' : 'Nocturna';
+}
+
+function jornadaBadgeHtml(horaInicio) {
+    const jornada = determineJornada(horaInicio);
+    if (!jornada) return '<span style="color:var(--muted);font-size:9px;">–</span>';
+    const cls = jornada === 'Diurna' ? 'jornada-diurna' : 'jornada-nocturna';
+    const icon = jornada === 'Diurna' ? '☀️' : '🌙';
+    return `<span class="jornada-badge ${cls}">${icon} ${jornada}</span>`;
+}
+
 function renderHeDetailTable() {
     const body = document.getElementById('heDetailTableBody');
     const countEl = document.getElementById('heDetailCount');
@@ -1468,11 +1493,14 @@ function renderHeDetailTable() {
                <button class="he-action-btn he-btn-reject" onclick="heSetEstado('${safeTicket}','Rechazado')">✕ Rechazar</button>`
             : `<span style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-right:6px;">${r.revisadoPor || '–'}</span>
                <button class="he-action-btn he-btn-reset" onclick="heSetEstado('${safeTicket}','Pendiente')">↺ Revertir</button>`;
-        return `<div class="rt-row" style="grid-template-columns:0.9fr 0.9fr 0.9fr 1.6fr 0.6fr 0.7fr 0.8fr 1.3fr;animation-delay:${i * .02}s;">
+        return `<div class="rt-row" style="grid-template-columns:0.9fr 0.9fr 0.8fr 1.3fr 0.6fr 0.6fr 0.8fr 0.6fr 0.7fr 0.7fr 1.2fr;animation-delay:${i * .02}s;">
             <div class="rt-cell">${r.usuario || '–'}</div>
             <div class="rt-cell">${vueloTxt}</div>
             <div class="rt-cell">${motivoTxt}</div>
             <div class="rt-cell" style="white-space:normal;line-height:1.3;">${descTxt}</div>
+            <div class="rt-cell">${r.horaInicio || '–'}</div>
+            <div class="rt-cell">${r.horaFin || '–'}</div>
+            <div class="rt-cell">${jornadaBadgeHtml(r.horaInicio)}</div>
             <div class="rt-cell">${r.duracionHHMM || '–'}</div>
             <div class="rt-cell">${normalizeHeDateKey(r.fecha)}</div>
             <div class="rt-cell"><span class="he-estado-badge ${heEstadoClass(estado)}">${estado}</span></div>
