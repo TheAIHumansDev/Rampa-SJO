@@ -430,7 +430,6 @@ function selCat(el, val) {
   const esEquipo = CATS_REQUIEREN_UNIDAD.includes(cat);
   document.getElementById('unidadBlock').style.display = esEquipo ? 'block' : 'none';
   document.getElementById('equipoNotice').style.display = esEquipo ? 'block' : 'none';
-  document.getElementById('btnGaleria').style.display = esEquipo ? 'none' : 'flex';
   document.getElementById('fotosOpcLbl').textContent = esEquipo
     ? '(requerida al menos 1 foto )'
     : '(opcional, máx ' + MAX_FOTOS + ')';
