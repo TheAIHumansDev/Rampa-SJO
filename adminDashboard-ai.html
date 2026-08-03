@@ -1053,6 +1053,7 @@ html, body {
         <div class="rt-head" style="grid-template-columns:1fr 1fr 0.9fr 0.9fr 1fr 0.8fr 0.9fr;">
             <div class="rt-head-cell">Ticket</div>
             <div class="rt-head-cell">Usuario</div>
+            <div class="rt-head-cell">Hora</div>
             <div class="rt-head-cell">Vuelo</div>
             <div class="rt-head-cell">Aerolínea</div>
             <div class="rt-head-cell">Tipo</div>
@@ -1326,6 +1327,7 @@ function renderWchTable() {
     body.innerHTML = display.map((r, i) => `<div class="rt-row" style="grid-template-columns:1fr 1fr 0.9fr 0.9fr 1fr 0.8fr 0.9fr;animation-delay:${i * .02}s;">
         <div class="rt-cell flight">${r.ticket || '–'}</div>
         <div class="rt-cell">${r.usuario || '–'}</div>
+        <div class="rt-cell">${r.horaCreacion || '–'}</div>
         <div class="rt-cell">${r.vuelo || '–'}</div>
         <div class="rt-cell">${r.aerolinea || '–'}</div>
         <div class="rt-cell">${r.tipoServicio || '–'}</div>
