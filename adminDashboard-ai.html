@@ -1030,16 +1030,10 @@ html, body {
     </div>
 
     <div class="analytics-grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px;">
-<div class="an-card ac-blue">
-    <div class="an-card-title">
-        🏆 Top Usuarios (servicios)
-        <div class="rank-toggle" id="wchUsuarioRankToggle">
-            <button class="rank-toggle-btn active" onclick="setWchUsuarioRankMode('desc',this)">↓ Mayor</button>
-            <button class="rank-toggle-btn" onclick="setWchUsuarioRankMode('asc',this)">↑ Menor</button>
+        <div class="an-card ac-blue">
+            <div class="an-card-title">🏆 Top Usuarios (servicios)</div>
+            <div class="rank-table" id="wchRankUsuarios"></div>
         </div>
-    </div>
-    <div class="rank-table" id="wchRankUsuarios"></div>
-</div>
         <div class="an-card ac-cyan">
             <div class="an-card-title">✈️ Servicios por Aerolínea</div>
             <div class="rank-table" id="wchRankAerolineas"></div>
@@ -1150,27 +1144,7 @@ html, body {
                 </div>
             </div>
         </div>
-    </div>/
-
-
-<div class="an-section-label" style="margin-top:24px;">análisis cruzado</div>
-
-<div class="analytics-grid single" style="margin-bottom:16px;">
-    <div class="an-card ac-red">
-        <div class="an-card-title">
-            ⚠️ Horas Extra vs Reportes — Posibles Desbalances
-            <div class="rank-toggle" id="heVsWchRankToggle">
-                <button class="rank-toggle-btn active" onclick="setHeVsWchMode('ratio',this)">Por índice</button>
-                <button class="rank-toggle-btn" onclick="setHeVsWchMode('horas',this)">Por horas</button>
-            </div>
-        </div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:12px;font-family:'JetBrains Mono',monospace;line-height:1.5;">
-            Compara horas extra solicitadas (histórico completo) contra cantidad de reportes WCH del usuario. El <strong>índice</strong> es horas extra ÷ reportes — un valor alto con pocos reportes (⚠️) puede indicar horas extra desproporcionadas respecto al trabajo registrado.
-        </div>
-        <div class="rank-table" id="heVsWchRank"></div>
     </div>
-</div>
-    
 </div><!-- /tab-wch -->
         
     
@@ -1360,25 +1334,13 @@ function renderWchTable() {
     </div>`).join('');
 }
 
-var wchUsuarioRankMode = 'desc';
-
-function buildWchRanking(field, mode) {
-    mode = mode || 'desc';
+function buildWchRanking(field) {
     const map = {};
     filteredWchReports.forEach(r => {
         const key = r[field] || '–';
         map[key] = (map[key] || 0) + 1;
     });
-    const arr = Object.entries(map).map(([name, total]) => ({ name, total }));
-    arr.sort((a, b) => mode === 'asc' ? a.total - b.total : b.total - a.total);
-    return arr;
-}
-
-function setWchUsuarioRankMode(mode, el) {
-    wchUsuarioRankMode = mode;
-    el.closest('.rank-toggle').querySelectorAll('.rank-toggle-btn').forEach(b => b.classList.remove('active'));
-    el.classList.add('active');
-    renderWchRankings();
+    return Object.entries(map).map(([name, total]) => ({ name, total })).sort((a, b) => b.total - a.total);
 }
 
 function renderRankList(elId, items, colorVar) {
@@ -1393,9 +1355,9 @@ function renderRankList(elId, items, colorVar) {
 }
 
 function renderWchRankings() {
-    renderRankList('wchRankUsuarios', buildWchRanking('usuario', wchUsuarioRankMode), '#3b82f6');
-    renderRankList('wchRankAerolineas', buildWchRanking('aerolinea', 'desc'), '#06b6d4');
-    renderRankList('wchRankTipos', buildWchRanking('tipoServicio', 'desc'), '#8b5cf6');
+    renderRankList('wchRankUsuarios', buildWchRanking('usuario'), '#3b82f6');
+    renderRankList('wchRankAerolineas', buildWchRanking('aerolinea'), '#06b6d4');
+    renderRankList('wchRankTipos', buildWchRanking('tipoServicio'), '#8b5cf6');
 }
 
 function updateWchKPIs() {
@@ -1591,59 +1553,6 @@ function renderHeRankUsuarios() {
     }).join('');
 }
 
-var heVsWchMode = 'ratio';
-
-function buildHeVsWchStats() {
-    const map = {};
-    allHeReports.forEach(r => {
-        const name = r.usuario || '–';
-        if (!map[name]) map[name] = { name, heHoras: 0, wchCount: 0 };
-        map[name].heHoras += (r.duracionHoras || 0);
-    });
-    allWchReports.forEach(r => {
-        const name = r.usuario || '–';
-        if (!map[name]) map[name] = { name, heHoras: 0, wchCount: 0 };
-        map[name].wchCount++;
-    });
-    // Solo interesan usuarios que tienen al menos algo de horas extra registradas
-    return Object.values(map)
-        .filter(s => s.heHoras > 0)
-        .map(s => ({ ...s, ratio: s.heHoras / Math.max(s.wchCount, 1) }));
-}
-
-function renderHeVsWchRank() {
-    const el = document.getElementById('heVsWchRank');
-    if (!el) return;
-    const stats = buildHeVsWchStats();
-    if (!stats.length) { el.innerHTML = '<div class="empty-row">📭 Sin datos suficientes</div>'; return; }
-
-    const sortKey = heVsWchMode === 'ratio' ? 'ratio' : 'heHoras';
-    const sorted = [...stats].sort((a, b) => b[sortKey] - a[sortKey]).slice(0, 15);
-    const posColors = ['gold', 'silver', 'bronze'];
-
-    el.innerHTML = sorted.map((s, i) => {
-        const c = getInspectorColor(s.name);
-        // Heurística de alerta: índice alto (≥3h por reporte) y pocos reportes (≤2)
-        const isFlag = s.ratio >= 3 && s.wchCount <= 2;
-        return `<div class="rank-row" style="${isFlag ? 'background:rgba(239,68,68,0.07);border-radius:8px;padding:5px 8px;' : ''}">
-            <div class="rank-pos ${posColors[i] || 'rest'}">${i + 1}</div>
-            <div class="rank-name" style="color:${c.text};display:flex;align-items:center;gap:5px;">${isFlag ? '⚠️' : ''}${s.name}</div>
-            <div style="display:flex;gap:12px;flex-shrink:0;font-size:10px;font-family:'JetBrains Mono',monospace;">
-                <span style="color:var(--muted);">${s.heHoras.toFixed(1)}h HE</span>
-                <span style="color:var(--muted);">${s.wchCount} rep.</span>
-                <span style="color:${isFlag ? '#f87171' : '#c4b5fd'};font-weight:700;">idx ${s.ratio.toFixed(1)}</span>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-function setHeVsWchMode(mode, el) {
-    heVsWchMode = mode;
-    el.closest('.rank-toggle').querySelectorAll('.rank-toggle-btn').forEach(b => b.classList.remove('active'));
-    el.classList.add('active');
-    renderHeVsWchRank();
-}
-
 function renderHeWeekdayChart() {
     const buckets = [0, 0, 0, 0, 0, 0, 0]; // Dom..Sáb
     allHeReports.forEach(r => {
@@ -1701,8 +1610,6 @@ function renderHeMetrics() {
         document.getElementById('heKpiTopSub').textContent = '–';
         document.getElementById('heKpiPendientes').textContent = '0';
         document.getElementById('heRankUsuarios').innerHTML = '<div class="empty-row">📭 Sin datos</div>';
-        renderHeVsWchRank(); // ← agregar aquí también, por si allWchReports sí tiene datos
-
         return;
     }
     updateHeKPIs();
@@ -1710,7 +1617,6 @@ function renderHeMetrics() {
     renderHeWeekdayChart();
     renderHeMotivoChart();
     renderHeTrendChart();
-    renderHeVsWchRank();
 }
 
 function heSetEstado(ticket, estado) {
