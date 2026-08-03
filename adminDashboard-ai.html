@@ -1271,11 +1271,10 @@ function populateWchFilterDropdowns() {
 }
 
 function parseWchDateClient(r) {
-    const f = r.fechaCreacion || '', h = r.horaCreacion || '00:00:00';
-    const m = String(f).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    const m = String(r.ticket || '').match(/WCH-(\d+)/);
     if (!m) return 0;
-    const t = String(h).match(/(\d{1,2}):(\d{2})/);
-    return new Date(+m[3], +m[2] - 1, +m[1], t ? +t[1] : 0, t ? +t[2] : 0).getTime();
+    const epoch = parseInt(m[1], 10);
+    return isNaN(epoch) ? 0 : epoch;
 }
 
 function setWchDateFilter(mode, el) {
