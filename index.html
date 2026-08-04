@@ -1674,6 +1674,7 @@ const QS={
         photo:      null,
         photoUrl:   cp.photoUrl || null,
         sub:        m.sub,
+        realizadoPor: cp.realizadoPor || '',   // ← NUEVO
         restored:   true
       });
     } catch (err) {
@@ -2170,19 +2171,25 @@ function rWasteWaterBody(b,idx){
   const cp=CPS[idx];
   const ph=photos[cp.key]||[];
   const wasteD=ph.find(p=>p.sub==='waste');const waterD=ph.find(p=>p.sub==='water');
-  const mkBlock=(sub,label,color,done)=>`
+  const mkBlock=(sub,label,done)=>`
     <div style="background:${done?'rgba(16,185,129,.07)':'rgba(18,28,52,.5)'};border:1px solid ${done?'rgba(16,185,129,.25)':'rgba(59,130,246,.13)'};border-radius:10px;padding:11px 13px;margin-bottom:10px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${done?'6px':'8px'}">
         <span style="color:${done?'#6ee7b7':'#cbd5e1'};font-size:13px;font-weight:700">${label}</span>
         ${done?`<span style="color:#6ee7b7;font-size:10px;font-family:'Courier New',monospace">✅ ${fmt(new Date(done.timestamp))}</span>`:''}
       </div>
+      ${done
+        ? `<div style="color:#64748b;font-size:11px;margin-bottom:6px">👤 Realizado por: <strong style="color:#cbd5e1">${done.realizadoPor||'—'}</strong></div>`
+        : `<div style="margin-bottom:9px">
+             <label class="form-lbl" style="margin-bottom:4px;display:block">👤 Realizado por <span style="color:#f87171">*</span></label>
+             <input type="text" id="wwRealizado_${sub}" placeholder="Nombre de quien realiza el servicio" style="width:100%;padding:9px 11px;background:rgba(10,17,35,.7);border:1px solid rgba(59,130,246,.22);border-radius:8px;color:#fff;font-size:12px;font-family:inherit">
+           </div>`}
       ${done&&done.photo?`<img src="${done.photo}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:7px;margin-bottom:6px">`:``}
       <button class="btn-start-cam" style="margin-bottom:0" onclick="wwCapture(${idx},'${sub}','${label}')">${done?'📷 Actualizar':'📷 Registrar '+label}</button>
     </div>`;
   b.innerHTML=`
-  <div style="color:#64748b;font-size:11px;line-height:1.5;margin-bottom:11px">Registre Waste (aguas residuales) y Water (agua potable) de forma separada.</div>
-  ${mkBlock('waste','🗑️ Waste (Aguas Residuales)','#10b981',wasteD)}
-  ${mkBlock('water','💧 Water (Agua Potable)','#3b82f6',waterD)}
+  <div style="color:#64748b;font-size:11px;line-height:1.5;margin-bottom:11px">Registre Waste (aguas residuales) y Water (agua potable) de forma separada. Es obligatorio indicar quién realizó cada servicio.</div>
+  ${mkBlock('waste','🗑️ Waste (Aguas Residuales)',wasteD)}
+  ${mkBlock('water','💧 Water (Agua Potable)',waterD)}
   <div id="wwCamArea" style="display:none;margin-top:10px">
     <div class="cam-wrap"><video id="wwVid" autoplay playsinline></video><div class="cam-lbl" id="wwLbl"></div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="wwTs">--:--:--</div></div>
     <button class="btn-capture" onclick="wwDoCapture()">📸 Capturar</button>
@@ -2195,9 +2202,16 @@ function rWasteWaterBody(b,idx){
   ${(cp.optional)?`<button class="btn-close-m" style="margin-bottom:8px" onclick="wwSkip(${idx})">Omitir Waste & Water</button>`:''}
   <button class="btn-close-m" onclick="closeCP()">Cerrar</button>`;
 }
-let wwCurSub='',wwCurLbl='',wwPhotoData=null,wwPhotoTS=null;
+let wwCurSub='',wwCurLbl='',wwCurRealizado='',wwPhotoData=null,wwPhotoTS=null;
 async function wwCapture(idx,sub,lbl){
-  wwCurSub=sub;wwCurLbl=lbl;wwPhotoData=null;wwPhotoTS=null;
+  const nameInput=document.getElementById(`wwRealizado_${sub}`);
+  const realizadoPor=nameInput?nameInput.value.trim():wwCurRealizado;
+  if(!realizadoPor){
+    alert('Indique quién realizó el servicio ("Realizado por") antes de tomar la foto.');
+    if(nameInput)nameInput.focus();
+    return;
+  }
+  wwCurSub=sub;wwCurLbl=lbl;wwCurRealizado=realizadoPor;wwPhotoData=null;wwPhotoTS=null;
   document.getElementById('wwCamArea').style.display='block';document.getElementById('wwPrevArea').style.display='none';
   document.getElementById('wwLbl').textContent=lbl;
   try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});document.getElementById('wwVid').srcObject=camStream;camTSint=setInterval(()=>{const e=document.getElementById('wwTs');if(e)e.textContent=fmt(new Date())},1000)}
@@ -2214,14 +2228,13 @@ function wwStopCam(){stopCam();document.getElementById('wwCamArea').style.displa
 function wwConfirm(idx){
   const cp=CPS[idx];if(!photos[cp.key])photos[cp.key]=[];
   photos[cp.key]=photos[cp.key].filter(p=>p.sub!==wwCurSub);
-  photos[cp.key].push({checkpoint:cp.key,label:wwCurLbl,emoji:cp.emoji,photo:wwPhotoData,timestamp:wwPhotoTS,sub:wwCurSub});
-  saveCP(idx, wwCurLbl, wwPhotoTS, wwPhotoData, { sub: wwCurSub });
-  wwPhotoData=null;wwPhotoTS=null;stopCam();
+  photos[cp.key].push({checkpoint:cp.key,label:wwCurLbl,emoji:cp.emoji,photo:wwPhotoData,timestamp:wwPhotoTS,sub:wwCurSub,realizadoPor:wwCurRealizado});
+  saveCP(idx, wwCurLbl, wwPhotoTS, wwPhotoData, { sub: wwCurSub, realizadoPor: wwCurRealizado });
+  wwPhotoData=null;wwPhotoTS=null;wwCurRealizado='';stopCam();
   document.getElementById('wwCamArea').style.display='none';document.getElementById('wwPrevArea').style.display='none';
   closeCP();renderMissions();setTimeout(()=>openCP(idx),200);
 }
-function wwSkip(idx){closeCP();renderMissions()}
-function rPlantaBody(b,idx){
+function wwSkip(idx){closeCP();renderMissions()}function rPlantaBody(b,idx){
   const cp=CPS[idx];
   const ph=photos[cp.key]||[];
   const conectado=ph.find(p=>p.sub==='conecta');
