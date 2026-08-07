@@ -1514,9 +1514,11 @@ function renderHeDetailTable() {
     }).join('');
 }
 
-  function exportHorasExtraExcel(){
+function exportHorasExtraExcel(){
     if(typeof XLSX === 'undefined'){ showToast('⚠ Librería Excel no cargada', true); return; }
     if(!allHeReports.length){ showToast('⚠ No hay horas extra para exportar', true); return; }
+
+    const COLS = ['Usuario','# Vuelo','Motivo','Descripción','Hora Inicio','Hora Fin','Jornada','Duración','Fecha','Estado'];
 
     function buildRow(r){
         const esVuelo = (r.tipo || '').toLowerCase() === 'vuelo';
@@ -1530,24 +1532,70 @@ function renderHeDetailTable() {
             'Hora Inicio': r.horaInicio || '–',
             'Hora Fin': r.horaFin || '–',
             'Jornada': determineJornada(r.horaInicio) || '–',
-            'Duración (h)': r.duracionHoras != null ? +r.duracionHoras.toFixed(2) : 0,
             'Duración': r.duracionHHMM || '–',
             'Fecha': normalizeHeDateKey(r.fecha),
             'Estado': r.estado || 'Pendiente',
-            'Revisado Por': r.revisadoPor || '–'
+            '_horas': r.duracionHoras || 0,
+            '_fechaKey': normalizeHeDateKey(r.fecha)
         };
     }
 
-    const aprobadas  = allHeReports.filter(r => r.estado === 'Aprobado').map(buildRow);
-    const rechazadas = allHeReports.filter(r => r.estado === 'Rechazado').map(buildRow);
-    const pendientes = allHeReports.filter(r => (r.estado || 'Pendiente') === 'Pendiente').map(buildRow);
-    const todas       = allHeReports.map(buildRow);
+    // Agrupa una lista de reportes por Usuario y arma filas con separador/subtotal
+    function buildGroupedRows(list){
+        const rows = list.map(buildRow);
+        const byUser = {};
+        rows.forEach(r => {
+            if(!byUser[r.Usuario]) byUser[r.Usuario] = [];
+            byUser[r.Usuario].push(r);
+        });
+        const userNames = Object.keys(byUser).sort((a,b)=>a.localeCompare(b));
+        const out = [];
+        userNames.forEach(name => {
+            const group = byUser[name].sort((a,b)=> (a._fechaKey||'').localeCompare(b._fechaKey||''));
+            const totalHoras = group.reduce((s,r)=>s+r._horas,0);
+            // Fila de encabezado de grupo
+            out.push({
+                'Usuario': '👤 ' + name,
+                '# Vuelo': '',
+                'Motivo': '',
+                'Descripción': '',
+                'Hora Inicio': '',
+                'Hora Fin': '',
+                'Jornada': '',
+                'Duración': '',
+                'Fecha': '',
+                'Estado': group.length + ' registro(s) · ' + totalHoras.toFixed(1) + 'h'
+            });
+            group.forEach(r => {
+                out.push({
+                    'Usuario': '',
+                    '# Vuelo': r['# Vuelo'],
+                    'Motivo': r['Motivo'],
+                    'Descripción': r['Descripción'],
+                    'Hora Inicio': r['Hora Inicio'],
+                    'Hora Fin': r['Hora Fin'],
+                    'Jornada': r['Jornada'],
+                    'Duración': r['Duración'],
+                    'Fecha': r['Fecha'],
+                    'Estado': r['Estado']
+                });
+            });
+            // Fila en blanco como separador visual entre usuarios
+            out.push({ 'Usuario':'','# Vuelo':'','Motivo':'','Descripción':'','Hora Inicio':'','Hora Fin':'','Jornada':'','Duración':'','Fecha':'','Estado':'' });
+        });
+        return out;
+    }
+
+    const aprobadas  = allHeReports.filter(r => r.estado === 'Aprobado');
+    const rechazadas = allHeReports.filter(r => r.estado === 'Rechazado');
+    const pendientes = allHeReports.filter(r => (r.estado || 'Pendiente') === 'Pendiente');
 
     const wb = XLSX.utils.book_new();
-    const colWidths = [{wch:18},{wch:16},{wch:14},{wch:35},{wch:10},{wch:10},{wch:10},{wch:12},{wch:10},{wch:12},{wch:12},{wch:18}];
+    const colWidths = [{wch:22},{wch:16},{wch:14},{wch:35},{wch:10},{wch:10},{wch:10},{wch:10},{wch:12},{wch:20}];
 
-    function addSheet(name, rows){
-        const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ 'Sin datos': '–' }]);
+    function addSheet(name, list){
+        const grouped = buildGroupedRows(list);
+        const ws = XLSX.utils.json_to_sheet(grouped.length ? grouped : [{ 'Usuario': 'Sin datos' }], { header: COLS });
         ws['!cols'] = colWidths;
         XLSX.utils.book_append_sheet(wb, ws, name);
     }
@@ -1555,10 +1603,10 @@ function renderHeDetailTable() {
     addSheet('Aprobadas', aprobadas);
     addSheet('Rechazadas', rechazadas);
     addSheet('Pendientes', pendientes);
-    addSheet('Todas', todas);
+    addSheet('Todas', allHeReports);
 
-    const horasAprobadas  = allHeReports.filter(r=>r.estado==='Aprobado').reduce((s,r)=>s+(r.duracionHoras||0),0);
-    const horasRechazadas = allHeReports.filter(r=>r.estado==='Rechazado').reduce((s,r)=>s+(r.duracionHoras||0),0);
+    const horasAprobadas  = aprobadas.reduce((s,r)=>s+(r.duracionHoras||0),0);
+    const horasRechazadas = rechazadas.reduce((s,r)=>s+(r.duracionHoras||0),0);
     const horasTotales    = allHeReports.reduce((s,r)=>s+(r.duracionHoras||0),0);
 
     const resumen = [
@@ -1574,7 +1622,7 @@ function renderHeDetailTable() {
     const wsResumen = XLSX.utils.json_to_sheet(resumen);
     wsResumen['!cols'] = [{wch:24},{wch:22}];
     XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
-    wb.SheetNames.unshift(wb.SheetNames.pop()); // mover Resumen al inicio
+    wb.SheetNames.unshift(wb.SheetNames.pop());
 
     const fname = 'Horas_Extra_' + todayIsoDate() + '.xlsx';
     XLSX.writeFile(wb, fname);
