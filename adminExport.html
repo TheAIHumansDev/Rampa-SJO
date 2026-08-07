@@ -741,6 +741,8 @@ html, body {
             <button class="tab-btn" onclick="switchTab('analytics',this)">📊 Analytics <span class="tab-badge analytics" id="tabBadgeAnalytics">NEW</span></button>
           <button class="tab-btn" onclick="switchTab('sms',this)">🦺 SMS <span class="tab-badge alert" id="tabBadgeSms">0</span></button>
             <button class="tab-btn" onclick="switchTab('wch',this)"> ♿ Sillas <span class="tab-badge normal" id="tabBadgeWch">0</span></button>
+            <button class="tab-btn" onclick="switchTab('facturables',this)">💰 Facturables <span class="tab-badge normal" id="tabBadgeFacturables">0</span></button>
+
         </div>
 
         <!-- TAB REPORTES -->
@@ -1150,7 +1152,90 @@ html, body {
         </div>
     </div>
 </div><!-- /tab-wch -->
-        
+
+<!-- TAB FACTURABLES -->
+<div class="tab-panel" id="tab-facturables">
+    <div class="kpi-row" id="facKpiRow">
+        <div class="kpi-card blue"><div class="kpi-label">Total Facturado</div><div class="kpi-value blue" id="facKpiTotal">–</div><div class="kpi-sub">en el período</div></div>
+        <div class="kpi-card cyan"><div class="kpi-label">Servicios Registrados</div><div class="kpi-value cyan" id="facKpiCount">–</div><div class="kpi-sub">líneas facturables</div></div>
+        <div class="kpi-card green"><div class="kpi-label">Ticket Promedio</div><div class="kpi-value green" id="facKpiAvg">–</div><div class="kpi-sub">por servicio</div></div>
+        <div class="kpi-card yellow"><div class="kpi-label">Aerolínea Líder</div><div class="kpi-value yellow" id="facKpiTopAirline" style="font-size:18px;">–</div><div class="kpi-sub" id="facKpiTopAirlineSub">–</div></div>
+        <div class="kpi-card red"><div class="kpi-label">Proveedor Más Usado</div><div class="kpi-value red" id="facKpiTopProveedor" style="font-size:18px;">–</div><div class="kpi-sub" id="facKpiTopProveedorSub">–</div></div>
+    </div>
+
+    <div class="filter-bar" style="margin-bottom:12px;">
+        <span class="filter-label">📅</span>
+        <div class="date-pills">
+            <button class="date-pill active" onclick="setFacDateFilter('today',this)">Hoy</button>
+            <button class="date-pill" onclick="setFacDateFilter('week',this)">7 días</button>
+            <button class="date-pill" onclick="setFacDateFilter('month',this)">30 días</button>
+            <button class="date-pill" onclick="setFacDateFilter('all',this)">Todo</button>
+        </div>
+        <span class="filter-label" style="margin-left:6px;">✈️</span>
+        <select class="filter-select" id="facAerolineaFilter" onchange="applyFacFilters()"><option value="all">Todas las aerolíneas</option></select>
+        <span class="filter-label" style="margin-left:6px;">🔧</span>
+        <select class="filter-select" id="facServicioFilter" onchange="applyFacFilters()"><option value="all">Todo servicio</option></select>
+        <span class="filter-label" style="margin-left:6px;">🏢</span>
+        <select class="filter-select" id="facProveedorFilter" onchange="applyFacFilters()"><option value="all">Todo proveedor</option></select>
+        <span class="filter-label" style="margin-left:6px;">👤</span>
+        <select class="filter-select" id="facInspectorFilter" onchange="applyFacFilters()"><option value="all">Todos los inspectores</option></select>
+        <button class="refresh-btn" id="facRefreshBtn" onclick="loadFacturables(true)"><span class="spin-icon">↻</span> Actualizar</button>
+        <span class="last-updated" id="facLastUpdated">–</span>
+    </div>
+
+    <div class="analytics-grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px;">
+        <div class="an-card ac-blue">
+            <div class="an-card-title">🏆 Monto por Aerolínea</div>
+            <div class="rank-table" id="facRankAerolineas"></div>
+        </div>
+        <div class="an-card ac-cyan">
+            <div class="an-card-title">🏢 Monto por Proveedor</div>
+            <div class="rank-table" id="facRankProveedores"></div>
+        </div>
+    </div>
+
+    <div class="analytics-grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px;">
+        <div class="an-card ac-green">
+            <div class="an-card-title">🔧 Monto por Tipo de Servicio</div>
+            <div class="rank-table" id="facRankServicios"></div>
+        </div>
+        <div class="an-card ac-purple">
+            <div class="an-card-title">🍩 Mix de Servicios</div>
+            <div class="chart-wrap donut"><canvas id="chartFacServicioDonut"></canvas></div>
+        </div>
+    </div>
+
+    <div class="analytics-grid single" style="margin-bottom:16px;">
+        <div class="an-card ac-yellow">
+            <div class="an-card-title">📈 Facturación — Últimos 14 Días</div>
+            <div class="chart-wrap"><canvas id="chartFacTrend"></canvas></div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="toolbar-title">💰 Detalle de Servicios Facturables <span class="count-tag" id="facFilteredCount">0</span></div>
+    </div>
+
+    <div class="report-table-wrap">
+        <div class="rt-head" style="grid-template-columns:1fr 0.9fr 1fr 0.9fr 1fr 1.3fr 0.5fr 0.7fr 0.8fr 0.9fr;">
+            <div class="rt-head-cell">Vuelo</div>
+            <div class="rt-head-cell">Aerolínea</div>
+            <div class="rt-head-cell">Fecha/Hora</div>
+            <div class="rt-head-cell">Inspector</div>
+            <div class="rt-head-cell">Servicio</div>
+            <div class="rt-head-cell">Detalle</div>
+            <div class="rt-head-cell">Cant.</div>
+            <div class="rt-head-cell">Tarifa</div>
+            <div class="rt-head-cell">Monto</div>
+            <div class="rt-head-cell">Proveedor</div>
+        </div>
+        <div class="rt-body" id="facTableBody">
+            <div class="skeleton-row"><div class="skel" style="width:120px;height:14px"></div></div>
+        </div>
+    </div>
+</div><!-- /tab-facturables -->
+
+    </main>
     
     </main>
 </div>
@@ -1227,11 +1312,199 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyZ9Bkb2vcaukCGuy4au
 const SCRIPT_URL_SMS = 'https://script.google.com/macros/s/AKfycbxQlup8TVTJwY9pGIfYHosmYaf9ckdYp7LtvnCdm_n57GPPq6ohR-RDmZ-PbnMbLbmymQ/exec';
 const SCRIPT_URL_WCH = 'https://script.google.com/macros/s/AKfycbxCTDyeHff4x3WOz0dVg0QgI_lpkr2u80MuhgTYJtlJqJjHWXiAVxYbt-V8QlEct2RN/exec'; // ej: https://script.google.com/macros/s/AKfycb.../exec
 
+
+var allFacturables = [], filteredFacturables = [];
+var facDateFilter = 'today';
+var activeFacAerolineaFilter = 'all', activeFacServicioFilter = 'all', activeFacProveedorFilter = 'all', activeFacInspectorFilter = 'all';
+
+function loadFacturables(manual) { ... }
+function parseFacDate(r) { ... }
+function populateFacFilterDropdowns() { ... }
+function setFacDateFilter(mode, el) { ... }
+function applyFacFilters() { ... }
+function fmtMoney(n) { ... }
+function renderFacTable() { ... }
+function updateFacKPIs() { ... }
+function buildFacRanking(field) { ... }
+function renderFacRankings() { ... }
+function renderFacCharts() { ... }
+
+    function loadFacturables(manual) {
+    manual = !!manual;
+    const btn = document.getElementById('facRefreshBtn');
+    if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
+
+    // scope=all + sin 'inspector' → readSheetObjects() en el GAS no filtra por
+    // inspector (solo lo hace si el parámetro viene con valor), así que esto
+    // ya trae los registros de TODOS los inspectores sin tocar el backend.
+    const url = SCRIPT_URL + '?action=getFacturables&scope=all';
+
+    jsonpFetch('jst_fac', url, 9000,
+        data => {
+            if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+            const lu = document.getElementById('facLastUpdated');
+            if (lu) lu.textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            if (data && data.success && Array.isArray(data.rows)) {
+                allFacturables = data.rows;
+                populateFacFilterDropdowns();
+                applyFacFilters();
+                if (manual) showToast('✓ ' + data.rows.length + ' servicios facturables cargados');
+            } else if (manual) {
+                showToast('⚠ No se pudieron cargar los facturables', true);
+            }
+        },
+        () => {
+            if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+            if (manual) showToast('⚠ Error de conexión al cargar facturables', true);
+        }
+    );
+}
+
+function parseFacDate(r) {
+    if (!r.fechaHora) return 0;
+    const d = new Date(r.fechaHora);
+    return isNaN(d.getTime()) ? 0 : d.getTime();
+}
+
+function populateFacFilterDropdowns() {
+    populateSelect('facAerolineaFilter', 'Todas las aerolíneas', [...new Set(allFacturables.map(r => r.aerolinea).filter(Boolean))].sort());
+    populateSelect('facServicioFilter', 'Todo servicio', [...new Set(allFacturables.map(r => r.servicio).filter(Boolean))].sort());
+    populateSelect('facProveedorFilter', 'Todo proveedor', [...new Set(allFacturables.map(r => r.proveedor).filter(Boolean))].sort());
+    populateSelect('facInspectorFilter', 'Todos los inspectores', [...new Set(allFacturables.map(r => r.inspector).filter(Boolean))].sort());
+}
+
+function setFacDateFilter(mode, el) {
+    facDateFilter = mode;
+    document.querySelectorAll('#tab-facturables .date-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    applyFacFilters();
+}
+
+function applyFacFilters() {
+    activeFacAerolineaFilter = document.getElementById('facAerolineaFilter').value;
+    activeFacServicioFilter = document.getElementById('facServicioFilter').value;
+    activeFacProveedorFilter = document.getElementById('facProveedorFilter').value;
+    activeFacInspectorFilter = document.getElementById('facInspectorFilter').value;
+    const now = new Date();
+    filteredFacturables = allFacturables.filter(r => {
+        const ts = parseFacDate(r); const rDate = new Date(ts);
+        if (facDateFilter === 'today' && rDate.toDateString() !== now.toDateString()) return false;
+        if (facDateFilter === 'week') { const w = new Date(now); w.setDate(w.getDate() - 7); if (rDate < w) return false; }
+        if (facDateFilter === 'month') { const w = new Date(now); w.setDate(w.getDate() - 30); if (rDate < w) return false; }
+        if (activeFacAerolineaFilter !== 'all' && r.aerolinea !== activeFacAerolineaFilter) return false;
+        if (activeFacServicioFilter !== 'all' && r.servicio !== activeFacServicioFilter) return false;
+        if (activeFacProveedorFilter !== 'all' && r.proveedor !== activeFacProveedorFilter) return false;
+        if (activeFacInspectorFilter !== 'all' && r.inspector !== activeFacInspectorFilter) return false;
+        return true;
+    });
+    renderFacTable();
+    updateFacKPIs();
+    renderFacRankings();
+    renderFacCharts();
+}
+
+function fmtMoney(n) {
+    n = Number(n) || 0;
+    return n.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function renderFacTable() {
+    const body = document.getElementById('facTableBody');
+    document.getElementById('facFilteredCount').textContent = filteredFacturables.length;
+    document.getElementById('tabBadgeFacturables').textContent = filteredFacturables.length;
+    if (!filteredFacturables.length) { body.innerHTML = '<div class="empty-row">📭 Sin servicios facturables para este filtro</div>'; return; }
+    const display = [...filteredFacturables].sort((a, b) => parseFacDate(b) - parseFacDate(a));
+    body.innerHTML = display.map((r, i) => `<div class="rt-row" style="grid-template-columns:1fr 0.9fr 1fr 0.9fr 1fr 1.3fr 0.5fr 0.7fr 0.8fr 0.9fr;animation-delay:${i * .02}s;">
+        <div class="rt-cell flight">${r.vuelo || '–'}</div>
+        <div class="rt-cell">${r.aerolinea || '–'}</div>
+        <div class="rt-cell">${r.fechaHora ? new Date(r.fechaHora).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '–'}</div>
+        <div class="rt-cell">${r.inspector || '–'}</div>
+        <div class="rt-cell">${r.servicio || '–'}</div>
+        <div class="rt-cell" style="white-space:normal;line-height:1.3;">${r.detalle || '–'}</div>
+        <div class="rt-cell">${r.cantidad ?? '–'} ${r.unidad || ''}</div>
+        <div class="rt-cell">${r.tarifa != null ? fmtMoney(r.tarifa) : '–'}</div>
+        <div class="rt-cell" style="font-weight:700;color:#34d399;">${fmtMoney(r.monto)}</div>
+        <div class="rt-cell">${r.proveedor || '–'}</div>
+    </div>`).join('');
+}
+
+function updateFacKPIs() {
+    const total = filteredFacturables.reduce((s, r) => s + (Number(r.monto) || 0), 0);
+    const count = filteredFacturables.length;
+    const avg = count > 0 ? total / count : 0;
+
+    const byAirline = {}, byProveedor = {};
+    filteredFacturables.forEach(r => {
+        const a = r.aerolinea || '–'; byAirline[a] = (byAirline[a] || 0) + (Number(r.monto) || 0);
+        const p = r.proveedor || '–'; byProveedor[p] = (byProveedor[p] || 0) + (Number(r.monto) || 0);
+    });
+    const topAirline = Object.entries(byAirline).sort((a, b) => b[1] - a[1])[0];
+    const topProveedor = Object.entries(byProveedor).sort((a, b) => b[1] - a[1])[0];
+
+    document.getElementById('facKpiTotal').textContent = fmtMoney(total);
+    document.getElementById('facKpiCount').textContent = count;
+    document.getElementById('facKpiAvg').textContent = fmtMoney(avg);
+    document.getElementById('facKpiTopAirline').textContent = topAirline ? topAirline[0] : '–';
+    document.getElementById('facKpiTopAirlineSub').textContent = topAirline ? fmtMoney(topAirline[1]) : '–';
+    document.getElementById('facKpiTopProveedor').textContent = topProveedor ? topProveedor[0] : '–';
+    document.getElementById('facKpiTopProveedorSub').textContent = topProveedor ? fmtMoney(topProveedor[1]) : '–';
+}
+
+function buildFacRanking(field) {
+    const map = {};
+    filteredFacturables.forEach(r => {
+        const key = r[field] || '–';
+        map[key] = (map[key] || 0) + (Number(r.monto) || 0);
+    });
+    return Object.entries(map).map(([name, total]) => ({ name, total: +total.toFixed(2) })).sort((a, b) => b.total - a.total);
+}
+
+function renderFacRankings() {
+    renderRankList('facRankAerolineas', buildFacRanking('aerolinea'), '#3b82f6');
+    renderRankList('facRankProveedores', buildFacRanking('proveedor'), '#06b6d4');
+    renderRankList('facRankServicios', buildFacRanking('servicio'), '#10b981');
+}
+
+function renderFacCharts() {
+    // Donut por servicio
+    const svcMap = {};
+    filteredFacturables.forEach(r => { const s = r.servicio || '–'; svcMap[s] = (svcMap[s] || 0) + (Number(r.monto) || 0); });
+    const svcSorted = Object.entries(svcMap).sort((a, b) => b[1] - a[1]);
+    destroyChart('chartFacServicioDonut');
+    chartInstances.chartFacServicioDonut = new Chart(document.getElementById('chartFacServicioDonut'), {
+        type: 'doughnut',
+        data: { labels: svcSorted.map(e => e[0]), datasets: [{ data: svcSorted.map(e => +e[1].toFixed(2)), backgroundColor: svcSorted.map(e => airlineColor(e[0])), borderWidth: 1, borderColor: 'rgba(5,8,22,0.8)', hoverOffset: 8 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 10 } } }, tooltip: { callbacks: { label: l => l.label + ': ' + fmtMoney(l.raw) } } } }
+    });
+
+    // Tendencia — últimos 14 días
+    const days = 14, now = new Date(), buckets = {};
+    for (let i = days - 1; i >= 0; i--) { const d = new Date(now); d.setDate(d.getDate() - i); buckets[d.toISOString().slice(0, 10)] = 0; }
+    filteredFacturables.forEach(r => {
+        const ts = parseFacDate(r); if (!ts) return;
+        const k = new Date(ts).toISOString().slice(0, 10);
+        if (buckets[k] !== undefined) buckets[k] += (Number(r.monto) || 0);
+    });
+    const labels = Object.keys(buckets).map(k => { const d = new Date(k + 'T12:00:00'); return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }); });
+    const data = Object.values(buckets).map(v => +v.toFixed(2));
+    destroyChart('chartFacTrend');
+    chartInstances.chartFacTrend = new Chart(document.getElementById('chartFacTrend'), {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Monto Facturado', data, borderColor: 'rgba(245,158,11,0.9)', backgroundColor: 'rgba(245,158,11,0.08)', tension: .4, fill: true, pointBackgroundColor: 'rgba(245,158,11,1)', pointRadius: 4, pointHoverRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: l => fmtMoney(l.raw) } } }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 35 } }, y: { min: 0, grid: { color: 'rgba(59,130,246,0.06)' } } } }
+    });
+}
+    
+    
 var allWchReports = [], filteredWchReports = [];
 var wchDateFilter = 'today';
 var activeWchAeropuertoFilter = 'all', activeWchAerolineaFilter = 'all', activeWchTipoFilter = 'all', activeWchEstadoFilter = 'all';
 var allHeReports = [], heDailyTotals = [];
 var heSortField = 'fecha', heSortDir = 'desc', heRankMode = 'desc';
+
+
+    
+    
 
 function loadWchReports(manual) {
     manual = !!manual;
@@ -1832,6 +2105,8 @@ var chartInstances={};
     try { loadAllReports(); } catch(e) { console.error('Error cargando TURN/RON:', e); }
     try { loadSmsReports(); } catch(e) { console.error('Error cargando SMS:', e); }
     try { loadWchReports(); } catch(e) { console.error('Error cargando WCH:', e); }
+    try { loadFacturables(); } catch(e) { console.error('Error cargando Facturables:', e); }
+
 
 })();
 
@@ -2613,6 +2888,7 @@ function switchTab(name,el){
     document.getElementById('tab-'+name).classList.add('active');
     if(name==='analytics')renderAnalytics();
     if(name==='wch')renderHeMetrics();
+    if(name==='facturables')renderFacCharts();
 }
 
 // ══════════════════════════════════════════════════════
