@@ -1155,12 +1155,13 @@ html, body {
 
 <!-- TAB FACTURABLES -->
 <div class="tab-panel" id="tab-facturables">
-    <div class="kpi-row" id="facKpiRow">
+<div class="kpi-row" id="facKpiRow">
         <div class="kpi-card blue"><div class="kpi-label">Total Facturado</div><div class="kpi-value blue" id="facKpiTotal">–</div><div class="kpi-sub">en el período</div></div>
         <div class="kpi-card cyan"><div class="kpi-label">Servicios Registrados</div><div class="kpi-value cyan" id="facKpiCount">–</div><div class="kpi-sub">líneas facturables</div></div>
         <div class="kpi-card green"><div class="kpi-label">Ticket Promedio</div><div class="kpi-value green" id="facKpiAvg">–</div><div class="kpi-sub">por servicio</div></div>
         <div class="kpi-card yellow"><div class="kpi-label">Aerolínea Líder</div><div class="kpi-value yellow" id="facKpiTopAirline" style="font-size:18px;">–</div><div class="kpi-sub" id="facKpiTopAirlineSub">–</div></div>
         <div class="kpi-card red"><div class="kpi-label">Proveedor Más Usado</div><div class="kpi-value red" id="facKpiTopProveedor" style="font-size:18px;">–</div><div class="kpi-sub" id="facKpiTopProveedorSub">–</div></div>
+        <div class="kpi-card purple"><div class="kpi-label">Cobro Verificado</div><div class="kpi-value" id="facKpiVerificados" style="font-size:22px;color:#c4b5fd;">–</div><div class="kpi-sub" id="facKpiVerificadosSub">–</div></div>
     </div>
 
     <div class="filter-bar" style="margin-bottom:12px;">
@@ -1216,8 +1217,8 @@ html, body {
         <div class="toolbar-title">💰 Detalle de Servicios Facturables <span class="count-tag" id="facFilteredCount">0</span></div>
     </div>
 
-    <div class="report-table-wrap">
-        <div class="rt-head" style="grid-template-columns:1fr 0.9fr 1fr 0.9fr 1fr 1.3fr 0.5fr 0.7fr 0.8fr 0.9fr;">
+<div class="report-table-wrap">
+        <div class="rt-head" style="grid-template-columns:1fr 0.9fr 1fr 0.9fr 1fr 1.2fr 0.5fr 0.7fr 0.8fr 0.9fr 1fr;">
             <div class="rt-head-cell">Vuelo</div>
             <div class="rt-head-cell">Aerolínea</div>
             <div class="rt-head-cell">Fecha/Hora</div>
@@ -1228,6 +1229,7 @@ html, body {
             <div class="rt-head-cell">Tarifa</div>
             <div class="rt-head-cell">Monto</div>
             <div class="rt-head-cell">Proveedor</div>
+            <div class="rt-head-cell">Cobro Verificado</div>
         </div>
         <div class="rt-body" id="facTableBody">
             <div class="skeleton-row"><div class="skel" style="width:120px;height:14px"></div></div>
@@ -1313,6 +1315,52 @@ const SCRIPT_URL_WCH = 'https://script.google.com/macros/s/AKfycbxCTDyeHff4x3WOz
 
 var allFacturables = [], filteredFacturables = [];
 var facDateFilter = 'today';
+var activeFacAerolineaFilter = 'all', activeFacServicioFilter = 'all', activeFacProveedorFilter = 'all', activeFacInspectorFilter = 'all', activeFacVerificadoFilter = 'all';
+
+// ── Verificación de cobro (persistencia LOCAL — este navegador) ────
+// El GAS de FACTURABLE (producción, sin tocar) no tiene endpoint para
+// guardar este estado en el Sheet, así que se guarda en localStorage.
+// No se sincroniza entre dispositivos/usuarios distintos.
+var facVerifications = {};
+function facLoadVerifications() {
+    try { facVerifications = JSON.parse(localStorage.getItem('facVerifications') || '{}'); }
+    catch (e) { facVerifications = {}; }
+}
+function facSaveVerifications() {
+    try { localStorage.setItem('facVerifications', JSON.stringify(facVerifications)); } catch (e) {}
+}
+// Clave estable por fila (no hay un ID único propio en FACTURABLE)
+function facRowKey(r) {
+    return [r.flightKey, r.servicio, r.detalle, r.cantidad, r.tarifa, r.fechaHora]
+        .map(v => String(v == null ? '' : v)).join('|');
+}
+function applyFacVerificationInfo(r) {
+    const key = facRowKey(r);
+    const v = facVerifications[key];
+    return Object.assign({}, r, {
+        _facKey: key,
+        _verificado: !!(v && v.verificado),
+        _verificadoPor: v ? v.verificadoPor : '',
+        _verificadoFecha: v ? v.fecha : ''
+    });
+}
+function facToggleVerificado(key) {
+    const wasVerified = !!(facVerifications[key] && facVerifications[key].verificado);
+    if (wasVerified) {
+        if (!confirm('¿Revertir esta verificación de cobro?')) return;
+        delete facVerifications[key];
+    } else {
+        const quien = prompt('¿Quién confirma que este servicio ya fue facturado/cobrado a la aerolínea?');
+        if (quien === null) return; // canceló
+        facVerifications[key] = { verificado: true, verificadoPor: (quien.trim() || '–'), fecha: new Date().toISOString() };
+    }
+    facSaveVerifications();
+    applyFacFilters();
+    showToast(wasVerified ? '↺ Verificación revertida' : '✓ Marcado como verificado');
+}
+
+    
+var facDateFilter = 'today';
 var activeFacAerolineaFilter = 'all', activeFacServicioFilter = 'all', activeFacProveedorFilter = 'all', activeFacInspectorFilter = 'all';
     
     function loadFacturables(manual) {
@@ -1371,6 +1419,7 @@ function applyFacFilters() {
     activeFacServicioFilter = document.getElementById('facServicioFilter').value;
     activeFacProveedorFilter = document.getElementById('facProveedorFilter').value;
     activeFacInspectorFilter = document.getElementById('facInspectorFilter').value;
+    activeFacVerificadoFilter = document.getElementById('facVerificadoFilter').value;
     const now = new Date();
     filteredFacturables = allFacturables.filter(r => {
         const ts = parseFacDate(r); const rDate = new Date(ts);
@@ -1380,9 +1429,16 @@ function applyFacFilters() {
         if (activeFacAerolineaFilter !== 'all' && r.aerolinea !== activeFacAerolineaFilter) return false;
         if (activeFacServicioFilter !== 'all' && r.servicio !== activeFacServicioFilter) return false;
         if (activeFacProveedorFilter !== 'all' && r.proveedor !== activeFacProveedorFilter) return false;
-if (activeFacInspectorFilter !== 'all' && r.inspector !== activeFacInspectorFilter) return false;
+        if (activeFacInspectorFilter !== 'all' && r.inspector !== activeFacInspectorFilter) return false;
         return true;
-    }).map(applyFacBillingRule);
+    }).map(applyFacBillingRule).map(applyFacVerificationInfo);
+
+    if (activeFacVerificadoFilter !== 'all') {
+        filteredFacturables = filteredFacturables.filter(r =>
+            activeFacVerificadoFilter === 'verificado' ? r._verificado : !r._verificado
+        );
+    }
+
     renderFacTable();
     updateFacKPIs();
     renderFacRankings();
@@ -1445,7 +1501,12 @@ function renderFacTable() {
     document.getElementById('tabBadgeFacturables').textContent = filteredFacturables.length;
     if (!filteredFacturables.length) { body.innerHTML = '<div class="empty-row">📭 Sin servicios facturables para este filtro</div>'; return; }
     const display = [...filteredFacturables].sort((a, b) => parseFacDate(b) - parseFacDate(a));
-    body.innerHTML = display.map((r, i) => `<div class="rt-row" style="grid-template-columns:1fr 0.9fr 1fr 0.9fr 1fr 1.3fr 0.5fr 0.7fr 0.8fr 0.9fr;animation-delay:${i * .02}s;">
+    body.innerHTML = display.map((r, i) => {
+        const safeFacKey = (r._facKey || '').replace(/'/g, "\\'");
+        const verTitle = r._verificado
+            ? ('Verificado por ' + (r._verificadoPor || '–') + (r._verificadoFecha ? (' · ' + new Date(r._verificadoFecha).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })) : ''))
+            : 'Aún no verificado';
+        return `<div class="rt-row" style="grid-template-columns:1fr 0.9fr 1fr 0.9fr 1fr 1.2fr 0.5fr 0.7fr 0.8fr 0.9fr 1fr;animation-delay:${i * .02}s;">
         <div class="rt-cell flight">${r.vuelo || '–'}</div>
         <div class="rt-cell">${r.aerolinea || '–'}</div>
         <div class="rt-cell">${r.fechaHora ? new Date(r.fechaHora).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '–'}</div>
@@ -1454,11 +1515,16 @@ function renderFacTable() {
         <div class="rt-cell" style="white-space:normal;line-height:1.3;">${r.detalle || '–'}</div>
         <div class="rt-cell">${r.cantidad ?? '–'} ${r.unidad || ''}</div>
         <div class="rt-cell">${r.tarifa != null ? fmtMoney(r.tarifa) : '–'}</div>
-<div class="rt-cell" style="font-weight:700;color:#34d399;" title="${r._billingAdjusted ? 'Original: $' + fmtMoney(r._montoOriginal) + ' → hora completa (' + r._horasFacturadas + 'h)' : ''}">
+        <div class="rt-cell" style="font-weight:700;color:#34d399;" title="${r._billingAdjusted ? 'Original: $' + fmtMoney(r._montoOriginal) + ' → hora completa (' + r._horasFacturadas + 'h)' : ''}">
             ${fmtMoney(r.monto)}${r._billingAdjusted ? ' <span style="color:#c4b5fd;font-size:9px;">⚡h</span>' : ''}
         </div>
         <div class="rt-cell">${r.proveedor || '–'}</div>
-    </div>`).join('');
+        <div class="rt-cell" title="${verTitle}" style="gap:5px;">
+            <span class="he-estado-badge ${r._verificado ? 'he-aprobado' : 'he-pendiente'}">${r._verificado ? '✓ Verificado' : '⏳ Pendiente'}</span>
+            <button class="he-action-btn ${r._verificado ? 'he-btn-reset' : 'he-btn-approve'}" style="margin-left:4px;" onclick="facToggleVerificado('${safeFacKey}')">${r._verificado ? '↺' : '✓'}</button>
+        </div>
+    </div>`;
+    }).join('');
 }
 
 function updateFacKPIs() {
@@ -1479,9 +1545,17 @@ function updateFacKPIs() {
     document.getElementById('facKpiAvg').textContent = fmtMoney(avg);
     document.getElementById('facKpiTopAirline').textContent = topAirline ? topAirline[0] : '–';
     document.getElementById('facKpiTopAirlineSub').textContent = topAirline ? fmtMoney(topAirline[1]) : '–';
-    document.getElementById('facKpiTopProveedor').textContent = topProveedor ? topProveedor[0] : '–';
+document.getElementById('facKpiTopProveedor').textContent = topProveedor ? topProveedor[0] : '–';
     document.getElementById('facKpiTopProveedorSub').textContent = topProveedor ? fmtMoney(topProveedor[1]) : '–';
+
+    const verificados = filteredFacturables.filter(r => r._verificado).length;
+    const pendientesVer = count - verificados;
+    const elVer = document.getElementById('facKpiVerificados');
+    if (elVer) elVer.textContent = verificados + ' / ' + count;
+    const elVerSub = document.getElementById('facKpiVerificadosSub');
+    if (elVerSub) elVerSub.textContent = pendientesVer + ' pendiente(s)';
 }
+
 
 function buildFacRanking(field) {
     const map = {};
@@ -2138,8 +2212,8 @@ var chartInstances={};
     try { loadAllReports(); } catch(e) { console.error('Error cargando TURN/RON:', e); }
     try { loadSmsReports(); } catch(e) { console.error('Error cargando SMS:', e); }
     try { loadWchReports(); } catch(e) { console.error('Error cargando WCH:', e); }
+facLoadVerifications();
     try { loadFacturables(); } catch(e) { console.error('Error cargando Facturables:', e); }
-
 
 })();
 
