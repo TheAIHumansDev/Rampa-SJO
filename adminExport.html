@@ -1263,6 +1263,8 @@ html, body {
     <div class="fdm-body">
       <div class="fdm-kpi-row" id="fdmKpiRow"></div>
       <div><div class="fdm-section-title">👤 Inspector Asignado</div><div id="fdmInspectorStrip"></div></div>
+              <div><div class="fdm-section-title">👥 Personal en Vuelo</div><div class="fdm-cp-grid" id="fdmPersonalGrid"></div></div>
+
       <div><div class="fdm-section-title">⏱ Línea de Tiempo</div><div class="fdm-timeline-wrap"><div class="fdm-tl-track" id="fdmTlTrack"></div></div></div>
       <div><div class="fdm-section-title">✅ Checkpoints</div><div class="fdm-cp-grid" id="fdmCpGrid"></div></div>
       <div><div class="fdm-section-title">📊 Análisis SLA</div><div style="background:rgba(15,23,42,0.5);border:1px solid rgba(59,130,246,0.12);border-radius:12px;padding:14px;overflow-x:auto;"><table class="fdm-sla-table" id="fdmSlaTable"></table></div></div>
@@ -3034,6 +3036,7 @@ function fdmRender(r){
     if(done){badge.className='fdm-status-done';badge.textContent='✓ COMPLETADO';}
     else{badge.className='fdm-status-live';badge.innerHTML='<span style="width:6px;height:6px;background:#10b981;border-radius:50%;display:inline-block;animation:pulse-live 1.5s ease-in-out infinite;margin-right:4px;"></span> EN PROCESO';}
     fdmRenderKPIs(r);fdmRenderInspector(r);fdmRenderTimeline(r);fdmRenderCheckpoints(r);fdmRenderSLA(r);
+    fdmFetchPersonal(r.flightKeyRaw || r.flightKey);
     document.getElementById('fdmAiOutput').innerHTML='<span style="color:var(--muted);font-size:11px;">Selecciona un análisis para que Claude evalúe este vuelo.</span>';
 }
 
@@ -3164,6 +3167,59 @@ async function fdmRunAI(mode){
         output.innerHTML=`<div style="color:var(--muted);font-size:12px;"><strong style="color:#f87171;">Error al conectar con Claude</strong><br><br>${err.message}<br><br>Avance: ${Math.round(r.progress||0)}% · Checkpoints: ${cps.length}</div>`;
     }
     ['fdmAiBtnGeneral','fdmAiBtnSLA','fdmAiBtnRecom'].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=false;});
+}
+
+
+    function fdmFetchPersonal(flightKeyRaw) {
+    const box = document.getElementById('fdmPersonalGrid');
+    if (!box) return;
+    box.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px;">Cargando personal…</div>';
+
+    const url = SCRIPT_URL + '?action=getPersonalVuelo&flightKey=' + encodeURIComponent(flightKeyRaw);
+    jsonpFetch('jst_personal_' + Date.now(), url, 8000,
+        data => {
+            if (data && data.success && Array.isArray(data.rows) && data.rows.length) {
+                renderFdmPersonal(data.rows);
+            } else {
+                box.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px;">Sin personal registrado para este vuelo.</div>';
+            }
+        },
+        () => { box.innerHTML = '<div style="color:#f87171;font-size:12px;padding:8px;">Error al cargar personal.</div>'; }
+    );
+}
+
+function parseVigenciaDate(v) {
+    const m = String(v || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (!m) return null;
+    return new Date(+m[3], +m[2] - 1, +m[1]);
+}
+
+function renderFdmPersonal(rows) {
+    const box = document.getElementById('fdmPersonalGrid');
+    const today = new Date();
+    box.innerHTML = rows.map(p => {
+        const vigDate = parseVigenciaDate(p.vigencia);
+        const daysLeft = vigDate ? Math.round((vigDate - today) / 86400000) : null;
+        let vigClass = 'bdone', vigLabel = p.vigencia || '–';
+        if (daysLeft !== null) {
+            if (daysLeft < 0)       { vigClass = 'blate'; vigLabel = '⚠ Vencida ' + p.vigencia; }
+            else if (daysLeft <= 30){ vigClass = 'bwarn'; vigLabel = '⏳ ' + daysLeft + 'd — ' + p.vigencia; }
+        }
+        const he = Number(p.horasExtra) || 0;
+        const initials = makeInitials(p.nombre || '?');
+        const c = getInspectorColor(p.nombre || '');
+        return `<div class="fdm-cp-card cp-done" style="align-items:flex-start;">
+            <div class="fdm-insp-avatar" style="background:${c.grad};width:34px;height:34px;flex-shrink:0;">${initials}</div>
+            <div class="fdm-cp-info">
+                <div class="fdm-cp-name" style="font-size:12px;white-space:normal;">${p.nombre || '–'}</div>
+                <div class="fdm-cp-ts">${p.empresa || '–'} · ${p.cedula || '–'}</div>
+                <div class="fdm-cp-ts">📍 ${p.posicionPersona || '–'} · 🪪 ${p.numeroCredencial || '–'}</div>
+                ${he > 0 ? `<div class="fdm-cp-ts" style="color:#fcd34d;">⏱ ${he}h extra${p.jornada ? ' · ' + p.jornada : ''}</div>` : ''}
+                ${p.fotoUrl ? `<div style="margin-top:4px;font-size:10px;"><a href="${p.fotoUrl}" target="_blank" rel="noopener" style="color:#93c5fd;">🪪 Ver credencial</a></div>` : ''}
+            </div>
+            <div class="fdm-cp-badge ${vigClass}" style="white-space:normal;text-align:right;max-width:90px;">${vigLabel}</div>
+        </div>`;
+    }).join('');
 }
 
 // ══════════════════════════════════════════════════════
