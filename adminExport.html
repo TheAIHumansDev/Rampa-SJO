@@ -1416,9 +1416,12 @@ function applyFacBillingRule(r) {
     var tarifaHora = Number(r.tarifa) || 0;
     var montoOriginal = Number(r.monto) || 0;
 
+    // Regla: 2 minutos o menos = sin cobro (margen de gracia).
+    // Más de 2 minutos y hasta 60 minutos = se cobra 1 hora completa.
+    // Más de 60 minutos = se cobran horas completas adicionales,
+    // siempre redondeando hacia arriba (ej. 61 min = 2 horas = $200).
     var horasFacturadas, montoCalculado;
-    if (minutos <= 1) {
-        // Margen de gracia: 1 minuto o menos no genera cobro de hora.
+    if (minutos <= 2) {
         horasFacturadas = 0;
         montoCalculado = 0;
     } else {
@@ -1433,6 +1436,8 @@ function applyFacBillingRule(r) {
         _billingAdjusted: montoCalculado !== montoOriginal
     });
 }
+
+    
 
 function renderFacTable() {
     const body = document.getElementById('facTableBody');
