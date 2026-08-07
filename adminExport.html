@@ -1179,7 +1179,13 @@ html, body {
         <span class="filter-label" style="margin-left:6px;">🏢</span>
         <select class="filter-select" id="facProveedorFilter" onchange="applyFacFilters()"><option value="all">Todo proveedor</option></select>
         <span class="filter-label" style="margin-left:6px;">👤</span>
-        <select class="filter-select" id="facInspectorFilter" onchange="applyFacFilters()"><option value="all">Todos los inspectores</option></select>
+<select class="filter-select" id="facInspectorFilter" onchange="applyFacFilters()"><option value="all">Todos los inspectores</option></select>
+        <span class="filter-label" style="margin-left:6px;">✅</span>
+        <select class="filter-select" id="facVerificadoFilter" onchange="applyFacFilters()">
+            <option value="all">Todo estado</option>
+            <option value="verificado">✓ Verificado</option>
+            <option value="pendiente">⏳ Pendiente</option>
+        </select>
         <button class="refresh-btn" id="facRefreshBtn" onclick="loadFacturables(true)"><span class="spin-icon">↻</span> Actualizar</button>
         <span class="last-updated" id="facLastUpdated">–</span>
     </div>
@@ -1358,10 +1364,6 @@ function facToggleVerificado(key) {
     applyFacFilters();
     showToast(wasVerified ? '↺ Verificación revertida' : '✓ Marcado como verificado');
 }
-
-    
-var facDateFilter = 'today';
-var activeFacAerolineaFilter = 'all', activeFacServicioFilter = 'all', activeFacProveedorFilter = 'all', activeFacInspectorFilter = 'all';
     
     function loadFacturables(manual) {
     manual = !!manual;
