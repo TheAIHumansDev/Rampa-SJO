@@ -742,6 +742,8 @@ html, body {
           <button class="tab-btn" onclick="switchTab('sms',this)">🦺 SMS <span class="tab-badge alert" id="tabBadgeSms">0</span></button>
             <button class="tab-btn" onclick="switchTab('wch',this)"> ♿ Sillas <span class="tab-badge normal" id="tabBadgeWch">0</span></button>
             <button class="tab-btn" onclick="switchTab('facturables',this)">💰 Facturables <span class="tab-badge normal" id="tabBadgeFacturables">0</span></button>
+            <button class="tab-btn" onclick="switchTab('personal',this)">👤 Personal H.E. <span class="tab-badge normal" id="tabBadgePersonal">0</span></button>
+
 
         </div>
 
@@ -1243,6 +1245,71 @@ html, body {
     </div>
 </div><!-- /tab-facturables -->
 
+<!-- TAB PERSONAL H.E. -->
+<div class="tab-panel" id="tab-personal">
+    <div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#c4b5fd;font-family:'JetBrains Mono',monospace;">
+        ℹ️ Este monitor usa los mismos filtros de fecha/estación/aerolínea del tab <strong>Rampa</strong>. Cambia esos filtros y presiona "Cargar" para actualizar. La aprobación/rechazo se guarda en este navegador (no sincroniza entre dispositivos).
+    </div>
+
+    <div class="kpi-row" id="persKpiRow">
+        <div class="kpi-card blue"><div class="kpi-label">Vuelos Consultados</div><div class="kpi-value blue" id="persKpiVuelos">–</div><div class="kpi-sub" id="persKpiVuelosSub">–</div></div>
+        <div class="kpi-card cyan"><div class="kpi-label">Personas con H.E.</div><div class="kpi-value cyan" id="persKpiTotal">–</div><div class="kpi-sub">registros</div></div>
+        <div class="kpi-card yellow"><div class="kpi-label">Horas Extra Totales</div><div class="kpi-value yellow" id="persKpiHoras">–</div><div class="kpi-sub">acumuladas</div></div>
+        <div class="kpi-card purple"><div class="kpi-label">Persona con Más Horas</div><div class="kpi-value" id="persKpiTop" style="font-size:16px;color:#c4b5fd;">–</div><div class="kpi-sub" id="persKpiTopSub">–</div></div>
+        <div class="kpi-card green"><div class="kpi-label">Pendientes / Aprobadas</div><div class="kpi-value green" id="persKpiEstados" style="font-size:20px;">–</div><div class="kpi-sub">de revisión</div></div>
+    </div>
+
+    <div class="filter-bar" style="margin-bottom:12px;">
+        <span class="filter-label">📌</span>
+        <select class="filter-select" id="persEstadoFilter" onchange="renderPersTable()">
+            <option value="all">Todo estado</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Aprobado">Aprobado</option>
+            <option value="Rechazado">Rechazado</option>
+        </select>
+        <button class="refresh-btn" id="persLoadBtn" onclick="loadPersonalHE(true)">
+            <span class="spin-icon">↻</span> Cargar Personal H.E.
+        </button>
+        <button class="refresh-btn" onclick="exportPersonalExcel()">📥 Exportar Excel</button>
+        <span class="last-updated" id="persLastUpdated">–</span>
+    </div>
+
+    <div class="analytics-grid single" style="margin-bottom:16px;">
+        <div class="an-card ac-blue">
+            <div class="an-card-title">
+                🏆 Ranking — Horas Extra por Persona
+                <div class="rank-toggle" id="persRankToggle">
+                    <button class="rank-toggle-btn active" onclick="setPersRankMode('desc',this)">↓ Mayor</button>
+                    <button class="rank-toggle-btn" onclick="setPersRankMode('asc',this)">↑ Menor</button>
+                </div>
+            </div>
+            <div class="rank-table" id="persRankUsuarios"></div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="toolbar-title">👤 Personal en Vuelo — Horas Extra <span class="count-tag" id="persFilteredCount">0</span></div>
+    </div>
+
+    <div class="report-table-wrap">
+        <div class="rt-head" style="grid-template-columns:1.1fr 0.9fr 0.9fr 0.9fr 1fr 0.8fr 0.9fr 0.7fr 0.9fr 1.1fr;">
+            <div class="rt-head-cell">Nombre</div>
+            <div class="rt-head-cell">Cédula</div>
+            <div class="rt-head-cell">Empresa</div>
+            <div class="rt-head-cell">Vuelo</div>
+            <div class="rt-head-cell">Aerolínea</div>
+            <div class="rt-head-cell">Posición</div>
+            <div class="rt-head-cell">Jornada</div>
+            <div class="rt-head-cell">H. Extra</div>
+            <div class="rt-head-cell">Fecha</div>
+            <div class="rt-head-cell">Estado / Acciones</div>
+        </div>
+        <div class="rt-body" id="persTableBody">
+            <div class="empty-row">👆 Presiona "Cargar Personal H.E." para consultar los vuelos filtrados</div>
+        </div>
+    </div>
+</div><!-- /tab-personal -->
+
     </main>
 </div>
 
@@ -1605,7 +1672,216 @@ function renderFacCharts() {
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: l => fmtMoney(l.raw) } } }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 35 } }, y: { min: 0, grid: { color: 'rgba(59,130,246,0.06)' } } } }
     });
 }
-    
+
+    // ══════════════════════════════════════════════════════
+//  PERSONAL H.E. — usa endpoint getPersonalVuelo YA EXISTENTE
+//  (uno por vuelo, sobre los vuelos ya filtrados en el tab
+//  Rampa). Cero cambios en GAS. Aprobar/Rechazar se guarda en
+//  localStorage, igual que "Cobro Verificado" en Facturables.
+// ══════════════════════════════════════════════════════
+var allPersonalHE = [];
+var persRankMode = 'desc';
+var persEstados = {};
+
+function persLoadEstados() {
+    try { persEstados = JSON.parse(localStorage.getItem('persEstadosHE') || '{}'); }
+    catch (e) { persEstados = {}; }
+}
+function persSaveEstados() {
+    try { localStorage.setItem('persEstadosHE', JSON.stringify(persEstados)); } catch (e) {}
+}
+// Clave estable: no hay timestamp por persona en getPersonalVuelo,
+// así que usamos vuelo + nombre + cédula (única por vuelo).
+function persRowKey(p) {
+    return [p.flightKeyRaw, p.nombre, p.cedula].map(v => String(v||'')).join('|');
+}
+
+function loadPersonalHE(manual) {
+    manual = !!manual;
+    const btn = document.getElementById('persLoadBtn');
+    if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
+    document.getElementById('persTableBody').innerHTML = '<div class="skeleton-row"><div class="skel" style="width:140px;height:14px"></div></div>';
+
+    // Vuelos únicos del filtro actual del tab Rampa (mismo filteredReports)
+    const seen = new Set();
+    const flights = [];
+    filteredReports.forEach(r => {
+        const fk = r.flightKeyRaw || r.flightKey;
+        if (!fk || seen.has(fk)) return;
+        seen.add(fk);
+        flights.push(r);
+    });
+
+    document.getElementById('persKpiVuelosSub').textContent = flights.length + ' vuelo(s) en filtro actual';
+
+    if (!flights.length) {
+        if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+        allPersonalHE = [];
+        renderPersTable(); updatePersKPIs(); renderPersRanking();
+        showToast('⚠ No hay vuelos en el filtro actual del tab Rampa', true);
+        return;
+    }
+
+    let results = [], done = 0, failed = 0;
+    const CONCURRENCY = 4;
+    let nextIdx = 0;
+
+    function launchNext() {
+        if (nextIdx >= flights.length) return;
+        const r = flights[nextIdx++];
+        const fk = r.flightKeyRaw || r.flightKey;
+        const url = SCRIPT_URL + '?action=getPersonalVuelo&flightKey=' + encodeURIComponent(fk);
+        jsonpFetch('jst_persHE_' + nextIdx + '_' + Date.now(), url, 8000,
+            data => {
+                if (data && data.success && Array.isArray(data.rows)) {
+                    data.rows.forEach(p => {
+                        if (!(Number(p.horasExtra) > 0)) return; // solo con horas extra
+                        results.push(Object.assign({}, p, {
+                            flightKeyRaw: fk,
+                            vuelo: r.flightNumber, airline: r.airline, airlineName: r.airlineName,
+                            flightType: r.flightType, flightTimestamp: r.flightTimestamp,
+                            aeropuerto: r.aeropuerto
+                        }));
+                    });
+                } else failed++;
+                afterOne();
+            },
+            () => { failed++; afterOne(); }
+        );
+    }
+    function afterOne() {
+        done++;
+        document.getElementById('persLastUpdated').textContent = 'Consultando… ' + done + '/' + flights.length;
+        if (nextIdx < flights.length) launchNext();
+        else if (done === flights.length) finish();
+    }
+    function finish() {
+        if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+        allPersonalHE = results.map(p => Object.assign({}, p, { _key: persRowKey(p) }));
+        document.getElementById('persLastUpdated').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) + ' (' + flights.length + ' vuelos, ' + failed + ' fallidos)';
+        renderPersTable(); updatePersKPIs(); renderPersRanking();
+        if (manual) showToast('✓ ' + allPersonalHE.length + ' registros de horas extra encontrados');
+    }
+
+    for (let i = 0; i < Math.min(CONCURRENCY, flights.length); i++) launchNext();
+}
+
+function persEstadoClass(estado) {
+    if (estado === 'Aprobado') return 'he-aprobado';
+    if (estado === 'Rechazado') return 'he-rechazado';
+    return 'he-pendiente';
+}
+function jornadaBadgeHtmlPers(jornada) {
+    if (!jornada) return '<span style="color:var(--muted);font-size:9px;">–</span>';
+    const cls = /diur/i.test(jornada) ? 'jornada-diurna' : 'jornada-nocturna';
+    const icon = /diur/i.test(jornada) ? '☀️' : '🌙';
+    return `<span class="jornada-badge ${cls}">${icon} ${jornada}</span>`;
+}
+
+function renderPersTable() {
+    const filterEl = document.getElementById('persEstadoFilter');
+    const estadoFilter = filterEl ? filterEl.value : 'all';
+    const body = document.getElementById('persTableBody');
+
+    let display = allPersonalHE.map(p => {
+        const est = persEstados[p._key];
+        return Object.assign({}, p, { _estado: est ? est.estado : 'Pendiente', _revisadoPor: est ? est.revisadoPor : '' });
+    });
+    if (estadoFilter !== 'all') display = display.filter(p => p._estado === estadoFilter);
+
+    document.getElementById('persFilteredCount').textContent = display.length;
+    document.getElementById('tabBadgePersonal').textContent = display.filter(p => p._estado === 'Pendiente').length;
+
+    if (!display.length) { body.innerHTML = '<div class="empty-row">📭 Sin registros de horas extra en el filtro actual</div>'; return; }
+
+    body.innerHTML = display.map((p, i) => {
+        const safeKey = (p._key || '').replace(/'/g, "\\'");
+        const acciones = p._estado === 'Pendiente'
+            ? `<button class="he-action-btn he-btn-approve" onclick="persSetEstado('${safeKey}','Aprobado')">✓</button>
+               <button class="he-action-btn he-btn-reject" onclick="persSetEstado('${safeKey}','Rechazado')">✕</button>`
+            : `<span style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-right:4px;">${p._revisadoPor||'–'}</span>
+               <button class="he-action-btn he-btn-reset" onclick="persSetEstado('${safeKey}','Pendiente')">↺</button>`;
+        return `<div class="rt-row" style="grid-template-columns:1.1fr 0.9fr 0.9fr 0.9fr 1fr 0.8fr 0.9fr 0.7fr 0.9fr 1.1fr;animation-delay:${i*.02}s;">
+            <div class="rt-cell flight">${p.nombre || '–'}</div>
+            <div class="rt-cell">${p.cedula || '–'}</div>
+            <div class="rt-cell">${p.empresa || '–'}</div>
+            <div class="rt-cell">${(p.airline||'') + ' ' + (p.vuelo||'')}</div>
+            <div class="rt-cell">${p.airlineName || '–'}</div>
+            <div class="rt-cell">${p.posicionPersona || '–'}</div>
+            <div class="rt-cell">${jornadaBadgeHtmlPers(p.jornada)}</div>
+            <div class="rt-cell" style="font-weight:700;color:#fcd34d;">${Number(p.horasExtra||0)}h</div>
+            <div class="rt-cell">${p.flightTimestamp ? new Date(p.flightTimestamp).toLocaleDateString('es-ES',{day:'2-digit',month:'short'}) : '–'}</div>
+            <div class="rt-cell" style="gap:5px;">
+                <span class="he-estado-badge ${persEstadoClass(p._estado)}">${p._estado}</span>
+                ${acciones}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function updatePersKPIs() {
+    const total = allPersonalHE.length;
+    const totalHoras = allPersonalHE.reduce((s,p) => s + (Number(p.horasExtra)||0), 0);
+    const map = {};
+    allPersonalHE.forEach(p => { const n = p.nombre||'–'; map[n] = (map[n]||0) + (Number(p.horasExtra)||0); });
+    const top = Object.entries(map).sort((a,b)=>b[1]-a[1])[0];
+    let pend = 0, aprob = 0;
+    allPersonalHE.forEach(p => { const e = persEstados[p._key]; const est = e ? e.estado : 'Pendiente'; if (est==='Pendiente') pend++; else if (est==='Aprobado') aprob++; });
+
+    document.getElementById('persKpiVuelos').textContent = new Set(allPersonalHE.map(p=>p.flightKeyRaw)).size;
+    document.getElementById('persKpiTotal').textContent = total;
+    document.getElementById('persKpiHoras').textContent = totalHoras.toFixed(1) + 'h';
+    document.getElementById('persKpiTop').textContent = top ? top[0] : '–';
+    document.getElementById('persKpiTopSub').textContent = top ? top[1].toFixed(1) + 'h acumuladas' : '–';
+    document.getElementById('persKpiEstados').textContent = pend + ' / ' + aprob;
+}
+
+function setPersRankMode(mode, el) {
+    persRankMode = mode;
+    el.closest('.rank-toggle').querySelectorAll('.rank-toggle-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    renderPersRanking();
+}
+function renderPersRanking() {
+    const map = {};
+    allPersonalHE.forEach(p => { const n = p.nombre||'–'; map[n] = (map[n]||0) + (Number(p.horasExtra)||0); });
+    const items = Object.entries(map).map(([name,total])=>({name,total:+total.toFixed(1)}))
+        .sort((a,b) => persRankMode==='desc' ? b.total-a.total : a.total-b.total);
+    renderRankList('persRankUsuarios', items, '#f59e0b');
+}
+
+function persSetEstado(key, estado) {
+    const revisadoPor = prompt(estado === 'Aprobado' ? '¿Quién aprueba estas horas extra?' : estado === 'Rechazado' ? '¿Quién rechaza?' : '¿Quién revierte el estado?');
+    if (revisadoPor === null) return;
+    if (estado === 'Pendiente') delete persEstados[key];
+    else persEstados[key] = { estado, revisadoPor: revisadoPor.trim() || '–', fecha: new Date().toISOString() };
+    persSaveEstados();
+    renderPersTable(); updatePersKPIs();
+    showToast('✓ Estado actualizado a ' + estado);
+}
+
+function exportPersonalExcel() {
+    if (typeof XLSX === 'undefined') { showToast('⚠ Librería Excel no cargada', true); return; }
+    if (!allPersonalHE.length) { showToast('⚠ No hay datos cargados — presiona "Cargar Personal H.E." primero', true); return; }
+
+    const rows = allPersonalHE.map(p => {
+        const e = persEstados[p._key];
+        return {
+            'Nombre': p.nombre||'–', 'Cédula': p.cedula||'–', 'Empresa': p.empresa||'–',
+            'Vuelo': (p.airline||'')+' '+(p.vuelo||''), 'Aerolínea': p.airlineName||'–',
+            'Posición': p.posicionPersona||'–', 'Horas Extra': Number(p.horasExtra||0),
+            'Jornada': p.jornada||'–', 'Horas Diurnas': Number(p.horasDiurnas||0), 'Horas Nocturnas': Number(p.horasNocturnas||0),
+            'Fecha': p.flightTimestamp ? new Date(p.flightTimestamp).toLocaleDateString('es-CR') : '–',
+            'Estado': e ? e.estado : 'Pendiente', 'Revisado Por': e ? e.revisadoPor : '–'
+        };
+    });
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{wch:24},{wch:14},{wch:20},{wch:14},{wch:16},{wch:12},{wch:12},{wch:12},{wch:12},{wch:14},{wch:12},{wch:16}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Personal H.E.');
+    XLSX.writeFile(wb, 'Personal_HorasExtra_' + todayIsoDate() + '.xlsx');
+    showToast('✓ Excel exportado');
+}
     
 var allWchReports = [], filteredWchReports = [];
 var wchDateFilter = 'today';
@@ -2218,6 +2494,7 @@ var chartInstances={};
     try { loadWchReports(); } catch(e) { console.error('Error cargando WCH:', e); }
 facLoadVerifications();
     try { loadFacturables(); } catch(e) { console.error('Error cargando Facturables:', e); }
+    persLoadEstados();
 
 })();
 
@@ -3000,6 +3277,7 @@ function switchTab(name,el){
     if(name==='analytics')renderAnalytics();
     if(name==='wch')renderHeMetrics();
     if(name==='facturables')renderFacCharts();
+    if(name==='personal'&&allPersonalHE.length){renderPersTable();updatePersKPIs();renderPersRanking();}
 }
 
 // ══════════════════════════════════════════════════════
