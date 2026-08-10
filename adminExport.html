@@ -1679,15 +1679,17 @@ function renderFacCharts() {
     });
 }
 
-    // ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 //  PERSONAL H.E. — usa endpoint getPersonalVuelo YA EXISTENTE
-//  (uno por vuelo, sobre los vuelos ya filtrados en el tab
-//  Rampa). Cero cambios en GAS. Aprobar/Rechazar se guarda en
-//  localStorage, igual que "Cobro Verificado" en Facturables.
+//  (uno por vuelo, sobre los vuelos ya filtrados por su propio
+//  selector de fecha). Cero cambios en GAS. Aprobar/Rechazar se
+//  guarda en localStorage, igual que "Cobro Verificado" en Facturables.
 // ══════════════════════════════════════════════════════
 var allPersonalHE = [];
 var persRankMode = 'desc';
 var persEstados = {};
+var persDateFilter = 'all';
+var persLastDiag = { sinPersonal: 0, conPersonalSinHE: 0, conHE: 0, error: 0, sampleError: null };
 
 function persLoadEstados() {
     try { persEstados = JSON.parse(localStorage.getItem('persEstadosHE') || '{}'); }
@@ -1696,21 +1698,15 @@ function persLoadEstados() {
 function persSaveEstados() {
     try { localStorage.setItem('persEstadosHE', JSON.stringify(persEstados)); } catch (e) {}
 }
-// Clave estable: no hay timestamp por persona en getPersonalVuelo,
-// así que usamos vuelo + nombre + cédula (única por vuelo).
 function persRowKey(p) {
     return [p.flightKeyRaw, p.nombre, p.cedula].map(v => String(v||'')).join('|');
 }
-
-var persDateFilter = 'all';
 
 function setPersDateFilter(mode, el) {
     persDateFilter = mode;
     document.querySelectorAll('#tab-personal .date-pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
 }
-
-var persLastDiag = { sinPersonal: 0, conPersonalSinHE: 0, conHE: 0, error: 0, sampleError: null };
 
 function loadPersonalHE(manual) {
     manual = !!manual;
@@ -1740,7 +1736,7 @@ function loadPersonalHE(manual) {
         if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
         allPersonalHE = [];
         renderPersTable(); updatePersKPIs(); renderPersRanking();
-        showToast('⚠ No hay vuelos en el rango seleccionado (revisa allReports)', true);
+        showToast('⚠ No hay vuelos en el rango seleccionado', true);
         return;
     }
 
@@ -1757,7 +1753,7 @@ function loadPersonalHE(manual) {
         jsonpFetch('jst_persHE_' + nextIdx + '_' + Date.now(), url, 8000,
             data => {
                 if (data && data.success && Array.isArray(data.rows)) {
-                    if (!data.rows.length) { persLastDiag.sinPersonal++; }
+                    if (!data.rows.length) persLastDiag.sinPersonal++;
                     let foundHE = false;
                     data.rows.forEach(p => {
                         if (!(Number(p.horasExtra) > 0)) return;
@@ -1804,55 +1800,15 @@ function loadPersonalHE(manual) {
             if (allPersonalHE.length > 0) {
                 showToast('✓ ' + allPersonalHE.length + ' registros de horas extra encontrados');
             } else if (persLastDiag.error === flights.length) {
-                showToast('⚠ Todas las consultas fallaron — revisa la consola (F12) y verifica que el GAS tenga action=getPersonalVuelo desplegado', true);
+                showToast('⚠ Todas las consultas fallaron — revisa la consola (F12)', true);
             } else if (persLastDiag.sinPersonal === flights.length) {
                 showToast('⚠ Ningún vuelo tiene personal registrado en PERSONAL_VUELO', true);
             } else if (persLastDiag.conPersonalSinHE > 0 && persLastDiag.conHE === 0) {
                 showToast('⚠ Hay personal registrado pero con Horas Extra = 0 en todos los vuelos consultados', true);
             } else {
-                showToast('⚠ Sin registros de horas extra — ver consola para diagnóstico detallado', true);
+                showToast('⚠ Sin registros de horas extra — ver consola para diagnóstico', true);
             }
         }
-    }
-
-    for (let i = 0; i < Math.min(CONCURRENCY, flights.length); i++) launchNext();
-}
-
-    function launchNext() {
-        if (nextIdx >= flights.length) return;
-        const r = flights[nextIdx++];
-        const fk = r.flightKeyRaw || r.flightKey;
-        const url = SCRIPT_URL + '?action=getPersonalVuelo&flightKey=' + encodeURIComponent(fk);
-        jsonpFetch('jst_persHE_' + nextIdx + '_' + Date.now(), url, 8000,
-            data => {
-                if (data && data.success && Array.isArray(data.rows)) {
-                    data.rows.forEach(p => {
-                        if (!(Number(p.horasExtra) > 0)) return; // solo con horas extra
-                        results.push(Object.assign({}, p, {
-                            flightKeyRaw: fk,
-                            vuelo: r.flightNumber, airline: r.airline, airlineName: r.airlineName,
-                            flightType: r.flightType, flightTimestamp: r.flightTimestamp,
-                            aeropuerto: r.aeropuerto
-                        }));
-                    });
-                } else failed++;
-                afterOne();
-            },
-            () => { failed++; afterOne(); }
-        );
-    }
-    function afterOne() {
-        done++;
-        document.getElementById('persLastUpdated').textContent = 'Consultando… ' + done + '/' + flights.length;
-        if (nextIdx < flights.length) launchNext();
-        else if (done === flights.length) finish();
-    }
-    function finish() {
-        if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
-        allPersonalHE = results.map(p => Object.assign({}, p, { _key: persRowKey(p) }));
-        document.getElementById('persLastUpdated').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) + ' (' + flights.length + ' vuelos, ' + failed + ' fallidos)';
-        renderPersTable(); updatePersKPIs(); renderPersRanking();
-        if (manual) showToast('✓ ' + allPersonalHE.length + ' registros de horas extra encontrados');
     }
 
     for (let i = 0; i < Math.min(CONCURRENCY, flights.length); i++) launchNext();
