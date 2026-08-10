@@ -1247,8 +1247,8 @@ html, body {
 
 <!-- TAB PERSONAL H.E. -->
 <div class="tab-panel" id="tab-personal">
-    <div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#c4b5fd;font-family:'JetBrains Mono',monospace;">
-        ℹ️ Este monitor usa los mismos filtros de fecha/estación/aerolínea del tab <strong>Rampa</strong>. Cambia esos filtros y presiona "Cargar" para actualizar. La aprobación/rechazo se guarda en este navegador (no sincroniza entre dispositivos).
+<div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#c4b5fd;font-family:'JetBrains Mono',monospace;">
+        ℹ️ Este monitor tiene su propio filtro de fecha (independiente del tab Rampa). Selecciona el rango y presiona "Cargar" para consultar. La aprobación/rechazo se guarda en este navegador (no sincroniza entre dispositivos).
     </div>
 
     <div class="kpi-row" id="persKpiRow">
@@ -1259,8 +1259,14 @@ html, body {
         <div class="kpi-card green"><div class="kpi-label">Pendientes / Aprobadas</div><div class="kpi-value green" id="persKpiEstados" style="font-size:20px;">–</div><div class="kpi-sub">de revisión</div></div>
     </div>
 
-    <div class="filter-bar" style="margin-bottom:12px;">
-        <span class="filter-label">📌</span>
+<div class="filter-bar" style="margin-bottom:12px;">
+        <span class="filter-label">📅</span>
+        <div class="date-pills">
+            <button class="date-pill" onclick="setPersDateFilter('today',this)">Hoy</button>
+            <button class="date-pill" onclick="setPersDateFilter('week',this)">7 días</button>
+            <button class="date-pill active" onclick="setPersDateFilter('all',this)">Todo</button>
+        </div>
+        <span class="filter-label" style="margin-left:6px;">📌</span>
         <select class="filter-select" id="persEstadoFilter" onchange="renderPersTable()">
             <option value="all">Todo estado</option>
             <option value="Pendiente">Pendiente</option>
@@ -1696,11 +1702,38 @@ function persRowKey(p) {
     return [p.flightKeyRaw, p.nombre, p.cedula].map(v => String(v||'')).join('|');
 }
 
+var persDateFilter = 'all';
+
+function setPersDateFilter(mode, el) {
+    persDateFilter = mode;
+    document.querySelectorAll('#tab-personal .date-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+}
+
 function loadPersonalHE(manual) {
     manual = !!manual;
     const btn = document.getElementById('persLoadBtn');
     if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
     document.getElementById('persTableBody').innerHTML = '<div class="skeleton-row"><div class="skel" style="width:140px;height:14px"></div></div>';
+
+    // Vuelos únicos, filtrados por el propio selector de fecha de este tab
+    // (usa allReports, NO filteredReports — independiente del tab Rampa)
+    const now = new Date();
+    const seen = new Set();
+    const flights = [];
+    allReports.forEach(r => {
+        const ts = parseFlightDate(r);
+        if (!ts) return;
+        const rDate = new Date(ts);
+        if (persDateFilter === 'today' && rDate.toDateString() !== now.toDateString()) return;
+        if (persDateFilter === 'week') { const w = new Date(now); w.setDate(w.getDate() - 7); if (rDate < w) return; }
+        const fk = r.flightKeyRaw || r.flightKey;
+        if (!fk || seen.has(fk)) return;
+        seen.add(fk);
+        flights.push(r);
+    });
+
+    document.getElementById('persKpiVuelosSub').textContent = flights.length + ' vuelo(s) en el rango seleccionado';
 
     // Vuelos únicos del filtro actual del tab Rampa (mismo filteredReports)
     const seen = new Set();
