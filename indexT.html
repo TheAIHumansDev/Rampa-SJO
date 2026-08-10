@@ -1499,7 +1499,7 @@ textarea.ta:focus{border-color:#3b82f6}
 
 <!-- ═══════════ SCRIPTS ═══════════ -->
 <script>
-const SCRIPT_URL='https://script.google.com/macros/s/AKfycbwbRGQn8wHlGnvNrtO0f6h6ZXyVTa2l0vbOh0iVzni-j7p8MDa0FfJ4YMyIWcXghHvy/exec';
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbxdMd5hEqbaCU2nRbE7tPa8lQLfPGfmY0liFMZjE68kkvY86HuO10Kiv2zBssDW4Ppt/exec';
 const ANAMES={'DL':'Delta','WN':'Southwest','UA':'United','VB':'Viva Aerobus','AA':'American Airlines','WS':'Westjet','E9':'Iberojet','PO':'Porter','AV':'Avianca','IB':'Iberia','TS':'Air Transat','B6':'Jetblue','D0':'DHL','CG':'Cargo'};
 
 // ── STATE ──
@@ -2783,15 +2783,22 @@ async function updatePersExtra(i,field,value){
   toast(`💾 Horas extra actualizadas — ${p.nombre}`);
 }
 
-  async function updatePersPosicion(i,value){
+async function updatePersPosicion(i,value){
   const p=personalVuelo[i];if(!p)return;
+  const prevValue=p.posicionPersona;
   p.posicionPersona=value;
   renderMissions();
-  await postSync({
+  const r=await postSync({
     action:'updatePersonalPosicion',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,
     nombre:p.nombre,posicionPersona:value
   });
-  toast(`📍 Posición actualizada — ${p.nombre}`);
+  if(r&&r.success){
+    toast(`📍 Posición actualizada — ${p.nombre}`);
+  }else{
+    p.posicionPersona=prevValue; // revertir en UI si el backend falló
+    renderPersonalTable();renderMissions();
+    alert('⚠️ No se pudo guardar la posición: '+(r&&r.message?r.message:'error desconocido'));
+  }
 }
   
 
