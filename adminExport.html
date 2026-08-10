@@ -1735,18 +1735,6 @@ function loadPersonalHE(manual) {
 
     document.getElementById('persKpiVuelosSub').textContent = flights.length + ' vuelo(s) en el rango seleccionado';
 
-    // Vuelos únicos del filtro actual del tab Rampa (mismo filteredReports)
-    const seen = new Set();
-    const flights = [];
-    filteredReports.forEach(r => {
-        const fk = r.flightKeyRaw || r.flightKey;
-        if (!fk || seen.has(fk)) return;
-        seen.add(fk);
-        flights.push(r);
-    });
-
-    document.getElementById('persKpiVuelosSub').textContent = flights.length + ' vuelo(s) en filtro actual';
-
     if (!flights.length) {
         if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
         allPersonalHE = [];
