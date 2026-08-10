@@ -1710,14 +1710,14 @@ function setPersDateFilter(mode, el) {
     el.classList.add('active');
 }
 
+var persLastDiag = { sinPersonal: 0, conPersonalSinHE: 0, conHE: 0, error: 0, sampleError: null };
+
 function loadPersonalHE(manual) {
     manual = !!manual;
     const btn = document.getElementById('persLoadBtn');
     if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
     document.getElementById('persTableBody').innerHTML = '<div class="skeleton-row"><div class="skel" style="width:140px;height:14px"></div></div>';
 
-    // Vuelos únicos, filtrados por el propio selector de fecha de este tab
-    // (usa allReports, NO filteredReports — independiente del tab Rampa)
     const now = new Date();
     const seen = new Set();
     const flights = [];
@@ -1734,18 +1734,89 @@ function loadPersonalHE(manual) {
     });
 
     document.getElementById('persKpiVuelosSub').textContent = flights.length + ' vuelo(s) en el rango seleccionado';
+    console.log('[Personal HE] Vuelos a consultar:', flights.length, flights.map(r => r.flightKeyRaw || r.flightKey));
 
     if (!flights.length) {
         if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
         allPersonalHE = [];
         renderPersTable(); updatePersKPIs(); renderPersRanking();
-        showToast('⚠ No hay vuelos en el filtro actual del tab Rampa', true);
+        showToast('⚠ No hay vuelos en el rango seleccionado (revisa allReports)', true);
         return;
     }
 
-    let results = [], done = 0, failed = 0;
+    let results = [], done = 0;
+    persLastDiag = { sinPersonal: 0, conPersonalSinHE: 0, conHE: 0, error: 0, sampleError: null };
     const CONCURRENCY = 4;
     let nextIdx = 0;
+
+    function launchNext() {
+        if (nextIdx >= flights.length) return;
+        const r = flights[nextIdx++];
+        const fk = r.flightKeyRaw || r.flightKey;
+        const url = SCRIPT_URL + '?action=getPersonalVuelo&flightKey=' + encodeURIComponent(fk);
+        jsonpFetch('jst_persHE_' + nextIdx + '_' + Date.now(), url, 8000,
+            data => {
+                if (data && data.success && Array.isArray(data.rows)) {
+                    if (!data.rows.length) { persLastDiag.sinPersonal++; }
+                    let foundHE = false;
+                    data.rows.forEach(p => {
+                        if (!(Number(p.horasExtra) > 0)) return;
+                        foundHE = true;
+                        results.push(Object.assign({}, p, {
+                            flightKeyRaw: fk,
+                            vuelo: r.flightNumber, airline: r.airline, airlineName: r.airlineName,
+                            flightType: r.flightType, flightTimestamp: r.flightTimestamp,
+                            aeropuerto: r.aeropuerto
+                        }));
+                    });
+                    if (data.rows.length && !foundHE) persLastDiag.conPersonalSinHE++;
+                    if (foundHE) persLastDiag.conHE++;
+                } else {
+                    persLastDiag.error++;
+                    if (!persLastDiag.sampleError) persLastDiag.sampleError = JSON.stringify(data);
+                    console.warn('[Personal HE] Respuesta inesperada para', fk, data);
+                }
+                afterOne();
+            },
+            (reason) => {
+                persLastDiag.error++;
+                if (!persLastDiag.sampleError) persLastDiag.sampleError = 'timeout/network: ' + reason;
+                console.warn('[Personal HE] Falló consulta para', fk, reason);
+                afterOne();
+            }
+        );
+    }
+    function afterOne() {
+        done++;
+        document.getElementById('persLastUpdated').textContent = 'Consultando… ' + done + '/' + flights.length;
+        if (nextIdx < flights.length) launchNext();
+        else if (done === flights.length) finish();
+    }
+    function finish() {
+        if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+        allPersonalHE = results.map(p => Object.assign({}, p, { _key: persRowKey(p) }));
+        document.getElementById('persLastUpdated').textContent =
+            'Actualizado: ' + new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) +
+            ' (' + flights.length + ' vuelos)';
+        renderPersTable(); updatePersKPIs(); renderPersRanking();
+        console.log('[Personal HE] Diagnóstico:', persLastDiag, 'Registros con HE:', allPersonalHE.length);
+        if (manual) {
+            if (allPersonalHE.length > 0) {
+                showToast('✓ ' + allPersonalHE.length + ' registros de horas extra encontrados');
+            } else if (persLastDiag.error === flights.length) {
+                showToast('⚠ Todas las consultas fallaron — revisa la consola (F12) y verifica que el GAS tenga action=getPersonalVuelo desplegado', true);
+            } else if (persLastDiag.sinPersonal === flights.length) {
+                showToast('⚠ Ningún vuelo tiene personal registrado en PERSONAL_VUELO', true);
+            } else if (persLastDiag.conPersonalSinHE > 0 && persLastDiag.conHE === 0) {
+                showToast('⚠ Hay personal registrado pero con Horas Extra = 0 en todos los vuelos consultados', true);
+            } else {
+                showToast('⚠ Sin registros de horas extra — ver consola para diagnóstico detallado', true);
+            }
+        }
+    }
+
+    for (let i = 0; i < Math.min(CONCURRENCY, flights.length); i++) launchNext();
+}
 
     function launchNext() {
         if (nextIdx >= flights.length) return;
