@@ -2348,18 +2348,44 @@ function plantaConfirm(idx,sub){
   // reopen to show updated state
   setTimeout(()=>openCP(idx),200);
 }
-// auto-close planta on push_back
-function autoClosePlanta(){
-  const pIdx=CPS.findIndex(c=>c.key==='planta_electrica');
-  if(pIdx<0)return;
-  const ph=photos['planta_electrica']||[];
-  const hasDesconecta=ph.some(p=>p.sub==='desconecta');
-  if(!hasDesconecta&&ph.some(p=>p.sub==='conecta')){
-    const ts=new Date().toISOString();
-    photos['planta_electrica'].push({checkpoint:'planta_electrica',label:'Planta Eléctrica — Desconecta (auto)',emoji:'⚡',timestamp:ts,sub:'desconecta',auto:true});
-    toast('⚡ Planta desconectada automáticamente al Push Back');
-    renderMissions();
+// auto-close Planta Eléctrica y Aire Acondicionado (Push Back / Posición Limpia / Finalizar Reporte)
+function autoCloseGpuAndAC(reason){
+  reason = reason || 'Cierre automático';
+  const ts = new Date().toISOString();
+  let closedAny = false;
+
+  // ── Planta Eléctrica ──
+  const pIdx = CPS.findIndex(c=>c.key==='planta_electrica');
+  if (pIdx >= 0) {
+    const ph = photos['planta_electrica'] || [];
+    const hasConecta = ph.some(p=>p.sub==='conecta');
+    const hasDesconecta = ph.some(p=>p.sub==='desconecta');
+    if (hasConecta && !hasDesconecta) {
+      if(!photos['planta_electrica']) photos['planta_electrica']=[];
+      photos['planta_electrica'].push({checkpoint:'planta_electrica',label:'Planta Eléctrica — Desconecta (auto)',emoji:'⚡',timestamp:ts,sub:'desconecta',auto:true});
+      saveCP(pIdx, 'Planta Eléctrica — Desconecta (auto)', ts, null, { sub: 'desconecta' });
+      toast(`⚡ Planta desconectada automáticamente (${reason})`);
+      closedAny = true;
+    }
   }
+
+  // ── Aire Acondicionado ──
+  const acIdx = CPS.findIndex(c=>c.key==='aire_acondicionado_grupo');
+  if (acIdx >= 0) {
+    const phAC = photos['aire_acondicionado_grupo'] || [];
+    const hasInicio = phAC.some(p=>p.sub==='inicio');
+    const hasFin = phAC.some(p=>p.sub==='fin');
+    if (hasInicio && !hasFin) {
+      if(!photos['aire_acondicionado_grupo']) photos['aire_acondicionado_grupo']=[];
+      photos['aire_acondicionado_grupo'].push({checkpoint:'aire_acondicionado_grupo',label:'Finaliza Aire Acondicionado (auto)',emoji:'❄️',timestamp:ts,sub:'fin',auto:true});
+      saveCP(acIdx, 'Finaliza Aire Acondicionado (auto)', ts, null, { sub: 'fin' });
+      toast(`❄️ Aire Acondicionado finalizado automáticamente (${reason})`);
+      closedAny = true;
+    }
+  }
+
+  if (closedAny) renderMissions();
+  return closedAny;
 }
 function rStdBody(b,idx,cp){
   const prev=photos[cp.key];
@@ -2375,7 +2401,7 @@ function stConfirm(idx){
   const cp=CPS[idx];if(!photos[cp.key])photos[cp.key]=[];
   photos[cp.key].push({checkpoint:cp.key,label:cp.label,emoji:cp.emoji,photo:stPD,timestamp:stTS});
   if(cp.key==='beacon_off'&&!beaconOff){beaconOff=new Date(stTS);startBeaconAlerts()}
-  if(cp.key==='push_back')autoClosePlanta();
+  if(cp.key==='push_back')autoCloseGpuAndAC('Push Back');
   saveCP(idx, cp.label, stTS, stPD);
   stPD=null;stTS=null;stopCam();closeCP();renderMissions();checkComplete();
 }
@@ -2409,7 +2435,7 @@ photos[cp.key]=mSess.map((p,i)=>({checkpoint:cp.key,label:cp.label,emoji:cp.emoj
 }
 function mDel(i){mSess.splice(i,1);rMThumbs();updMUI()}
 function mStopCam(){stopCam();document.getElementById('mCamV').style.display='none';document.getElementById('mAddA').style.display='block'}
-function mFinish(idx){if(mSess.length===0){alert('Capture al menos una foto');return}const cp=CPS[idx];photos[cp.key]=mSess.map((p,i)=>({checkpoint:cp.key,label:cp.label,emoji:cp.emoji,photo:p.photo,photoUrl:p.photoUrl||null,timestamp:p.timestamp,multiIndex:i+1,restored:p.restored}));stopCam();closeCP();renderMissions();checkComplete()}
+function mFinish(idx){if(mSess.length===0){alert('Capture al menos una foto');return}const cp=CPS[idx];photos[cp.key]=mSess.map((p,i)=>({checkpoint:cp.key,label:cp.label,emoji:cp.emoji,photo:p.photo,photoUrl:p.photoUrl||null,timestamp:p.timestamp,multiIndex:i+1,restored:p.restored}));if(cp.key==='posicion_limpia')autoCloseGpuAndAC('Posición Limpia');stopCam();closeCP();renderMissions();checkComplete()}
 // ── CAM UTILS ──
 function stopCam(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null}if(camTSint){clearInterval(camTSint);camTSint=null}}
 
@@ -3291,8 +3317,8 @@ function buildFinalSummary(){
   const pending=CPS.filter(c=>!c.optional&&!(photos[c.key]&&photos[c.key].length>0));
   let ph=0;for(const k in photos)(photos[k]||[]).forEach(p=>{if(p.photo)ph++});
 
-        // Planta eléctrica — tiempo excedido
-// Planta eléctrica y Aire Acondicionado — tiempo excedido (automático)
+// Planta eléctrica y Aire Acondicionado — cierre automático si nadie los cerró antes
+  autoCloseGpuAndAC('Finalizar Reporte');
   autoAddExcessCharges();
 
   // summary rows
