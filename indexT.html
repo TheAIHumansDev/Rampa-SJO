@@ -2714,9 +2714,23 @@ async function credConfirmAdd(){
   renderMissions();
   toast(`🪪 ${persona.nombre} agregado al vuelo como ${rolSel}`);
 
+  // 1. Guardado inicial de la fila
   await postSync({
     action:'savePersonal',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,
     inspector:U.username,posicion:sPosicion,persona,photoBase64:credPhotoData
+  });
+
+  // 2. Refuerzo: estos dos endpoints escriben buscando la columna
+  //    POR NOMBRE (no por posición fija), así que garantizan que
+  //    "Posición Persona" y "Jornada Extra" caigan en la celda
+  //    correcta sin tocar el Apps Script.
+  await postSync({
+    action:'updatePersonalPosicion',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,
+    nombre:persona.nombre,posicionPersona:rolSel
+  });
+  await postSync({
+    action:'updatePersonalHoras',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,
+    nombre:persona.nombre,horasExtra:0,jornada:jornadaAuto,horasDiurnas:0,horasNocturnas:0
   });
 
   credPhotoData=null;
@@ -2793,9 +2807,13 @@ async function updatePersExtra(i,field,value){
     p.horasExtra=parseFloat(value)||0;
   }
   renderPersonalTable();
+  const jornada=p.jornada||getAutoJornada();
+  const horasDiurnas=jornada==='diurna'?p.horasExtra:0;
+  const horasNocturnas=jornada==='nocturna'?p.horasExtra:0;
   await postSync({
     action:'updatePersonalHoras',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,
-    nombre:p.nombre,horasExtra:p.horasExtra,jornada:p.jornada||''
+    nombre:p.nombre,horasExtra:p.horasExtra,jornada:jornada,
+    horasDiurnas:horasDiurnas,horasNocturnas:horasNocturnas
   });
   toast(`💾 Horas extra actualizadas — ${p.nombre}`);
 }
