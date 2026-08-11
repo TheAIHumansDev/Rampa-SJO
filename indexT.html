@@ -2115,9 +2115,36 @@ function renderMissions(){
 }
 
 // ── CHECKPOINT MODAL ──
+// Checkpoints que SÍ pueden capturarse antes del evento de inicio (Beacon OFF / Avión en Posición)
+const PRE_START_ALLOWED_KEYS = ['briefing','inicio_fod','fod','beacon_off','avion_posicion'];
+
+function isStartEventRegistered(){
+  return !!((photos['beacon_off']&&photos['beacon_off'].length>0) || (photos['avion_posicion']&&photos['avion_posicion'].length>0));
+}
+
 function openCP(idx){
-  stopCam();mSess=[];mPrevPhoto=null;mPrevTS=null;
   const cp=CPS[idx];
+
+  // ── GATE 1: nada (salvo Briefing / Inicio FOD / el evento de inicio) se
+  //    puede capturar antes de registrar Beacon OFF (o Avión en Posición) ──
+  if(!PRE_START_ALLOWED_KEYS.includes(cp.key) && !isStartEventRegistered()){
+    const startLabel = CPS.some(c=>c.key==='beacon_off') ? 'Beacon OFF' : 'Avión en Posición';
+    alert(`⚠️ Debe registrar "${startLabel}" antes de continuar con este checkpoint.`);
+    return;
+  }
+
+  // ── GATE 2: Desconecta Planta / Finaliza A.C. requieren su pareja de inicio ──
+  if(cp.type==='gpu_sub' && (cp.sub==='desconecta'||cp.sub==='fin')){
+    const pairSub = cp.sub==='desconecta' ? 'conecta' : 'inicio';
+    const pairDone = (photos[cp.dataKey]||[]).some(p=>p.sub===pairSub);
+    if(!pairDone){
+      const pairLabel = cp.dataKey==='planta_electrica' ? 'Planta Eléctrica — Conecta' : 'Aire Acondicionado';
+      alert(`⚠️ Debe registrar "${pairLabel}" antes de poder registrar "${cp.label}".`);
+      return;
+    }
+  }
+
+  stopCam();mSess=[];mPrevPhoto=null;mPrevTS=null;
   document.getElementById('mcpT').innerHTML=`${cp.emoji} ${cp.label}${cp.optional?' <span style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.22);color:#fbbf24;font-size:10px;padding:1px 7px;border-radius:4px;font-weight:600;vertical-align:middle">Opcional</span>':''}`;
   document.getElementById('mcpS').textContent=cp.key==='beacon_off'?'Avión en posición — autorizar calzado e inicio de operaciones':cp.type==='briefing'?'Seleccione los temas tratados en el briefing':cp.type==='multi_photo'?'Recorrido 360° — capture todas las vistas necesarias':'Capture foto de evidencia de este checkpoint';
   if(cp.type==='briefing')rBriefBody(document.getElementById('mcpB'),idx);
