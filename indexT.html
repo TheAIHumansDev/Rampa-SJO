@@ -2028,8 +2028,7 @@ function renderFlightBar(){
 // ── PERSONAL GATE (bloqueo de checkpoints hasta escanear personal) ──
 function personalGateMet(){
   const count = (personalVuelo||[]).length;
-  const hasSup = (personalVuelo||[]).some(p=>(p.posicionPersona||'')==='Supervisor');
-  return count>=4 && hasSup;
+  return count>=4;
 }
 function openPersonalGate(){
   openM('mEquip');
@@ -2047,17 +2046,15 @@ function renderPersonalGateCard(){
   document.getElementById('missHdr').textContent='🪪 Personal Requerido';
   const tk=document.getElementById('alertTicker');if(tk)tk.className='alert-ticker';
   const count=(personalVuelo||[]).length;
-  const hasSup=(personalVuelo||[]).some(p=>(p.posicionPersona||'')==='Supervisor');
   list.innerHTML=`
     <div class="card-glass" style="text-align:center">
       <div style="font-size:40px;margin-bottom:8px">🪪</div>
       <div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:6px">Registro de Personal Requerido</div>
       <div style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:14px">
-        Antes de iniciar los checkpoints debe escanear la credencial de al menos <strong style="color:#fff">4 colaboradores</strong>, incluyendo al <strong style="color:#fff">Supervisor</strong> de turno.
+        Antes de iniciar los checkpoints debe escanear la credencial de al menos <strong style="color:#fff">4 colaboradores</strong>.
       </div>
-      <div style="display:flex;justify-content:center;gap:18px;margin-bottom:16px">
+      <div style="display:flex;justify-content:center;margin-bottom:16px">
         <div><div style="font-size:22px;font-weight:800;color:${count>=4?'#34d399':'#fbbf24'}">${count}/4</div><div style="font-size:10px;color:#64748b">Personal</div></div>
-        <div><div style="font-size:22px;font-weight:800;color:${hasSup?'#34d399':'#fbbf24'}">${hasSup?'✓':'✕'}</div><div style="font-size:10px;color:#64748b">Supervisor</div></div>
       </div>
       <button class="btn-next" style="width:100%" onclick="openPersonalGate()">🪪 Escanear Personal</button>
     </div>`;
