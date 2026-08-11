@@ -1477,13 +1477,26 @@ textarea.ta:focus{border-color:#3b82f6}
           <div class="photo-act"><button class="btn-retake" onclick="credRetake()">🔄 Retomar</button><button class="btn-confirm" onclick="credProcess()">🔎 Extraer Datos</button></div>
         </div>
         <div id="credLoadingV" class="cred-loading" style="display:none">🔎 Analizando credencial…</div>
-        <div id="credFormV" style="display:none">
+<div id="credFormV" style="display:none">
           <div class="cred-confirm-row">
             <input type="text" id="credNombre" placeholder="Nombre completo">
             <input type="text" id="credCedula" placeholder="Cédula / ID">
             <input type="text" id="credEmpresa" placeholder="Empresa">
             <input type="text" id="credVigencia" placeholder="Vigencia (dd/mm/aaaa)">
             <input type="text" id="credNumCred" placeholder="No. Credencial">
+            <select id="credPosicionRol" style="padding:9px 11px;background:rgba(18,28,52,.8);border:1px solid rgba(139,92,246,.25);border-radius:8px;color:#fff;font-size:12px;font-family:inherit">
+              <option value="">— Posición/Rol en rampa —</option>
+              <option value="Supervisor">Supervisor</option>
+              <option value="Encargado">Encargado</option>
+              <option value="Alero">Alero</option>
+              <option value="Operador">Operador</option>
+              <option value="Limpieza">Limpieza</option>
+              <option value="Toilet">Toilet</option>
+              <option value="Agua">Agua</option>
+              <option value="Agente Rampa">Agente Rampa</option>
+              <option value="Counter">Counter</option>
+              <option value="Rayos X">Rayos X</option>
+            </select>
           </div>
           <button class="btn-action purple" onclick="credConfirmAdd()">➕ Agregar al Vuelo</button>
         </div>
@@ -1986,11 +1999,12 @@ function startInsp(){
   if(!numRx.test(origen)){alert('Vuelo Origen: ingrese 3 o 4 dígitos numéricos');return}
   if(!numRx.test(destino)){alert('Vuelo Destino: ingrese 3 o 4 dígitos numéricos');return}
   if(!pos){alert('Seleccione la posición de la aeronave');return}
-  sOrigen=origen;sDestino=destino;sPosicion=pos;sF=`${origen}/${destino}`;fTS=new Date().toISOString();
+sOrigen=origen;sDestino=destino;sPosicion=pos;sF=`${origen}/${destino}`;fTS=new Date().toISOString();
   CPS=QS[sT]||[];photos={};beaconOff=null;incData=null;segData=null;
+  personalVuelo=[];  // limpia cualquier personal de un vuelo/operación anterior
   clearAlerts();showSC('sI');
   document.getElementById('stepLabel').textContent=`${ANAMES[sA]||sA} · ${sT} · ${sF}`;
-renderFlightBar();renderMissions();loadPersonalForFlight();
+renderFlightBar();renderPersonalTable();renderMissions();loadPersonalForFlight();
 }
 
   
@@ -2683,20 +2697,22 @@ async function credProcess(){
 
 async function credConfirmAdd(){
   const jornadaAuto=getAutoJornada();
+  const rolSel=document.getElementById('credPosicionRol').value;
+  if(!rolSel){alert('Seleccione la posición/rol del colaborador (Supervisor, Agente Rampa, etc.) antes de agregarlo');return}
   const persona={
     nombre:document.getElementById('credNombre').value.trim(),
     cedula:document.getElementById('credCedula').value.trim(),
     empresa:document.getElementById('credEmpresa').value.trim(),
     vigencia:document.getElementById('credVigencia').value.trim(),
     numeroCredencial:document.getElementById('credNumCred').value.trim(),
-    posicionPersona:sPosicion,
+    posicionPersona:rolSel,
     jornada:jornadaAuto
   };
   if(!persona.nombre){alert('Ingrese al menos el nombre');return}
   personalVuelo.push({...persona,horasExtra:0,fotoLocal:credPhotoData});
   renderPersonalTable();
   renderMissions();
-  toast(`🪪 ${persona.nombre} agregado al vuelo`);
+  toast(`🪪 ${persona.nombre} agregado al vuelo como ${rolSel}`);
 
   await postSync({
     action:'savePersonal',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,
@@ -2707,6 +2723,7 @@ async function credConfirmAdd(){
   document.getElementById('credFormV').style.display='none';
   document.getElementById('credStartBtn').style.display='block';
   ['credNombre','credCedula','credEmpresa','credVigencia','credNumCred'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('credPosicionRol').value='';
 }
         
 function parseVigenciaDMY(v){
