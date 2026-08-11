@@ -1562,12 +1562,9 @@ const PRESETS={
 const BALERTS=[
   {key:'planta_electrica',label:'Planta Eléctrica',warn:7,crit:12},
   {key:'aire_acondicionado_grupo',label:'A/C',warn:7,crit:12},
-  {key:'banda',label:'Banda',warn:10,crit:15},
-  {key:'escalera',label:'Escalera',warn:10,crit:15},
   {key:'inicia_carga_maleta',label:'1ra Maleta',warn:15,crit:22},
   {key:'inicia_carga',label:'Inicia Carga',warn:15,crit:22},
   {key:'waste_water',label:'Waste & Water',warn:20,crit:30},
-  {key:'limpieza_grupo',label:'Limpieza Cabina',warn:25,crit:35},
   {key:'cierre_bines',label:'Cierre Bines',warn:55,crit:65},
   {key:'push_back',label:'Push Back',warn:60,crit:75},
 ];
@@ -1589,15 +1586,16 @@ const QS={
     {key:'inicio_fod',label:'Inicio FOD',emoji:'🔍'},
     {key:'beacon_off',label:'Beacon OFF',emoji:'🚨'},
     {key:'360_inicio',label:'360° Aeronave — Inicio',emoji:'🔄',type:'multi_photo'},
-    {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true,type:'planta'},
-    {key:'aire_acondicionado_grupo',label:'Aire Acondicionado (Inicio + Fin)',emoji:'❄️',optional:true,type:'cargo_group',subs:['inicio','fin'],subLabels:['Aire Acondicionado','Finaliza Aire Acondicionado']},
+    {key:'planta_conecta',label:'Planta Eléctrica — Conecta',emoji:'⚡',optional:true,type:'gpu_sub',dataKey:'planta_electrica',sub:'conecta',allowSkip:true},
+    {key:'planta_desconecta',label:'Planta Eléctrica — Desconecta',emoji:'⚡',optional:true,type:'gpu_sub',dataKey:'planta_electrica',sub:'desconecta'},
+    {key:'ac_inicio',label:'Aire Acondicionado',emoji:'❄️',optional:true,type:'gpu_sub',dataKey:'aire_acondicionado_grupo',sub:'inicio',allowSkip:true},
+    {key:'ac_fin',label:'Finaliza Aire Acondicionado',emoji:'❄️',optional:true,type:'gpu_sub',dataKey:'aire_acondicionado_grupo',sub:'fin'},
     {key:'banda',label:'Banda',emoji:'📦'},
     {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
-    {key:'carga_grupo',label:'Carga (Descarga + Carga)',emoji:'🛄',type:'cargo_group',subs:['inicia_descarga_carga','finaliza_descarga_carga','inicia_carga_carga','finaliza_carga_carga'],subLabels:['Inicia Descarga Carga','Finaliza Descarga Carga','Inicia Carga Carga','Finaliza Carga Carga']},
+    {key:'carga_grupo',label:'Carga (Descarga + Carga)',emoji:'🛄',type:'cargo_group',subs:['inicia_descarga_carga','finaliza_descarga_carga','inicia_carga_carga','finaliza_carga_carga'],subLabels:['Inicia Descarga Carga','Finaliza Descarga Carga','Inicia Carga Carga','Finaliza Carga Carga']},    
     {key:'waste_water',label:'Waste & Water',emoji:'💧',type:'waste_water'},
     {key:'equipaje_grupo',label:'Equipaje (Descarga + Carga)',emoji:'🧳',type:'cargo_group',subs:['inicia_descarga_eq','finaliza_descarga_eq','inicia_carga_eq','finaliza_carga_eq'],subLabels:['Inicia Descarga Equipaje','Finaliza Descarga Equipaje','Inicia Carga Equipaje','Finaliza Carga Equipaje']},
     {key:'limpieza_grupo',label:'Limpieza de Cabina',emoji:'🧹',type:'limpieza_group'},
-    {key:'fod_grupo',label:'FOD (1er · 2do · 3er)',emoji:'🔍',type:'fod_group'},
     {key:'ultimo_viaje_carreta',label:'Último Viaje Carreta',emoji:'🚚'},
     {key:'towbar',label:'Towbar',emoji:'🔧'},
     {key:'cierre_bines',label:'Cierre Bines',emoji:'🚪',type:'bines_group'},
@@ -1610,14 +1608,15 @@ const QS={
     {key:'fod',label:'FOD',emoji:'🔍'},
     {key:'beacon_off',label:'Beacon OFF',emoji:'🚨'},
     {key:'360_inicio',label:'360° Aeronave — Inicio',emoji:'🔄',type:'multi_photo'},
-    {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true,type:'planta'},
-    {key:'aire_acondicionado_grupo',label:'Aire Acondicionado (Inicio + Fin)',emoji:'❄️',optional:true,type:'cargo_group',subs:['inicio','fin'],subLabels:['Aire Acondicionado','Finaliza Aire Acondicionado']},
+{key:'planta_conecta',label:'Planta Eléctrica — Conecta',emoji:'⚡',optional:true,type:'gpu_sub',dataKey:'planta_electrica',sub:'conecta',allowSkip:true},
+    {key:'planta_desconecta',label:'Planta Eléctrica — Desconecta',emoji:'⚡',optional:true,type:'gpu_sub',dataKey:'planta_electrica',sub:'desconecta'},
+    {key:'ac_inicio',label:'Aire Acondicionado',emoji:'❄️',optional:true,type:'gpu_sub',dataKey:'aire_acondicionado_grupo',sub:'inicio',allowSkip:true},
+    {key:'ac_fin',label:'Finaliza Aire Acondicionado',emoji:'❄️',optional:true,type:'gpu_sub',dataKey:'aire_acondicionado_grupo',sub:'fin'},
     {key:'banda',label:'Banda',emoji:'📦'},
     {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
     {key:'equipaje_grupo',label:'Equipaje (Descarga)',emoji:'🧳',type:'cargo_group',subs:['inicia_descarga_eq','finaliza_descarga_eq'],subLabels:['Inicia Descarga Equipaje','Finaliza Descarga Equipaje']},
     {key:'waste_water',label:'Waste & Water',emoji:'💧',type:'waste_water'},
     {key:'limpieza_grupo',label:'Limpieza de Cabina',emoji:'🧹',type:'limpieza_group'},
-    {key:'fod_grupo',label:'FOD (1er · 2do)',emoji:'🔍',type:'fod_group',subs:['fod_1','fod_2'],subLabels:['1er FOD','2do FOD']},
     {key:'ultimo_viaje_carreta',label:'Último Viaje Carreta',emoji:'🚚'},
     {key:'cierre_bines',label:'Cierre Bines',emoji:'🚪',type:'bines_group'},
     {key:'360_fin',label:'360° Aeronave — Fin',emoji:'🔄',type:'multi_photo'},
@@ -1628,13 +1627,14 @@ const QS={
     {key:'briefing',label:'Briefing',emoji:'⚡',type:'briefing'},
     {key:'fod',label:'FOD',emoji:'🔍'},
     {key:'avion_posicion',label:'Avión en Posición',emoji:'✈️'},
-    {key:'planta_electrica',label:'Planta Eléctrica',emoji:'⚡',optional:true,type:'planta'},
-    {key:'aire_acondicionado_grupo',label:'Aire Acondicionado (Inicio + Fin)',emoji:'❄️',optional:true,type:'cargo_group',subs:['inicio','fin'],subLabels:['Aire Acondicionado','Finaliza Aire Acondicionado']},
+    {key:'planta_conecta',label:'Planta Eléctrica — Conecta',emoji:'⚡',optional:true,type:'gpu_sub',dataKey:'planta_electrica',sub:'conecta',allowSkip:true},
+    {key:'planta_desconecta',label:'Planta Eléctrica — Desconecta',emoji:'⚡',optional:true,type:'gpu_sub',dataKey:'planta_electrica',sub:'desconecta'},
+    {key:'ac_inicio',label:'Aire Acondicionado',emoji:'❄️',optional:true,type:'gpu_sub',dataKey:'aire_acondicionado_grupo',sub:'inicio',allowSkip:true},
+    {key:'ac_fin',label:'Finaliza Aire Acondicionado',emoji:'❄️',optional:true,type:'gpu_sub',dataKey:'aire_acondicionado_grupo',sub:'fin'},
     {key:'banda',label:'Banda',emoji:'📦'},
     {key:'escalera',label:'Escalera',emoji:'🪜',optional:true},
     {key:'equipaje_carga_grupo',label:'Carga + Equipaje',emoji:'🛄',type:'cargo_group',subs:['inicia_carga_eq','finaliza_carga_eq','inicia_carga_carga','finaliza_carga_carga'],subLabels:['Inicia Carga Equipaje','Finaliza Carga Equipaje','Inicia Carga Carga','Finaliza Carga Carga']},
     {key:'waste_water',label:'Waste & Water',emoji:'💧',optional:true,type:'waste_water'},
-    {key:'fod_grupo',label:'FOD (1er · 2do)',emoji:'🔍',type:'fod_group',subs:['fod_1','fod_2'],subLabels:['1er FOD','2do FOD']},
     {key:'towbar',label:'Towbar',emoji:'🔧'},
     {key:'cierre_bines',label:'Cierre Bines',emoji:'🚪',type:'bines_group'},
     {key:'360_fin',label:'360° Aeronave — Fin',emoji:'🔄',type:'multi_photo'},
@@ -1797,6 +1797,7 @@ function calcPlantaExtra(){
   const con=ph.find(p=>p.sub==='conecta');
   const des=ph.find(p=>p.sub==='desconecta');
   if(!con||!des)return null;
+  if(con.noAplica||des.noAplica)return null;
   const mins=Math.round((new Date(des.timestamp)-new Date(con.timestamp))/60000);
   return {mins, conTs:con.timestamp, desTs:des.timestamp};
 }
@@ -1806,6 +1807,7 @@ function calcACExtra(){
   const ini=ph.find(p=>p.sub==='inicio');
   const fin=ph.find(p=>p.sub==='fin');
   if(!ini||!fin)return null;
+  if(ini.noAplica||fin.noAplica)return null;
   const mins=Math.round((new Date(fin.timestamp)-new Date(ini.timestamp))/60000);
   return {mins, iniTs:ini.timestamp, finTs:fin.timestamp};
 }
@@ -1868,8 +1870,12 @@ function resolveRestoredCP(cp){
   const n   = _normLbl(raw);
 
   // 1. Match exacto contra CPS
+// 1. Match exacto contra CPS
   let def = CPS.find(c => _normLbl(c.label) === n);
-  if (def) return { key: def.key, sub: cp.sub || undefined, emoji: def.emoji };
+  if (def) {
+    if (def.type === 'gpu_sub') return { key: def.dataKey, sub: def.sub, emoji: def.emoji };
+    return { key: def.key, sub: cp.sub || undefined, emoji: def.emoji };
+  }
 
   // 2. Multi-foto 360°: "360° Aeronave — Inicio #2"
   const mm = raw.match(/^(.*)\s#\d+\s*$/);
@@ -1879,13 +1885,17 @@ function resolveRestoredCP(cp){
   }
 
   // 3. Planta Eléctrica — Conecta / Desconecta / Desconecta (auto)
+// 3. Planta Eléctrica — Conecta / Desconecta / Desconecta (auto)
   if (n.startsWith('planta electrica')) {
-    const p = CPS.find(c => c.key === 'planta_electrica');
-    if (p) {
-      const sub = /desconecta/.test(n) ? 'desconecta'
-                : /conecta/.test(n)    ? 'conecta' : undefined;
-      return { key: 'planta_electrica', sub, emoji: p.emoji };
-    }
+    const sub = /desconecta/.test(n) ? 'desconecta'
+              : /conecta/.test(n)    ? 'conecta' : undefined;
+    if (sub) return { key: 'planta_electrica', sub, emoji: '⚡' };
+  }
+
+  // 3b. Aire Acondicionado / Finaliza Aire Acondicionado (incl. auto)
+  if (n.startsWith('aire acondicionado') || n.startsWith('finaliza aire acondicionado')) {
+    const sub = /finaliza/.test(n) ? 'fin' : 'inicio';
+    return { key: 'aire_acondicionado_grupo', sub, emoji: '❄️' };
   }
 
   // 4. Grupos con subs/subLabels definidos (carga, equipaje, FOD de RON…)
@@ -2054,20 +2064,25 @@ function renderPersonalGateCard(){
 }
 
 // ── MISSIONS ──
+function cpIsDone(cp){
+  if(cp.type==='gpu_sub') return !!(photos[cp.dataKey] && photos[cp.dataKey].some(p=>p.sub===cp.sub));
+  return !!(photos[cp.key] && photos[cp.key].length>0);
+}
+
 function renderMissions(){
   if(!personalGateMet()){renderPersonalGateCard();return}
   const list=document.getElementById('missionList');
   document.getElementById('bottomBar').style.display='flex';
-  const done=CPS.filter(cp=>photos[cp.key]&&photos[cp.key].length>0).length;
+  const done=CPS.filter(cp=>cpIsDone(cp)).length;
   document.getElementById('progressBar').style.width=`${Math.round((done/CPS.length)*100)}%`;
   document.getElementById('missHdr').textContent=`Misiones: ${done}/${CPS.length} completadas`;
   list.innerHTML=CPS.map((cp,i)=>{
-    const isDone=cp.type==='cargo_group'||cp.type==='waste_water'||cp.type==='planta'||cp.type==='limpieza_group'||cp.type==='fod_group'||cp.type==='bines_group'
-      ?(photos[cp.key]&&photos[cp.key].length>0)
-      :!!(photos[cp.key]&&photos[cp.key].length>0);
-    const prevDone=i===0||CPS.slice(0,i).every(c=>photos[c.key]&&photos[c.key].length>0)||(CPS[i-1]&&photos[CPS[i-1].key]);
+    const isDone=cpIsDone(cp);
+    const prevDone=i===0||CPS.slice(0,i).every(c=>cpIsDone(c));
     const isActive=!isDone&&prevDone;
-    const alertCfg=beaconOff?BALERTS.find(a=>a.key===cp.key):null;
+    const alertLookupKey=cp.type==='gpu_sub'?cp.dataKey:cp.key;
+    const alertEligible=cp.type!=='gpu_sub'||cp.sub==='conecta'||cp.sub==='inicio';
+    const alertCfg=(beaconOff&&alertEligible)?BALERTS.find(a=>a.key===alertLookupKey):null;
     let aState='',aMin=0;
     if(alertCfg&&!isDone){aMin=Math.floor((Date.now()-beaconOff.getTime())/60000);if(aMin>=alertCfg.crit)aState='crit';else if(aMin>=alertCfg.warn)aState='warn'}
     let cls='mi';
@@ -2076,10 +2091,18 @@ function renderMissions(){
     if(cp.key==='beacon_off')cls+=' beacon-item';
     if(aState==='warn')cls+=' warn-alert';
     if(aState==='crit')cls+=' crit-alert';
-    const pc=isDone?(photos[cp.key].filter(p=>p.photo).length):0;
-    const ts=isDone&&photos[cp.key][0]?photos[cp.key][0].timestamp:'';
+    let pc=0,ts='',isNoAplica=false;
+    if(isDone){
+      if(cp.type==='gpu_sub'){
+        const entry=photos[cp.dataKey].find(p=>p.sub===cp.sub);
+        if(entry){pc=entry.photo?1:0;ts=entry.timestamp;isNoAplica=!!entry.noAplica}
+      }else{
+        pc=photos[cp.key].filter(p=>p.photo).length;
+        ts=photos[cp.key][0]?photos[cp.key][0].timestamp:'';
+      }
+    }
     let meta='';
-    if(isDone&&ts)meta+=`<span class="mi-time">⏰ ${fmt(new Date(ts))}</span>`;
+    if(isDone&&ts)meta+= isNoAplica ? `<span class="mi-time" style="color:#94a3b8">🚫 No Aplica</span>` : `<span class="mi-time">⏰ ${fmt(new Date(ts))}</span>`;
     if(isDone&&pc>1)meta+=`<span style="color:#475569;font-size:9px">📸 ${pc}</span>`;
     if(cp.optional&&!isDone)meta+=`<span class="badge-opt">Opcional</span>`;
     if(cp.type==='briefing')meta+=`<span class="badge-type">Briefing</span>`;
@@ -2104,7 +2127,8 @@ function openCP(idx){
   else if(cp.type==='cargo_group')rCargoGroupBody(document.getElementById('mcpB'),idx);
   else if(cp.type==='limpieza_group')rLimpiezaBody(document.getElementById('mcpB'),idx);
   else if(cp.type==='fod_group')rFodGroupBody(document.getElementById('mcpB'),idx);
-  else if(cp.type==='bines_group')rBinesBody(document.getElementById('mcpB'),idx);
+else if(cp.type==='bines_group')rBinesBody(document.getElementById('mcpB'),idx);
+  else if(cp.type==='gpu_sub')rGpuSubBody(document.getElementById('mcpB'),idx);
   else rStdBody(document.getElementById('mcpB'),idx,cp);
   openM('mCP');
 }
@@ -2288,66 +2312,58 @@ function wwConfirm(idx){
   document.getElementById('wwCamArea').style.display='none';document.getElementById('wwPrevArea').style.display='none';
   closeCP();renderMissions();setTimeout(()=>openCP(idx),200);
 }
-function wwSkip(idx){closeCP();renderMissions()}function rPlantaBody(b,idx){
+function wwSkip(idx){closeCP();renderMissions()}
+function rGpuSubBody(b,idx){
   const cp=CPS[idx];
-  const ph=photos[cp.key]||[];
-  const conectado=ph.find(p=>p.sub==='conecta');
-  const desconectado=ph.find(p=>p.sub==='desconecta');
+  const ph=photos[cp.dataKey]||[];
+  const done=ph.find(p=>p.sub===cp.sub);
+  const showSkip=!!cp.allowSkip&&!done;
   b.innerHTML=`
-  <div style="color:#64748b;font-size:11px;line-height:1.5;margin-bottom:12px">Registre los momentos de conexión y desconexión de la planta eléctrica. Si no se desconecta, se cerrará automáticamente al registrar Push Back.</div>
-  <!-- Conecta -->
-  <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:12px 13px;margin-bottom:10px">
-    <div style="color:#6ee7b7;font-size:11px;font-weight:700;margin-bottom:8px">⚡ CONECTA PLANTA</div>
-    ${conectado?`<div style="color:#6ee7b7;font-size:12px">✅ Registrado: ${fmt(new Date(conectado.timestamp))}</div>${conectado.photo?`<img src="${conectado.photo}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;margin-top:8px">`:''}`:`
-    <div id="plantaConCamV" style="display:none"><div class="cam-wrap"><video id="plantaConVid" autoplay playsinline></video><div class="cam-lbl">Conecta Planta</div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="plantaConTs">--:--:--</div></div><button class="btn-capture" onclick="plantaCapture(${idx},'conecta')">📸 Capturar</button><button class="btn-close-m" style="margin-bottom:8px" onclick="plantaStopCam('Con')">✕</button></div>
-    <div id="plantaConPrevV" style="display:none"><img class="prev-img" id="plantaConImg"><div class="prev-ts" id="plantaConPrevTs"></div><div class="photo-act"><button class="btn-retake" onclick="plantaRetake(${idx},'conecta')">🔄</button><button class="btn-confirm" onclick="plantaConfirm(${idx},'conecta')">✓ Confirmar</button></div></div>
-    <button class="btn-start-cam" id="plantaConStartBtn" onclick="plantaStartCam('Con')">📷 Registrar Conexión</button>`}
-  </div>
-  <!-- Desconecta -->
-  <div style="background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.18);border-radius:10px;padding:12px 13px;margin-bottom:10px">
-    <div style="color:#fca5a5;font-size:11px;font-weight:700;margin-bottom:8px">🔌 DESCONECTA PLANTA</div>
-    ${desconectado?`<div style="color:#fca5a5;font-size:12px">✅ Registrado: ${fmt(new Date(desconectado.timestamp))}</div>${desconectado.photo?`<img src="${desconectado.photo}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;margin-top:8px">`:''}`:`
-    <div id="plantaDesCamV" style="display:none"><div class="cam-wrap"><video id="plantaDesVid" autoplay playsinline></video><div class="cam-lbl">Desconecta Planta</div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="plantaDesTs">--:--:--</div></div><button class="btn-capture" onclick="plantaCapture(${idx},'desconecta')">📸 Capturar</button><button class="btn-close-m" style="margin-bottom:8px" onclick="plantaStopCam('Des')">✕</button></div>
-    <div id="plantaDesPrevV" style="display:none"><img class="prev-img" id="plantaDesImg"><div class="prev-ts" id="plantaDesPrevTs"></div><div class="photo-act"><button class="btn-retake" onclick="plantaRetake(${idx},'desconecta')">🔄</button><button class="btn-confirm" onclick="plantaConfirm(${idx},'desconecta')">✓ Confirmar</button></div></div>
-    <button class="btn-start-cam" id="plantaDesStartBtn" onclick="plantaStartCam('Des')" ${!conectado?'disabled style="opacity:.4;pointer-events:none"':''}>📷 Registrar Desconexión</button>
-    <div style="color:#64748b;font-size:10px;margin-top:6px">💡 Si no se desconecta aquí, se cerrará automáticamente al registrar Push Back.</div>`}
-  </div>
+  ${done?`<div class="prev-strip"><div class="prev-strip-title">${done.noAplica?'🚫 Marcado como No Aplica':'✅ Ya registrado'}</div>${done.timestamp&&!done.noAplica?`<div style="color:#6ee7b7;font-size:11px;margin-top:4px">⏰ ${fmt(new Date(done.timestamp))}</div>`:''}</div>`:''}
+  ${done&&done.photo?`<img class="prev-img" src="${done.photo}">`:''}
+  <div id="gpuCamV" style="display:none"><div class="cam-wrap"><video id="gpuVid" autoplay playsinline></video><div class="cam-lbl">${cp.label}</div><div class="cam-corners"><span class="c-tl"></span><span class="c-tr"></span><span class="c-bl"></span><span class="c-br"></span></div><div class="cam-ts" id="gpuTs">--:--:--</div></div><button class="btn-capture" onclick="gpuCapture(${idx})">📸 Capturar</button><button class="btn-close-m" style="margin-bottom:9px" onclick="gpuStopCam()">✕ Cerrar Cámara</button></div>
+  <div id="gpuPrevV" style="display:none"><img class="prev-img" id="gpuPrevImg"><div class="prev-ts" id="gpuPrevTs"></div><div class="photo-act"><button class="btn-retake" onclick="gpuRetake(${idx})">🔄 Retomar</button><button class="btn-confirm" onclick="gpuConfirm(${idx})">✓ Confirmar</button></div></div>
+  <button class="btn-start-cam" id="gpuStartBtn" onclick="gpuStartCam()">📷 ${done?'Actualizar Foto':'Iniciar Cámara'}</button>
+  ${showSkip?`<button class="btn-close-m" style="margin-bottom:8px;border-color:rgba(148,163,184,.4);color:#cbd5e1" onclick="gpuMarkNoAplica(${idx})">🚫 No Requiere</button>`:''}
   <button class="btn-close-m" onclick="closeCP()">Cerrar</button>`;
 }
-let plantaSubData={};
-async function plantaStartCam(side){
-  try{
-    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
-    document.getElementById(`planta${side}Vid`).srcObject=camStream;
-    document.getElementById(`planta${side}CamV`).style.display='block';
-    document.getElementById(`planta${side}StartBtn`).style.display='none';
-    camTSint=setInterval(()=>{const e=document.getElementById(`planta${side}Ts`);if(e)e.textContent=fmt(new Date())},1000);
-  }catch(e){alert('Error cámara: '+e.message)}
+let gpuPD=null,gpuTS=null;
+async function gpuStartCam(){try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});document.getElementById('gpuVid').srcObject=camStream;document.getElementById('gpuCamV').style.display='block';document.getElementById('gpuStartBtn').style.display='none';camTSint=setInterval(()=>{const e=document.getElementById('gpuTs');if(e)e.textContent=fmt(new Date())},1000)}catch(e){alert('Error cámara: '+e.message)}}
+function gpuCapture(idx){const v=document.getElementById('gpuVid');const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);gpuPD=c.toDataURL('image/jpeg',.82);gpuTS=new Date().toISOString();document.getElementById('gpuPrevImg').src=gpuPD;document.getElementById('gpuPrevTs').textContent=`⏰ ${fmt(new Date(gpuTS))}`;document.getElementById('gpuCamV').style.display='none';document.getElementById('gpuPrevV').style.display='block';stopCam()}
+function gpuRetake(idx){gpuPD=null;gpuTS=null;document.getElementById('gpuPrevV').style.display='none';gpuStartCam()}
+function gpuStopCam(){stopCam();document.getElementById('gpuCamV').style.display='none';const btn=document.getElementById('gpuStartBtn');if(btn)btn.style.display='block'}
+function gpuConfirm(idx){
+  const cp=CPS[idx];
+  if(!photos[cp.dataKey])photos[cp.dataKey]=[];
+  photos[cp.dataKey]=photos[cp.dataKey].filter(p=>p.sub!==cp.sub);
+  photos[cp.dataKey].push({checkpoint:cp.dataKey,label:cp.label,emoji:cp.emoji,photo:gpuPD,timestamp:gpuTS,sub:cp.sub});
+  saveCP(idx, cp.label, gpuTS, gpuPD, { sub: cp.sub });
+  gpuPD=null;gpuTS=null;stopCam();closeCP();renderMissions();checkComplete();
 }
-function plantaStopCam(side){stopCam();document.getElementById(`planta${side}CamV`).style.display='none';const sb=document.getElementById(`planta${side}StartBtn`);if(sb)sb.style.display='block'}
-function plantaCapture(idx,sub){
-  const side=sub==='conecta'?'Con':'Des';
-  const v=document.getElementById(`planta${side}Vid`);
-  const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
-  plantaSubData[sub]={photo:c.toDataURL('image/jpeg',.82),ts:new Date().toISOString()};
-  document.getElementById(`planta${side}Img`).src=plantaSubData[sub].photo;
-  document.getElementById(`planta${side}PrevTs`).textContent=`⏰ ${fmt(new Date(plantaSubData[sub].ts))}`;
-  document.getElementById(`planta${side}CamV`).style.display='none';
-  document.getElementById(`planta${side}PrevV`).style.display='block';
-  stopCam();
+function gpuMarkNoAplica(idx){
+  const cp=CPS[idx];
+  if(!photos[cp.dataKey])photos[cp.dataKey]=[];
+  const ts='No Aplica';
+  photos[cp.dataKey]=photos[cp.dataKey].filter(p=>p.sub!==cp.sub);
+  photos[cp.dataKey].push({checkpoint:cp.dataKey,label:cp.label,emoji:cp.emoji,photo:null,timestamp:ts,sub:cp.sub,noAplica:true});
+  saveCP(idx, cp.label, ts, null, { sub: cp.sub, noAplica:true });
+
+  // Cierra automáticamente el checkpoint pareja (Desconecta / Fin) para que no quede pendiente
+  const pairSub = cp.sub==='conecta' ? 'desconecta' : cp.sub==='inicio' ? 'fin' : null;
+  if (pairSub) {
+    const pairCP = CPS.find(c=>c.type==='gpu_sub'&&c.dataKey===cp.dataKey&&c.sub===pairSub);
+    if (pairCP) {
+      const pairIdx = CPS.indexOf(pairCP);
+      photos[cp.dataKey]=photos[cp.dataKey].filter(p=>p.sub!==pairSub);
+      photos[cp.dataKey].push({checkpoint:cp.dataKey,label:pairCP.label,emoji:pairCP.emoji,photo:null,timestamp:ts,sub:pairSub,noAplica:true});
+      saveCP(pairIdx, pairCP.label, ts, null, { sub: pairSub, noAplica:true });
+    }
+  }
+
+  toast(`🚫 ${cp.label} marcado como No Aplica`);
+  closeCP();renderMissions();checkComplete();
 }
-function plantaRetake(idx,sub){const side=sub==='conecta'?'Con':'Des';delete plantaSubData[sub];document.getElementById(`planta${side}PrevV`).style.display='none';plantaStartCam(side)}
-function plantaConfirm(idx,sub){
-  const cp=CPS[idx];const d=plantaSubData[sub];if(!d)return;
-  if(!photos[cp.key])photos[cp.key]=[];
-  // remove previous entry for this sub
-  photos[cp.key]=photos[cp.key].filter(p=>p.sub!==sub);
-  photos[cp.key].push({checkpoint:cp.key,label:`${cp.label} — ${sub==='conecta'?'Conecta':'Desconecta'}`,emoji:cp.emoji,photo:d.photo,timestamp:d.ts,sub});
-  saveCP(idx, `${cp.label} — ${sub === 'conecta' ? 'Conecta' : 'Desconecta'}`, d.ts, d.photo, { sub: sub });
-  stopCam();closeCP();renderMissions();
-  // reopen to show updated state
-  setTimeout(()=>openCP(idx),200);
-}
+function rPlantaBody(b,idx){
 // auto-close Planta Eléctrica y Aire Acondicionado (Push Back / Posición Limpia / Finalizar Reporte)
 function autoCloseGpuAndAC(reason){
   reason = reason || 'Cierre automático';
@@ -2355,30 +2371,30 @@ function autoCloseGpuAndAC(reason){
   let closedAny = false;
 
   // ── Planta Eléctrica ──
-  const pIdx = CPS.findIndex(c=>c.key==='planta_electrica');
-  if (pIdx >= 0) {
+  const pDesIdx = CPS.findIndex(c=>c.type==='gpu_sub'&&c.dataKey==='planta_electrica'&&c.sub==='desconecta');
+  if (pDesIdx >= 0) {
     const ph = photos['planta_electrica'] || [];
-    const hasConecta = ph.some(p=>p.sub==='conecta');
+    const conEntry = ph.find(p=>p.sub==='conecta');
+    const hasRealConecta = !!(conEntry && !conEntry.noAplica);
     const hasDesconecta = ph.some(p=>p.sub==='desconecta');
-    if (hasConecta && !hasDesconecta) {
-      if(!photos['planta_electrica']) photos['planta_electrica']=[];
+    if (hasRealConecta && !hasDesconecta) {
       photos['planta_electrica'].push({checkpoint:'planta_electrica',label:'Planta Eléctrica — Desconecta (auto)',emoji:'⚡',timestamp:ts,sub:'desconecta',auto:true});
-      saveCP(pIdx, 'Planta Eléctrica — Desconecta (auto)', ts, null, { sub: 'desconecta' });
+      saveCP(pDesIdx, 'Planta Eléctrica — Desconecta (auto)', ts, null, { sub: 'desconecta' });
       toast(`⚡ Planta desconectada automáticamente (${reason})`);
       closedAny = true;
     }
   }
 
   // ── Aire Acondicionado ──
-  const acIdx = CPS.findIndex(c=>c.key==='aire_acondicionado_grupo');
-  if (acIdx >= 0) {
+  const acFinIdx = CPS.findIndex(c=>c.type==='gpu_sub'&&c.dataKey==='aire_acondicionado_grupo'&&c.sub==='fin');
+  if (acFinIdx >= 0) {
     const phAC = photos['aire_acondicionado_grupo'] || [];
-    const hasInicio = phAC.some(p=>p.sub==='inicio');
+    const iniEntry = phAC.find(p=>p.sub==='inicio');
+    const hasRealInicio = !!(iniEntry && !iniEntry.noAplica);
     const hasFin = phAC.some(p=>p.sub==='fin');
-    if (hasInicio && !hasFin) {
-      if(!photos['aire_acondicionado_grupo']) photos['aire_acondicionado_grupo']=[];
+    if (hasRealInicio && !hasFin) {
       photos['aire_acondicionado_grupo'].push({checkpoint:'aire_acondicionado_grupo',label:'Finaliza Aire Acondicionado (auto)',emoji:'❄️',timestamp:ts,sub:'fin',auto:true});
-      saveCP(acIdx, 'Finaliza Aire Acondicionado (auto)', ts, null, { sub: 'fin' });
+      saveCP(acFinIdx, 'Finaliza Aire Acondicionado (auto)', ts, null, { sub: 'fin' });
       toast(`❄️ Aire Acondicionado finalizado automáticamente (${reason})`);
       closedAny = true;
     }
