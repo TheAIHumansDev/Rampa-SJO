@@ -1541,6 +1541,14 @@ function parseFacDate(r) {
     return isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
+    function populateFacFilterDropdowns() {
+    const stationMap = buildFlightStationMap();
+    populateSelect('facAerolineaFilter', 'Todas las aerolíneas', [...new Set(allFacturables.map(r => r.aerolinea).filter(Boolean))].sort());
+    populateSelect('facServicioFilter', 'Todo servicio', [...new Set(allFacturables.map(r => r.servicio).filter(Boolean))].sort());
+    populateSelect('facEstacionFilter', 'Toda estación', [...new Set(allFacturables.map(r => r.estacion || stationMap[r.flightKey] || null).filter(Boolean))].sort());
+    populateSelect('facInspectorFilter', 'Todos los inspectores', [...new Set(allFacturables.map(r => r.inspector).filter(Boolean))].sort());
+}
+
 function applyFacFilters() {
     activeFacAerolineaFilter = document.getElementById('facAerolineaFilter').value;
     activeFacServicioFilter = document.getElementById('facServicioFilter').value;
@@ -1585,36 +1593,7 @@ function setFacDateFilter(mode, el) {
     applyFacFilters();
 }
 
-function applyFacFilters() {
-    activeFacAerolineaFilter = document.getElementById('facAerolineaFilter').value;
-    activeFacServicioFilter = document.getElementById('facServicioFilter').value;
-    activeFacProveedorFilter = document.getElementById('facProveedorFilter').value;
-    activeFacInspectorFilter = document.getElementById('facInspectorFilter').value;
-    activeFacVerificadoFilter = document.getElementById('facVerificadoFilter').value;
-    const now = new Date();
-    filteredFacturables = allFacturables.filter(r => {
-        const ts = parseFacDate(r); const rDate = new Date(ts);
-        if (facDateFilter === 'today' && rDate.toDateString() !== now.toDateString()) return false;
-        if (facDateFilter === 'week') { const w = new Date(now); w.setDate(w.getDate() - 7); if (rDate < w) return false; }
-        if (facDateFilter === 'month') { const w = new Date(now); w.setDate(w.getDate() - 30); if (rDate < w) return false; }
-        if (activeFacAerolineaFilter !== 'all' && r.aerolinea !== activeFacAerolineaFilter) return false;
-        if (activeFacServicioFilter !== 'all' && r.servicio !== activeFacServicioFilter) return false;
-        if (activeFacProveedorFilter !== 'all' && r.proveedor !== activeFacProveedorFilter) return false;
-        if (activeFacInspectorFilter !== 'all' && r.inspector !== activeFacInspectorFilter) return false;
-        return true;
-    }).map(applyFacBillingRule).map(applyFacVerificationInfo);
 
-    if (activeFacVerificadoFilter !== 'all') {
-        filteredFacturables = filteredFacturables.filter(r =>
-            activeFacVerificadoFilter === 'verificado' ? r._verificado : !r._verificado
-        );
-    }
-
-    renderFacTable();
-    updateFacKPIs();
-    renderFacRankings();
-    renderFacCharts();
-}
 
 function fmtMoney(n) {
     n = Number(n) || 0;
