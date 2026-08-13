@@ -700,6 +700,10 @@ html, body {
             <select class="filter-select" id="userFilter" onchange="applyFilters()">
                 <option value="all">Todos los usuarios</option>
             </select>
+<button class="refresh-btn" id="refreshBtn" onclick="loadAllReports(true)">
+    <span class="spin-icon">↻</span> Actualizar
+</button>
+            
 <button class="refresh-btn" id="fullSyncBtn" onclick="loadAllReports(true, true)" title="Vuelve a traer TODO el histórico del servidor">
     <span class="spin-icon">⟳</span> Sync completo
 </button>
