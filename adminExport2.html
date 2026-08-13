@@ -700,9 +700,9 @@ html, body {
             <select class="filter-select" id="userFilter" onchange="applyFilters()">
                 <option value="all">Todos los usuarios</option>
             </select>
-            <button class="refresh-btn" id="refreshBtn" onclick="loadAllReports(true)">
-                <span class="spin-icon">↻</span> Actualizar
-            </button>
+<button class="refresh-btn" id="fullSyncBtn" onclick="loadAllReports(true, true)" title="Vuelve a traer TODO el histórico del servidor">
+    <span class="spin-icon">⟳</span> Sync completo
+</button>
             <span class="last-updated" id="lastUpdated">–</span>
         </div>
         <div class="filter-bar-2">
@@ -1316,10 +1316,35 @@ html, body {
 // ══════════════════════════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzIakewwYUm9RkCgmdJvtbwxNTtLIVrvY2HeMMfA0AUqxTT0cUpFqlOZ7Hl3ZblGScbIA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwbN3f4_EifWj5L_JvtMYi31wof4kKDPigE-NG3SaVXum2ZCF9VwKO66gnn1ceYXNYxsw/exec';
 const SCRIPT_URL_SMS = 'https://script.google.com/macros/s/AKfycbxQlup8TVTJwY9pGIfYHosmYaf9ckdYp7LtvnCdm_n57GPPq6ohR-RDmZ-PbnMbLbmymQ/exec';
 const SCRIPT_URL_WCH = 'https://script.google.com/macros/s/AKfycbxCTDyeHff4x3WOz0dVg0QgI_lpkr2u80MuhgTYJtlJqJjHWXiAVxYbt-V8QlEct2RN/exec'; // ej: https://script.google.com/macros/s/AKfycb.../exec
 
+// ══════════════════════════════════════════════════════
+//  CACHÉ LOCAL (localStorage) — evita re-pedir TODO el
+//  histórico en cada carga. Se guarda por flightKey y solo
+//  se hace "sync completo" (scope=all) cada X horas o cuando
+//  el usuario lo pide explícitamente; el resto del tiempo
+//  solo se pide scope=today y se mezcla con lo cacheado.
+// ══════════════════════════════════════════════════════
+const LocalCache = {
+    PREFIX: 'tc_cache_v1_',
+    get(key){ try{ const r=localStorage.getItem(this.PREFIX+key); return r?JSON.parse(r):null; }catch(e){ return null; } },
+    set(key,val){
+        try{ localStorage.setItem(this.PREFIX+key, JSON.stringify(val)); }
+        catch(e){
+            try{
+                Object.keys(localStorage).filter(k=>k.startsWith(this.PREFIX)).forEach(k=>localStorage.removeItem(k));
+                localStorage.setItem(this.PREFIX+key, JSON.stringify(val));
+            }catch(e2){ /* sin caché, no rompe la app */ }
+        }
+    }
+};
+const TC_FULL_SYNC_MAX_AGE_MS = 6*60*60*1000; // forzar sync completo si pasaron 6h
+function tcLoadCache(){ const c=LocalCache.get('turn_rows'); return (c&&c.byKey)?c:{byKey:{},lastFullSync:0}; }
+function tcSaveCache(c){ LocalCache.set('turn_rows', c); }
+var tcCache = tcLoadCache();
+    
 
 var allFacturables = [], filteredFacturables = [];
 var facDateFilter = 'today';
@@ -2266,11 +2291,24 @@ facLoadVerifications();
 // ══════════════════════════════════════════════════════
 //  DATA LOADING
 // ══════════════════════════════════════════════════════
-function loadAllReports(manual){
+function loadAllReports(manual, forceFull){
     manual=!!manual;
     const btn=document.getElementById('refreshBtn');
     btn.classList.add('spinning');btn.disabled=true;
-    showLoadingSkeletons();
+
+    // 1) Pinta de inmediato lo que ya hay en caché local (si hay)
+    const hadCache = Object.keys(tcCache.byKey).length > 0;
+    if (hadCache && !forceFull) {
+        allReports = Object.values(tcCache.byKey);
+        populateFilterDropdowns(); applyFilters();
+    } else {
+        showLoadingSkeletons();
+    }
+
+    // 2) ¿Sync completo (scope=all) o solo lo de hoy (scope=today)?
+    const needsFull = forceFull || !tcCache.lastFullSync || (Date.now()-tcCache.lastFullSync>TC_FULL_SYNC_MAX_AGE_MS);
+    const scope = needsFull ? 'all' : 'today';
+
     const sheets=[
         {sheetName:'TURN',flightType:'TURN'},
         {sheetName:'RON_Llegada',flightType:'RON-ARRIVAL'},
@@ -2287,41 +2325,46 @@ function loadAllReports(manual){
     function finalize(){
         btn.classList.remove('spinning');btn.disabled=false;
         const now=new Date();
-        document.getElementById('lastUpdated').textContent='Actualizado: '+now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-        processRawReports(results);
+        document.getElementById('lastUpdated').textContent=
+            (needsFull?'Sync completo: ':'Actualizado: ')+now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+        resetInspectorColors(); activeInspectorFilter=null;
+        results.forEach(raw=>{
+            const norm = normalizeReport(raw);
+            if (norm.flightKey) tcCache.byKey[norm.flightKey] = norm;
+        });
+        if (needsFull) tcCache.lastFullSync = Date.now();
+        tcSaveCache(tcCache);
+
+        allReports = Object.values(tcCache.byKey);
+        populateFilterDropdowns(); applyFilters();
+
         const allFailed=Object.keys(diagnostics).every(k=>diagnostics[k].count===0);
-        if(allFailed)showToast('⚠ Sin datos — redesplega el GAS',true);
-        else if(manual)showToast('✓ '+results.length+' reportes cargados');
+        if(allFailed && !hadCache) showToast('⚠ Sin datos — redesplega el GAS',true);
+        else if(manual) showToast('✓ actualizado ('+(needsFull?'sync completo':'solo hoy')+')');
     }
-    sheets.forEach(s=>loadSheetWithFallback(s.sheetName,s.flightType,done));
+    sheets.forEach(s=>loadSheetWithFallback(s.sheetName,s.flightType,done,scope));
 }
 
-function loadSheetWithFallback(sheetName,flightType,done){
+function loadSheetWithFallback(sheetName,flightType,done,scope){
+    scope = scope || 'today';
     const tag='jst_'+sheetName.replace(/[^a-z0-9]/gi,'_');
-    const url1=SCRIPT_URL+'?action=getHistory&sheet='+encodeURIComponent(sheetName);
+    const url1=SCRIPT_URL+'?action=getHistory&sheet='+encodeURIComponent(sheetName)+'&scope='+scope;
     jsonpFetch(tag+'_1',url1,9000,
         data=>{
-            if(data&&data.success&&Array.isArray(data.reports)&&data.reports.length>0)done(data.reports,flightType,sheetName,'new-GAS');
-            else if(data&&data.success)done([],flightType,sheetName,'new-GAS-empty');
+            if(data&&data.success&&Array.isArray(data.reports))done(data.reports,flightType,sheetName,'new-GAS');
             else attempt2();
         },()=>attempt2());
     function attempt2(){
-        const url2=SCRIPT_URL+'?action=getAllHistory';
+        const url2=SCRIPT_URL+'?action=getAllHistory&scope='+scope;
         jsonpFetch(tag+'_2',url2,9000,
             data=>{
                 if(data&&data.success&&Array.isArray(data.reports)&&data.reports.length>0){
                     let reps=data.reports;
                     if(flightType!=='TURN')reps=reps.filter(r=>(r['Tipo']||r['flightType']||'')===flightType);
-                    if(reps.length>0)done(reps,flightType,sheetName,'old-all');else attempt3();
-                }else attempt3();
-            },()=>attempt3());
-    }
-    function attempt3(){
-        if(flightType!=='TURN'){done([],flightType,sheetName,'no-data');return;}
-        const url3=SCRIPT_URL+'?action=getHistory';
-        jsonpFetch(tag+'_3',url3,9000,
-            data=>{const reps=(data&&data.success&&Array.isArray(data.reports))?data.reports:[];done(reps,flightType,sheetName,reps.length?'old-fallback':'failed');},
-            ()=>done([],flightType,sheetName,'failed'));
+                    done(reps,flightType,sheetName,'old-all');
+                }else done([],flightType,sheetName,'no-data');
+            },()=>done([],flightType,sheetName,'failed'));
     }
 }
 
@@ -2345,12 +2388,7 @@ function jsonpFetch(id,url,timeoutMs,onData,onFail){
 // ══════════════════════════════════════════════════════
 //  NORMALIZE
 // ══════════════════════════════════════════════════════
-function processRawReports(rawReports){
-    resetInspectorColors();activeInspectorFilter=null;
-    window._rawSample=rawReports; // ← temporal, para inspeccionar en consola
-    allReports=rawReports.map(normalizeReport);
-    populateFilterDropdowns();applyFilters();
-}
+
 
 function normalizeReport(r){
     function get(){for(let i=0;i<arguments.length;i++){const v=r[arguments[i]];if(v!==undefined&&v!==null&&String(v).trim()!=='')return v;}return null;}
