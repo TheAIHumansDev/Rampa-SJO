@@ -1268,6 +1268,11 @@ html, body {
             <button class="date-pill" onclick="setPersDateFilter('week',this)">7 días</button>
             <button class="date-pill active" onclick="setPersDateFilter('all',this)">Todo</button>
         </div>
+
+<span class="filter-label" style="margin-left:6px;">🔍</span>
+        <input type="text" class="date-input" id="persSearchInput" placeholder="Buscar vuelo, nombre, cédula..."
+            style="min-width:180px;" oninput="persApplySearch(this.value)">
+    
         <span class="filter-label" style="margin-left:6px;">📌</span>
         <select class="filter-select" id="persEstadoFilter" onchange="renderPersTable()">
             <option value="all">Todo estado</option>
@@ -1749,6 +1754,21 @@ var persEstados = {};
 var persDateFilter = 'all';
 var persLastDiag = { sinPersonal: 0, conPersonalSinHE: 0, conHE: 0, error: 0, sampleError: null };  
 
+    var persSearchQuery = '';
+function persApplySearch(val) {
+    persSearchQuery = (val || '').trim().toLowerCase();
+    renderPersTable();
+}
+function persMatchesSearch(p) {
+    if (!persSearchQuery) return true;
+    const haystack = [
+        p.nombre, p.cedula, p.empresa,
+        p.vuelo, p.airline, p.airlineName,
+        (p.airline||'') + (p.vuelo||''), (p.airline||'') + ' ' + (p.vuelo||'')
+    ].map(v => String(v||'').toLowerCase()).join(' ');
+    return haystack.includes(persSearchQuery);
+}
+    
     function persLoadEstados() {
     try { persEstados = JSON.parse(localStorage.getItem('persEstadosHE') || '{}'); }
     catch (e) { persEstados = {}; }
@@ -1882,7 +1902,8 @@ function renderPersTable() {
         const est = persEstados[p._key];
         return Object.assign({}, p, { _estado: est ? est.estado : 'Pendiente', _revisadoPor: est ? est.revisadoPor : '' });
     });
-    if (estadoFilter !== 'all') display = display.filter(p => p._estado === estadoFilter);
+if (estadoFilter !== 'all') display = display.filter(p => p._estado === estadoFilter);
+    display = display.filter(persMatchesSearch);
 
     document.getElementById('persFilteredCount').textContent = display.length;
     document.getElementById('tabBadgePersonal').textContent = display.filter(p => p._estado === 'Pendiente').length;
