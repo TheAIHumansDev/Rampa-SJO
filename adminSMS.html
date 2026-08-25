@@ -391,6 +391,8 @@
 .photo-btn.has-photos { border-color:rgba(139,92,246,0.6); color:#e9d5ff; }
 .photo-btn.no-photos  { opacity:.4; cursor:default; pointer-events:none; }
 
+        
+
 
 .risk-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:6px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
 .risk-bajo{background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.3);}
@@ -399,6 +401,32 @@
 .risk-critico{background:rgba(232,68,68,0.18);color:#fca5a5;border:1px solid rgba(232,68,68,0.4);}
 .estado-badge{padding:2px 9px;border-radius:6px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;background:rgba(59,130,246,0.12);color:#93c5fd;white-space:nowrap;}      
 
+
+.iata-risk-grid{display:grid;grid-template-columns:110px repeat(5,1fr);gap:2px;margin-bottom:10px}
+.iata-risk-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;border-radius:4px;cursor:pointer;transition:all .15s;font-family:'JetBrains Mono',monospace;border:2px solid transparent}
+.iata-risk-cell.selected{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,0.3)}
+.iata-risk-label{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center}
+.iata-zone-aceptable{background:rgba(34,197,94,0.35);color:#065f46}
+.iata-zone-tolerable{background:rgba(245,158,11,0.4);color:#78350f}
+.iata-zone-intolerable{background:rgba(239,68,68,0.45);color:#7f1d1d}
+.iata-section{background:rgba(15,23,42,0.5);border:1px solid rgba(59,130,246,0.12);border-radius:12px;padding:16px;margin-bottom:14px}
+.iata-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.iata-textarea{width:100%;min-height:64px;padding:9px 12px;background:rgba(30,41,59,0.6);border:1px solid rgba(59,130,246,0.2);border-radius:8px;color:#e2e8f0;font-size:12px;font-family:'Syne',sans-serif;resize:vertical;outline:none}
+.iata-action-card{background:rgba(30,41,59,0.5);border:1px solid rgba(59,130,246,0.12);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.iata-action-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.iata-input,.iata-select{padding:6px 10px;background:rgba(15,23,42,0.7);border:1px solid rgba(59,130,246,0.2);border-radius:8px;color:#e2e8f0;font-size:11px;font-family:'JetBrains Mono',monospace;outline:none}
+.iata-tipo-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px;font-family:'JetBrains Mono',monospace}
+.iata-tipo-Inmediata{background:rgba(239,68,68,0.15);color:#fca5a5}
+.iata-tipo-Correctiva{background:rgba(245,158,11,0.15);color:#fcd34d}
+.iata-tipo-Preventiva{background:rgba(59,130,246,0.15);color:#93c5fd}
+.iata-timeline{max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.iata-timeline-item{font-size:11px;padding:6px 10px;background:rgba(30,41,59,0.4);border-left:2px solid rgba(139,92,246,0.4);border-radius:0 6px 6px 0}
+.iata-status-badge{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.iata-st-Abierto{background:rgba(239,68,68,0.15);color:#fca5a5}
+.iata-st-EnInvestigación{background:rgba(245,158,11,0.15);color:#fcd34d}
+.iata-st-AccionesPendientes{background:rgba(6,182,212,0.15);color:#67e8f9}
+.iata-st-Cerrado{background:rgba(16,185,129,0.15);color:#6ee7b7}
+        
 .wch-estado-badge{padding:2px 9px;border-radius:6px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
 .wch-completado{background:rgba(16,185,129,0.15);color:#6ee7b7;border:1px solid rgba(16,185,129,0.3);}
 .wch-enproceso{background:rgba(245,158,11,0.15);color:#fcd34d;border:1px solid rgba(245,158,11,0.3);}
@@ -1386,6 +1414,12 @@ html, body {
         <div class="fdm-section-title">📷 Fotos</div>
         <div id="smsDetailPhotosBtn"></div>
       </div>
+
+<div>
+  <div class="fdm-section-title">🗂️ Seguimiento IATA <span id="iataStatusBadgeHeader"></span></div>
+  <div id="iataSeguimientoSection"></div>
+</div>
+        
     </div>
   </div>
 </div>
@@ -1503,6 +1537,30 @@ function facToggleVerificado(key) {
     applyFacFilters();
     showToast(wasVerified ? '↺ Verificación revertida' : '✓ Marcado como verificado');
 }
+
+// ══ SEGUIMIENTO IATA (SMS) — persistencia LOCAL ══
+var iataSeguimientos = {};
+function iataLoad(){ try{ iataSeguimientos = JSON.parse(localStorage.getItem('iataSeguimientos')||'{}'); }catch(e){ iataSeguimientos={}; } }
+function iataSave(){ try{ localStorage.setItem('iataSeguimientos', JSON.stringify(iataSeguimientos)); }catch(e){} }
+function iataDefaultRecord(){
+    return { estado:'Abierto',
+        riesgo:{probabilidad:null,severidad:null},
+        investigacion:{causasInmediatas:'',causasRaiz:'',factoresContribuyentes:''},
+        acciones:[], cierre:{verificadoPor:'',fechaVerificacion:'',eficaz:null,comentarios:''},
+        bitacora:[] };
+}
+function iataGet(ticket){ if(!iataSeguimientos[ticket]) iataSeguimientos[ticket]=iataDefaultRecord(); return iataSeguimientos[ticket]; }
+function iataLog(ticket,accion){
+    const rec=iataGet(ticket);
+    const usuario=(localStorage.getItem('iataUsuarioActual')||prompt('Tu nombre (para la bitácora):')||'–').trim();
+    localStorage.setItem('iataUsuarioActual',usuario);
+    rec.bitacora.unshift({fecha:new Date().toISOString(),usuario,accion}); iataSave();
+}
+
+const IATA_PROBABILIDAD=[{val:5,label:'Frecuente'},{val:4,label:'Ocasional'},{val:3,label:'Remota'},{val:2,label:'Improbable'},{val:1,label:'Extrem. Improbable'}];
+const IATA_SEVERIDAD=[{val:5,code:'A',label:'Catastrófico'},{val:4,code:'B',label:'Peligroso'},{val:3,code:'C',label:'Mayor'},{val:2,code:'D',label:'Menor'},{val:1,code:'E',label:'Insignificante'}];
+function iataZone(score){ return score>=15?'intolerable':score>=5?'tolerable':'aceptable'; }
+function iataZoneLabel(z){ return {intolerable:'🔴 Intolerable',tolerable:'🟡 Tolerable — requiere mitigación',aceptable:'🟢 Aceptable'}[z]; }
     
     function loadFacturables(manual) {
     manual = !!manual;
@@ -2633,6 +2691,7 @@ var chartInstances={};
 facLoadVerifications();
     try { loadFacturables(); } catch(e) { console.error('Error cargando Facturables:', e); }
     persLoadEstados();
+    iataLoad();
 })();
 
 
@@ -4239,6 +4298,8 @@ function renderSmsTable() {
     body.innerHTML = display.map((r, i) => {
         const pc = r.photoCount || 0;
         const safeTicket = (r.ticket || '').replace(/'/g, "\\'");
+        const iataRec = iataSeguimientos[r.ticket];
+        const iataChip = iataRec ? `<span class="iata-status-badge iata-st-${iataRec.estado.replace(/\s/g,'')}" style="margin-left:6px;font-size:8px;padding:1px 6px;">${iataRec.estado}</span>` : '';
         return `<div class="rt-row" style="grid-template-columns:1fr 0.8fr 1.3fr 1fr 0.9fr 1fr 0.9fr 0.7fr;animation-delay:${i * .02}s;cursor:pointer;" onclick="openSmsDetail('${safeTicket}')" title="Ver detalle">
             <div class="rt-cell flight">${r.ticket || '–'}</div>
             <div class="rt-cell">${r.estacion || '–'}</div>
@@ -4346,7 +4407,152 @@ function openSmsPhotos(e, ticket) {
     const safeTicket = (r.ticket || '').replace(/'/g, "\\'");
     document.getElementById('smsDetailPhotosBtn').innerHTML =
         `<button class="photo-btn ${pc > 0 ? 'has-photos' : 'no-photos'}" onclick="openSmsPhotos(event,'${safeTicket}')" style="padding:8px 16px;font-size:12px;">📸 ${pc > 0 ? 'Ver ' + pc + ' foto(s)' : 'Sin fotos'}</button>`;
+   renderIataSection(ticket);
+    }
+
+var iataCurrentTicket=null;
+function renderIataSection(ticket){
+    iataCurrentTicket=ticket;
+    const rec=iataGet(ticket);
+    document.getElementById('iataStatusBadgeHeader').innerHTML=
+        `<span class="iata-status-badge iata-st-${rec.estado.replace(/\s/g,'')}">${rec.estado}</span>`;
+    document.getElementById('iataSeguimientoSection').innerHTML=`
+        <div class="iata-section">
+            <div class="iata-section-title">⚠️ Clasificación de Riesgo (Matriz IATA/ICAO 5×5)</div>
+            <div id="iataRiskGrid"></div>
+            <div id="iataRiskResult" style="margin-top:8px;font-size:12px;"></div>
+        </div>
+        <div class="iata-section">
+            <div class="iata-section-title">🔍 Investigación</div>
+            <div style="margin-bottom:8px;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Causas inmediatas</div>
+            <textarea class="iata-textarea" id="iataCausasInmediatas">${rec.investigacion.causasInmediatas}</textarea></div>
+            <div style="margin-bottom:8px;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Causa(s) raíz</div>
+            <textarea class="iata-textarea" id="iataCausasRaiz">${rec.investigacion.causasRaiz}</textarea></div>
+            <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Factores contribuyentes</div>
+            <textarea class="iata-textarea" id="iataFactores">${rec.investigacion.factoresContribuyentes}</textarea></div>
+            <button class="refresh-btn" style="margin-top:10px;" onclick="iataSaveInvestigacion()">💾 Guardar investigación</button>
+        </div>
+        <div class="iata-section">
+            <div class="iata-section-title">✅ Acciones Correctivas / Preventivas <span class="an-count">${rec.acciones.length}</span></div>
+            <div id="iataAccionesList"></div>
+            <div class="iata-action-row" style="margin-top:10px;">
+                <select class="iata-select" id="iataNuevaTipo"><option>Inmediata</option><option>Correctiva</option><option>Preventiva</option></select>
+                <input class="iata-input" id="iataNuevaDesc" placeholder="Descripción de la acción" style="flex:1;min-width:180px;">
+                <input class="iata-input" id="iataNuevoResponsable" placeholder="Responsable">
+                <input type="date" class="iata-input" id="iataNuevaFecha">
+                <button class="he-action-btn he-btn-approve" onclick="iataAddAccion()">+ Agregar</button>
+            </div>
+        </div>
+        <div class="iata-section">
+            <div class="iata-section-title">🔒 Cierre del Caso</div>
+            <div class="iata-action-row">
+                <input class="iata-input" id="iataVerificadoPor" placeholder="Verificado por" value="${rec.cierre.verificadoPor}">
+                <select class="iata-select" id="iataEficaz">
+                    <option value="">¿Acción eficaz?</option>
+                    <option value="si" ${rec.cierre.eficaz===true?'selected':''}>Sí, eficaz</option>
+                    <option value="no" ${rec.cierre.eficaz===false?'selected':''}>No, requiere reapertura</option>
+                </select>
+            </div>
+            <textarea class="iata-textarea" id="iataComentariosCierre" placeholder="Comentarios de cierre" style="margin-top:6px;">${rec.cierre.comentarios}</textarea>
+            <button class="he-action-btn he-btn-approve" style="margin-top:8px;" onclick="iataCerrarCaso()">🔒 Cerrar caso</button>
+            <button class="he-action-btn he-btn-reset" style="margin-top:8px;" onclick="iataReabrirCaso()">↺ Reabrir</button>
+        </div>
+        <div class="iata-section">
+            <div class="iata-section-title">📜 Bitácora</div>
+            <div class="iata-timeline" id="iataTimeline"></div>
+        </div>`;
+    renderIataRiskGrid(rec); renderIataAcciones(rec); renderIataTimeline(rec);
 }
+
+
+    function renderIataRiskGrid(rec){
+    let html='<div class="iata-risk-grid"><div></div>'+
+        IATA_SEVERIDAD.map(s=>`<div class="iata-risk-label">${s.code}</div>`).join('');
+    IATA_PROBABILIDAD.forEach(p=>{
+        html+=`<div class="iata-risk-label" style="justify-content:flex-end;">${p.label}</div>`;
+        IATA_SEVERIDAD.forEach(s=>{
+            const score=p.val*s.val, zone=iataZone(score);
+            const isSel=rec.riesgo.probabilidad===p.val&&rec.riesgo.severidad===s.val;
+            html+=`<div class="iata-risk-cell iata-zone-${zone} ${isSel?'selected':''}" onclick="iataSelectRisk(${p.val},${s.val})">${score}</div>`;
+        });
+    });
+    document.getElementById('iataRiskGrid').innerHTML=html+'</div>';
+    renderIataRiskResult(rec);
+}
+function renderIataRiskResult(rec){
+    const el=document.getElementById('iataRiskResult');
+    if(rec.riesgo.probabilidad===null){el.innerHTML='<span style="color:var(--muted);">Sin clasificar</span>';return;}
+    const score=rec.riesgo.probabilidad*rec.riesgo.severidad;
+    el.innerHTML=`Índice de riesgo: <strong>${score}</strong> — ${iataZoneLabel(iataZone(score))}`;
+}
+function iataSelectRisk(p,s){
+    const rec=iataGet(iataCurrentTicket); rec.riesgo={probabilidad:p,severidad:s}; iataSave();
+    iataLog(iataCurrentTicket,`Clasificó riesgo: P${p} × S${s}`);
+    renderIataSection(iataCurrentTicket); showToast('✓ Riesgo clasificado');
+}
+
+    function iataSaveInvestigacion(){
+    const rec=iataGet(iataCurrentTicket);
+    rec.investigacion.causasInmediatas=document.getElementById('iataCausasInmediatas').value;
+    rec.investigacion.causasRaiz=document.getElementById('iataCausasRaiz').value;
+    rec.investigacion.factoresContribuyentes=document.getElementById('iataFactores').value;
+    if(rec.estado==='Abierto') rec.estado='En Investigación';
+    iataSave(); iataLog(iataCurrentTicket,'Actualizó la investigación');
+    renderIataSection(iataCurrentTicket); showToast('✓ Investigación guardada');
+}
+function renderIataAcciones(rec){
+    const el=document.getElementById('iataAccionesList');
+    if(!rec.acciones.length){el.innerHTML='<div style="color:var(--muted);font-size:11px;padding:8px 0;">Sin acciones registradas</div>';return;}
+    el.innerHTML=rec.acciones.map((a,i)=>`
+        <div class="iata-action-card"><div style="display:flex;justify-content:space-between;gap:8px;">
+            <div style="flex:1;"><span class="iata-tipo-badge iata-tipo-${a.tipo}">${a.tipo}</span>
+                <div style="font-size:12px;margin-top:4px;">${a.descripcion}</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:3px;">👤 ${a.responsable||'–'} · 📅 ${a.fechaLimite||'sin fecha'}</div></div>
+            <div style="text-align:right;"><span class="he-estado-badge ${a.estado==='Completada'?'he-aprobado':'he-pendiente'}">${a.estado}</span><br>
+                <button class="he-action-btn ${a.estado==='Completada'?'he-btn-reset':'he-btn-approve'}" style="margin-top:4px;" onclick="iataToggleAccion(${i})">${a.estado==='Completada'?'↺ Reabrir':'✓ Completar'}</button>
+            </div></div></div>`).join('');
+}
+function iataAddAccion(){
+    const desc=document.getElementById('iataNuevaDesc').value.trim();
+    if(!desc){showToast('Ingresa una descripción de la acción',true);return;}
+    const rec=iataGet(iataCurrentTicket);
+    rec.acciones.push({tipo:document.getElementById('iataNuevaTipo').value,descripcion:desc,
+        responsable:document.getElementById('iataNuevoResponsable').value.trim()||'–',
+        fechaLimite:document.getElementById('iataNuevaFecha').value||'',estado:'Pendiente'});
+    if(['Abierto','En Investigación'].includes(rec.estado)) rec.estado='Acciones Pendientes';
+    iataSave(); iataLog(iataCurrentTicket,'Agregó acción: '+desc);
+    renderIataSection(iataCurrentTicket); showToast('✓ Acción agregada');
+}
+function iataToggleAccion(idx){
+    const rec=iataGet(iataCurrentTicket), a=rec.acciones[idx];
+    a.estado=a.estado==='Completada'?'Pendiente':'Completada';
+    if(a.estado==='Completada') a.fechaCompletada=new Date().toISOString();
+    iataSave(); iataLog(iataCurrentTicket,(a.estado==='Completada'?'Completó':'Reabrió')+' acción: '+a.descripcion);
+    renderIataSection(iataCurrentTicket);
+}
+function iataCerrarCaso(){
+    const rec=iataGet(iataCurrentTicket);
+    const pend=rec.acciones.filter(a=>a.estado!=='Completada').length;
+    if(pend>0&&!confirm(pend+' acción(es) siguen pendientes. ¿Cerrar de todos modos?'))return;
+    rec.cierre.verificadoPor=document.getElementById('iataVerificadoPor').value.trim()||'–';
+    rec.cierre.fechaVerificacion=new Date().toISOString();
+    rec.cierre.eficaz=document.getElementById('iataEficaz').value==='si';
+    rec.cierre.comentarios=document.getElementById('iataComentariosCierre').value;
+    rec.estado='Cerrado'; iataSave(); iataLog(iataCurrentTicket,'Cerró el caso');
+    renderIataSection(iataCurrentTicket); showToast('✓ Caso cerrado');
+}
+function iataReabrirCaso(){
+    const rec=iataGet(iataCurrentTicket);
+    rec.estado=rec.acciones.length?'Acciones Pendientes':'En Investigación';
+    iataSave(); iataLog(iataCurrentTicket,'Reabrió el caso'); renderIataSection(iataCurrentTicket);
+}
+function renderIataTimeline(rec){
+    const el=document.getElementById('iataTimeline');
+    if(!rec.bitacora.length){el.innerHTML='<div style="color:var(--muted);font-size:11px;">Sin movimientos</div>';return;}
+    el.innerHTML=rec.bitacora.map(b=>`<div class="iata-timeline-item"><strong>${b.usuario}</strong> — ${b.accion}<br>
+        <span style="color:var(--muted);font-size:9px;">${new Date(b.fecha).toLocaleString('es-CR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span></div>`).join('');
+}
+    
 
 function closeSmsDetail() {
     document.getElementById('smsDetailOverlay').classList.add('hidden');
@@ -4355,6 +4561,8 @@ function closeSmsDetail() {
 function smsDetailClickOutside(e) {
     if (e.target === document.getElementById('smsDetailOverlay')) closeSmsDetail();
 }
+
+    
   
 </script>
 
