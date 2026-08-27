@@ -1523,8 +1523,29 @@ let camStream=null,camTSint=null;
 let mSess=[],mPrevPhoto=null,mPrevTS=null;
 let alertInt=null;
 let _plantaExtraMin=0, noAirlineSupervisorFlag=false, firmaFinalData=null, _sigPadsInit=false;
-const LIMITE_MIN_PLANTA=60, TARIFA_POR_MINUTO_PLANTA=5;
-const LIMITE_MIN_AC=60, TARIFA_POR_MINUTO_AC=5;  
+
+// ── REGLAS DE TIEMPO EXCEDIDO POR AEROLÍNEA ──
+// mode:'flat'    → cargo único fijo al superar el límite
+// mode:'bracket' → se cobra "tarifa" por cada bloque de "bracketMin" minutos excedidos
+const EXCESS_RULES = {
+  'UA': { limiteMin:60,  planta:{mode:'flat',    tarifa:75  }, ac:{mode:'flat',    tarifa:120 } },
+  'AA': { limiteMin:60,  planta:{mode:'flat',    tarifa:65  }, ac:{mode:'flat',    tarifa:100 } },
+  'IB': { limiteMin:85,  planta:{mode:'flat',    tarifa:90  }, ac:{mode:'flat',    tarifa:90  } },
+  'DL': { limiteMin:80,  planta:{mode:'flat',    tarifa:100 }, ac:{mode:'flat',    tarifa:150 } },
+  'WN': { limiteMin:120, planta:{mode:'bracket', tarifa:45, bracketMin:30}, ac:{mode:'bracket', tarifa:75, bracketMin:30} },
+  'E9': { limiteMin:90,  planta:{mode:'flat',    tarifa:90  }, ac:{mode:'flat',    tarifa:90  } },
+  'PO': { limiteMin:60,  planta:{mode:'flat',    tarifa:80  }, ac:{mode:'flat',    tarifa:150 } },
+};
+// Aerolíneas sin regla (Westjet, Jetblue, Air Transat, DHL, Cargo, Viva Aerobus…)
+// no generan cargo automático por tiempo excedido.
+function getExcessRule(){ return EXCESS_RULES[sA] || null; }
+function calcExcessAmount(sub, exceso){
+  if(sub.mode==='bracket'){
+    const brackets=Math.ceil(exceso/(sub.bracketMin||30));
+    return brackets*sub.tarifa;
+  }
+  return sub.tarifa;
+} 
 const sigState={}; 
 let chatTarget='',chatTargetClass='',chatMsgStore={};
 let eqSolTipo='',urgVal='';
@@ -1812,41 +1833,47 @@ function calcACExtra(){
   return {mins, iniTs:ini.timestamp, finTs:fin.timestamp};
 }
 
-// Calcula y agrega (o quita si ya no aplica) los cargos automáticos de
-// Planta Eléctrica y Aire Acondicionado en la lista de facturación.
 function autoAddExcessCharges(){
-  // Limpia cargos automáticos previos para recalcular siempre con datos frescos
   billingItems=billingItems.filter(i=>i.type!=='planta_extra_auto' && i.type!=='ac_extra_auto');
+
+  const rule=getExcessRule();
+  const plantaBox=document.getElementById('plantaChargeBox');
+  const acBox=document.getElementById('acChargeBox');
+
+  if(!rule){
+    plantaBox.style.display='none';
+    acBox.style.display='none';
+    renderBillingList();updateSvcBadge();
+    return;
+  }
 
   // ── Planta Eléctrica ──
   const planta=calcPlantaExtra();
-  const plantaBox=document.getElementById('plantaChargeBox');
-  if(planta && planta.mins>LIMITE_MIN_PLANTA){
-    const exceso=planta.mins-LIMITE_MIN_PLANTA;
-    const monto=exceso*TARIFA_POR_MINUTO_PLANTA;
-    billingItems.push({type:'planta_extra_auto',icon:'⚡',name:'Planta Eléctrica — Tiempo Adicional',detail:`${exceso} min excedentes × $${TARIFA_POR_MINUTO_PLANTA.toFixed(2)} (Total conectada: ${planta.mins} min)`,amount:monto,timestamp:fmt(new Date())});
+  if(planta && planta.mins>rule.limiteMin){
+    const exceso=planta.mins-rule.limiteMin;
+    const monto=calcExcessAmount(rule.planta,exceso);
+    billingItems.push({type:'planta_extra_auto',icon:'⚡',name:'Planta Eléctrica — Tiempo Adicional',detail:`${exceso} min excedentes sobre el límite de ${rule.limiteMin} min (Total conectada: ${planta.mins} min)`,amount:monto,hideAmount:true,timestamp:fmt(new Date())});
     plantaBox.style.display='block';
-    document.getElementById('plantaChargeText').innerHTML=`La planta eléctrica estuvo conectada <strong>${planta.mins} minutos</strong> (Conecta: ${fmt(new Date(planta.conTs))} → Desconecta: ${fmt(new Date(planta.desTs))}).<br>Exceso sobre el límite de ${LIMITE_MIN_PLANTA} min: <strong>${exceso} minutos</strong> — <strong>$${monto.toFixed(2)}</strong> agregado automáticamente a facturación.`;
+    document.getElementById('plantaChargeText').innerHTML=`La planta eléctrica estuvo conectada <strong>${planta.mins} minutos</strong> (Conecta: ${fmt(new Date(planta.conTs))} → Desconecta: ${fmt(new Date(planta.desTs))}).<br>Exceso sobre el límite de ${rule.limiteMin} min: <strong>${exceso} minutos</strong>. Se agregó un cargo aplicable a facturación.`;
   }else{
     plantaBox.style.display='none';
   }
 
   // ── Aire Acondicionado ──
   const ac=calcACExtra();
-  const acBox=document.getElementById('acChargeBox');
-  if(ac && ac.mins>LIMITE_MIN_AC){
-    const exceso=ac.mins-LIMITE_MIN_AC;
-    const monto=exceso*TARIFA_POR_MINUTO_AC;
-    billingItems.push({type:'ac_extra_auto',icon:'❄️',name:'Aire Acondicionado — Tiempo Adicional',detail:`${exceso} min excedentes × $${TARIFA_POR_MINUTO_AC.toFixed(2)} (Total: ${ac.mins} min)`,amount:monto,timestamp:fmt(new Date())});
+  if(ac && ac.mins>rule.limiteMin){
+    const exceso=ac.mins-rule.limiteMin;
+    const monto=calcExcessAmount(rule.ac,exceso);
+    billingItems.push({type:'ac_extra_auto',icon:'❄️',name:'Aire Acondicionado — Tiempo Adicional',detail:`${exceso} min excedentes sobre el límite de ${rule.limiteMin} min (Total: ${ac.mins} min)`,amount:monto,hideAmount:true,timestamp:fmt(new Date())});
     acBox.style.display='block';
-    document.getElementById('acChargeText').innerHTML=`El aire acondicionado estuvo activo <strong>${ac.mins} minutos</strong> (Inicio: ${fmt(new Date(ac.iniTs))} → Fin: ${fmt(new Date(ac.finTs))}).<br>Exceso sobre el límite de ${LIMITE_MIN_AC} min: <strong>${exceso} minutos</strong> — <strong>$${monto.toFixed(2)}</strong> agregado automáticamente a facturación.`;
+    document.getElementById('acChargeText').innerHTML=`El aire acondicionado estuvo activo <strong>${ac.mins} minutos</strong> (Inicio: ${fmt(new Date(ac.iniTs))} → Fin: ${fmt(new Date(ac.finTs))}).<br>Exceso sobre el límite de ${rule.limiteMin} min: <strong>${exceso} minutos</strong>. Se agregó un cargo aplicable a facturación.`;
   }else{
     acBox.style.display='none';
   }
 
   renderBillingList();
   updateSvcBadge();
-}        
+}     
 // Helper: convierte un label a slug de clave
 function _slugify(str) {
   return String(str)
@@ -2525,9 +2552,10 @@ function finalizeInsp(obs){
   if(segData){document.getElementById('cSegCard').style.display='block';document.getElementById('cSegContent').innerHTML=`<div class="sum-row"><span class="sum-lab">Categoría:</span><span class="sum-val">${segData.categoria}</span></div><div class="sum-row"><span class="sum-lab">Riesgo:</span><span class="sum-val">${segData.riesgo}</span></div><div class="sum-row"><span class="sum-lab">Descripción:</span><span class="sum-val">${segData.descripcion}</span></div>`}
   if(billingItems.length>0){
     document.getElementById('cSvcCard').style.display='block';
-    document.getElementById('cSvcContent').innerHTML=billingItems.map(i=>`<div class="sum-row"><span class="sum-lab">${i.icon} ${i.name}</span><span class="sum-val">$${(i.amount||0).toFixed(2)}</span></div>`).join('');
-    const gt=billingItems.reduce((s,i)=>s+(i.amount||0),0);
-    document.getElementById('cSvcTotal').textContent=`$${gt.toFixed(2)}`;
+    document.getElementById('cSvcContent').innerHTML=billingItems.map(i=>`<div class="sum-row"><span class="sum-lab">${i.icon} ${i.name}</span><span class="sum-val">${i.hideAmount?(i.detail||'Ver factura'):'$'+(i.amount||0).toFixed(2)}</span></div>`).join('');
+    const gt=billingItems.reduce((s,i)=>s+(i.hideAmount?0:(i.amount||0)),0);
+    const hasHidden=billingItems.some(i=>i.hideAmount);
+    document.getElementById('cSvcTotal').textContent=`$${gt.toFixed(2)}${hasHidden?' + excedentes':''}`;
   }
 
 if(firmaFinalData){
@@ -3074,7 +3102,8 @@ function renderBillingList(){
   if(!wrap||!list)return;
   if(billingItems.length===0){wrap.style.display='none';return}
   wrap.style.display='block';
-  const total=billingItems.reduce((s,i)=>s+(i.amount||0),0);
+  const total=billingItems.reduce((s,i)=>s+(i.hideAmount?0:(i.amount||0)),0);
+  const hasHidden=billingItems.some(i=>i.hideAmount);
   list.innerHTML=billingItems.map((item,idx)=>`
     <div class="billing-item">
       <div class="billing-icon">${item.icon}</div>
@@ -3082,10 +3111,11 @@ function renderBillingList(){
         <div class="billing-name">${item.name}</div>
         <div class="billing-detail">${item.detail||''} · ${item.timestamp}</div>
       </div>
-      <div class="billing-amount">$${(item.amount||0).toFixed(2)}</div>
+      <div class="billing-amount">${item.hideAmount?'⏱️ Registrado':'$'+(item.amount||0).toFixed(2)}</div>
       <button class="billing-del" onclick="delBillingItem(${idx})">✕</button>
     </div>`).join('');
-  const td=document.getElementById('billingTotalDisplay');if(td)td.textContent=`$${total.toFixed(2)}`;
+  const td=document.getElementById('billingTotalDisplay');
+  if(td)td.textContent=`$${total.toFixed(2)}${hasHidden?' + excedentes':''}`;
 }
 
 function delBillingItem(idx){billingItems.splice(idx,1);renderBillingList();updateSvcBadge()}
@@ -3174,9 +3204,10 @@ function showCancelledCompletion(cd,total){
   const allItems=[...billingItems,{icon:'❌',name:'Operación Disponible (Cancelado)',detail:`Disponibilidad + Personal ${cd.tiempoPos}`,amount:total}];
   if(allItems.length>0){
     document.getElementById('cSvcCard').style.display='block';
-    document.getElementById('cSvcContent').innerHTML=allItems.map(i=>`<div class="sum-row"><span class="sum-lab">${i.icon} ${i.name}</span><span class="sum-val">$${(i.amount||0).toFixed(2)}</span></div>`).join('');
-    const grandTotal=allItems.reduce((s,i)=>s+(i.amount||0),0)+(billingItems.reduce((s,i)=>s+(i.amount||0),0));
-    document.getElementById('cSvcTotal').textContent=`$${grandTotal.toFixed(2)}`;
+    document.getElementById('cSvcContent').innerHTML=allItems.map(i=>`<div class="sum-row"><span class="sum-lab">${i.icon} ${i.name}</span><span class="sum-val">${i.hideAmount?(i.detail||'Ver factura'):'$'+(i.amount||0).toFixed(2)}</span></div>`).join('');
+    const grandTotal=allItems.reduce((s,i)=>s+(i.hideAmount?0:(i.amount||0)),0)+(billingItems.reduce((s,i)=>s+(i.hideAmount?0:(i.amount||0)),0));
+    const hasHidden=allItems.some(i=>i.hideAmount);
+    document.getElementById('cSvcTotal').textContent=`$${grandTotal.toFixed(2)}${hasHidden?' + excedentes':''}`;
   }
   // update title to show cancelled
   document.querySelector('.comp-icon').textContent='❌';
