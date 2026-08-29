@@ -1008,6 +1008,7 @@ html, body {
             <option value="Cerrado">Cerrado</option>
             <option value="Archivado">Archivado</option>
         </select>
+        <button class="rank-toggle-btn active" id="smsSortDirBtn" onclick="toggleSmsSortDir()">↓ Recientes primero</button>
         <button class="refresh-btn" id="smsRefreshBtn" onclick="loadSmsReports(true)"><span class="spin-icon">↻</span> Actualizar</button>
         <span class="last-updated" id="smsLastUpdated">–</span>
     </div>
@@ -1018,6 +1019,7 @@ html, body {
 
     <div class="report-table-wrap">
         <div class="rt-head" style="grid-template-columns:1fr 0.8fr 1.3fr 1fr 0.9fr 1fr 0.9fr 0.7fr;">
+            <div class="rt-head-cell">N°</div>
             <div class="rt-head-cell">Ticket</div>
             <div class="rt-head-cell">Estación</div>
             <div class="rt-head-cell">Fecha</div>
@@ -4290,6 +4292,8 @@ function lbxFmtDateTime(ts) {
 var allSmsReports = [], filteredSmsReports = [];
 var smsDateFilter = 'today', smsCustomDateVal = null;
 var activeSmsStationFilter = 'all', activeSmsRiskFilter = 'all', activeSmsCategoryFilter = 'all', activeSmsStatusFilter = 'all';
+var smsSortDir = 'desc';       // 'desc' = recientes primero, 'asc' = antiguos primero
+var smsConsecutivoMap = {};    // ticket -> N° consecutivo, fijo por orden cronológico real
 
 function loadSmsReports(manual) {
     manual = !!manual;
@@ -4304,6 +4308,7 @@ function loadSmsReports(manual) {
             if (lu) lu.textContent = 'Actualizado: ' + now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             if (data && data.success && Array.isArray(data.reports)) {
                 allSmsReports = data.reports;
+                buildSmsConsecutivos();      // ← esta es la línea nueva
                 populateSmsFilterDropdowns();
                 applySmsFilters();
                 if (manual) showToast('✓ ' + data.reports.length + ' reportes SMS cargados');
@@ -4366,19 +4371,35 @@ function riskEmoji(riesgo) {
     return { 'Bajo': '🟢', 'Medio': '🟡', 'Alto': '🟠', 'Crítico': '🔴' }[riesgo] || '⚪';
 }
 
+    // Consecutivo fijo por orden cronológico real (fechaRecepcion), independiente
+// del orden de visualización o de los filtros activos.
+function buildSmsConsecutivos(){
+    smsConsecutivoMap = {};
+    const ordenados = [...allSmsReports].sort((a, b) => parseSmsDate(a) - parseSmsDate(b));
+    ordenados.forEach((r, i) => { smsConsecutivoMap[r.ticket] = i + 1; });
+}
+
+function toggleSmsSortDir(){
+    smsSortDir = smsSortDir === 'desc' ? 'asc' : 'desc';
+    const btn = document.getElementById('smsSortDirBtn');
+    if (btn) btn.textContent = smsSortDir === 'desc' ? '↓ Recientes primero' : '↑ Antiguos primero';
+    renderSmsTable();
+}
+
 function renderSmsTable() {
     const body = document.getElementById('smsTableBody');
     document.getElementById('smsFilteredCount').textContent = filteredSmsReports.length;
     document.getElementById('tabBadgeSms').textContent = filteredSmsReports.length;
     if (!filteredSmsReports.length) { body.innerHTML = '<div class="empty-row">📭 Sin reportes SMS para este filtro</div>'; return; }
-    const display = [...filteredSmsReports].sort((a, b) => parseSmsDate(b) - parseSmsDate(a));
+    const display = [...filteredSmsReports].sort((a, b) =>
+        smsSortDir === 'desc' ? parseSmsDate(b) - parseSmsDate(a) : parseSmsDate(a) - parseSmsDate(b)
+    );
     body.innerHTML = display.map((r, i) => {
         const pc = r.photoCount || 0;
         const safeTicket = (r.ticket || '').replace(/'/g, "\\'");
-        const iataRec = iataSeguimientos[r.ticket];
-        const iataChip = iataRec ? `<span class="iata-status-badge iata-st-${iataRec.estado.replace(/\s/g,'')}" style="margin-left:6px;font-size:8px;padding:1px 6px;">${iataRec.estado}</span>` : '';
-        
-      return `<div class="rt-row" style="grid-template-columns:1fr 0.8fr 1.3fr 1fr 0.9fr 1fr 0.9fr 0.7fr;animation-delay:${i * .02}s;cursor:pointer;" onclick="openSmsDetail('${safeTicket}')" title="Ver detalle">
+        const consecutivo = smsConsecutivoMap[r.ticket] ? '#' + String(smsConsecutivoMap[r.ticket]).padStart(4, '0') : '–';
+        return `<div class="rt-row" style="grid-template-columns:0.5fr 1fr 0.8fr 1.3fr 1fr 0.9fr 1fr 0.9fr 0.7fr;animation-delay:${i * .02}s;cursor:pointer;" onclick="openSmsDetail('${safeTicket}')" title="Ver detalle">
+            <div class="rt-cell" style="font-weight:700;color:var(--cyan);">${consecutivo}</div>
             <div class="rt-cell flight">${r.ticket || '–'}</div>
             <div class="rt-cell">${r.estacion || '–'}</div>
             <div class="rt-cell">${r.fechaRecepcion || '–'}</div>
