@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AS Digital Ops · Ecosistema 2026</title>
+<style>
+:root{
+  --bg:#020611;
+  --text:#ffffff;
+  --muted:#9fb0c2;
+  --line:rgba(255,255,255,.16);
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  min-height:100%;
+  background:#020611;
+  color:var(--text);
+  font-family:Inter,Arial,sans-serif;
+  overflow-x:hidden;
+}
+body{
+  background:
+    radial-gradient(circle at 15% 18%,rgba(49,89,180,.20),transparent 24%),
+    radial-gradient(circle at 86% 22%,rgba(167,74,156,.15),transparent 28%),
+    radial-gradient(circle at 18% 82%,rgba(32,95,165,.14),transparent 25%),
+    radial-gradient(circle at 82% 78%,rgba(168,52,129,.13),transparent 25%),
+    linear-gradient(180deg,#020611 0%,#030915 55%,#020611 100%);
+}
+body:before,
+body:after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+}
+body:before{
+  z-index:0;
+  opacity:.55;
+  background-image:
+    radial-gradient(circle,rgba(255,255,255,.95) 0 1px,transparent 1.5px),
+    radial-gradient(circle,rgba(135,190,255,.8) 0 1px,transparent 1.5px),
+    radial-gradient(circle,rgba(255,255,255,.5) 0 1px,transparent 1.4px);
+  background-size:160px 160px,220px 220px,290px 290px;
+  background-position:20px 30px,80px 120px,150px 20px;
+}
+body:after{
+  z-index:0;
+  opacity:.45;
+  background:
+    radial-gradient(ellipse at 12% 25%,rgba(59,110,255,.18),transparent 18%),
+    radial-gradient(ellipse at 88% 20%,rgba(192,99,210,.16),transparent 20%),
+    radial-gradient(ellipse at 12% 80%,rgba(57,127,235,.14),transparent 18%),
+    radial-gradient(ellipse at 88% 82%,rgba(218,70,166,.12),transparent 20%);
+  filter:blur(18px);
+}
+.app{
+  position:relative;
+  z-index:2;
+  width:min(1600px,100%);
+  margin:auto;
+  padding:24px 26px 36px;
+}
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:20px;
+}
+.logo{
+  font-weight:900;
+  font-size:22px;
+  letter-spacing:-.04em;
+}
+.logo span{
+  display:block;
+  margin-top:2px;
+  color:#93a6b9;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.30em;
+}
+.presentation{
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  color:#d8e4ef;
+  background:rgba(255,255,255,.03);
+  font-size:11px;
+}
+.stage{
+  position:relative;
+  min-height:calc(100vh - 90px);
+  display:grid;
+  place-items:center;
+}
+.solar{
+  position:relative;
+  width:min(92vw,1120px);
+  aspect-ratio:1/1;
+  display:grid;
+  place-items:center;
+}
+.orbit{
+  position:absolute;
+  border:1px solid rgba(135,192,255,.14);
+  border-radius:50%;
+}
+.orbit.o1{width:36%;height:36%}
+.orbit.o2{width:53%;height:53%}
+.orbit.o3{width:69%;height:69%}
+.orbit.o4{width:84%;height:84%}
+.orbit.o5{width:98%;height:98%;border-color:rgba(135,192,255,.10)}
+.sun{
+  position:absolute;
+  z-index:20;
+  width:250px;
+  height:250px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  text-align:center;
+  background:
+    radial-gradient(circle at 50% 35%,rgba(255,180,78,.65),rgba(225,100,25,.28) 38%,rgba(63,30,10,.96) 72%);
+  border:1px solid rgba(255,178,76,.65);
+  box-shadow:
+    0 0 30px rgba(255,136,0,.30),
+    0 0 90px rgba(255,151,45,.25),
+    0 0 160px rgba(255,124,0,.13),
+    inset 0 0 70px rgba(255,196,104,.14);
+}
+.sun:before{
+  content:"";
+  position:absolute;
+  inset:-14px;
+  border-radius:50%;
+  border:1px solid rgba(255,174,76,.22);
+  box-shadow:0 0 55px rgba(255,137,31,.18);
+  animation:sunPulse 5s ease-in-out infinite;
+}
+@keyframes sunPulse{
+  50%{transform:scale(1.035);opacity:.45}
+}
+.sun .as{
+  font-size:56px;
+  line-height:.9;
+  font-weight:1000;
+  letter-spacing:-.08em;
+}
+.sun .digital{
+  margin-top:14px;
+  font-size:16px;
+  letter-spacing:.28em;
+  text-transform:uppercase;
+  font-weight:700;
+}
+.track{
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  animation:orbitSpin var(--speed) linear infinite;
+  pointer-events:none;
+  transform-origin:50% 50%;
+}
+.track.reverse{
+  animation-direction:reverse;
+}
+@keyframes orbitSpin{
+  from{transform:rotate(0deg)}
+  to{transform:rotate(360deg)}
+}
+.planet-anchor{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:
+    rotate(var(--angle))
+    translateX(var(--radius));
+  transform-origin:0 0;
+  pointer-events:auto;
+}
+.planet-counter{
+  /*
+    IMPORTANT:
+    The anchor is first rotated by --angle to position the planet on its orbit.
+    This wrapper immediately cancels that initial angle, and its animation
+    also cancels the continuous rotation of the orbit track.
+
+    Result: the planet travels around AS Digital Ops, but the button,
+    icon and text always remain upright and horizontal.
+  */
+  transform:rotate(calc(-1 * var(--angle)));
+  transform-origin:center center;
+}
+
+.track:not(.reverse) .planet-counter{
+  animation:counterSpin var(--speed) linear infinite;
+}
+
+.track.reverse .planet-counter{
+  animation:counterSpinReverse var(--speed) linear infinite;
+}
+
+@keyframes counterSpin{
+  from{
+    transform:rotate(calc(-1 * var(--angle)));
+  }
+  to{
+    transform:rotate(calc(-1 * var(--angle) - 360deg));
+  }
+}
+
+@keyframes counterSpinReverse{
+  from{
+    transform:rotate(calc(-1 * var(--angle)));
+  }
+  to{
+    transform:rotate(calc(-1 * var(--angle) + 360deg));
+  }
+}
+.planet-btn{
+  width:118px;
+  height:118px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);
+  color:#fff;
+  background:
+    radial-gradient(circle at 35% 28%,color-mix(in srgb,var(--planet) 50%,white 8%),color-mix(in srgb,var(--planet) 28%,#07101c 72%) 45%,#07101b 78%);
+  box-shadow:
+    inset -15px -18px 28px rgba(0,0,0,.28),
+    0 0 22px color-mix(in srgb,var(--planet) 20%,transparent),
+    0 14px 40px rgba(0,0,0,.28);
+  cursor:pointer;
+  display:grid;
+  place-items:center;
+  text-align:center;
+  padding:12px;
+  transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  backdrop-filter:blur(8px);
+}
+.planet-btn:hover,
+.planet-btn:focus{
+  transform:scale(1.07);
+  outline:none;
+  border-color:color-mix(in srgb,var(--planet) 68%,white 20%);
+  box-shadow:
+    inset -15px -18px 28px rgba(0,0,0,.25),
+    0 0 34px color-mix(in srgb,var(--planet) 34%,transparent),
+    0 18px 44px rgba(0,0,0,.36);
+}
+.planet-icon{
+  display:grid;
+  place-items:center;
+  margin:0 auto 8px;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  font-size:15px;
+  font-weight:900;
+  color:color-mix(in srgb,var(--planet) 78%,white);
+  background:rgba(0,0,0,.18);
+  border:1px solid rgba(255,255,255,.14);
+}
+.planet-name{
+  display:block;
+  font-size:10px;
+  font-weight:900;
+  line-height:1.15;
+  letter-spacing:.01em;
+  text-transform:uppercase;
+  text-shadow:0 1px 8px rgba(0,0,0,.7);
+}
+.solar.paused .track,
+.solar.paused .planet-counter{
+  animation-play-state:paused;
+}
+.detail{
+  position:absolute;
+  right:0;
+  top:50%;
+  transform:translateY(-50%) translateX(30px);
+  width:320px;
+  opacity:0;
+  pointer-events:none;
+  transition:.3s ease;
+  z-index:50;
+  padding:24px;
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:24px;
+  background:rgba(4,12,23,.92);
+  backdrop-filter:blur(18px);
+  box-shadow:0 30px 90px rgba(0,0,0,.42);
+}
+.detail.show{
+  opacity:1;
+  pointer-events:auto;
+  transform:translateY(-50%) translateX(0);
+}
+.detail-close{
+  position:absolute;
+  right:14px;
+  top:14px;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  border:1px solid var(--line);
+  background:transparent;
+  color:white;
+  cursor:pointer;
+}
+.detail-icon{
+  width:54px;
+  height:54px;
+  border-radius:17px;
+  display:grid;
+  place-items:center;
+  margin-bottom:18px;
+  border:1px solid rgba(255,255,255,.14);
+  font-size:19px;
+  font-weight:900;
+}
+.detail-tag{
+  color:#95a9ba;
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.17em;
+  font-weight:800;
+}
+.detail h2{
+  margin:7px 0 8px;
+  font-size:29px;
+  letter-spacing:-.05em;
+}
+.detail p{
+  margin:0;
+  color:#9fb1c1;
+  font-size:13px;
+  line-height:1.5;
+}
+.detail a{
+  display:flex;
+  justify-content:center;
+  margin-top:20px;
+  padding:12px 14px;
+  border-radius:12px;
+  text-decoration:none;
+  color:#06101b;
+  background:#f2fbff;
+  font-size:12px;
+  font-weight:900;
+}
+.explore{
+  position:absolute;
+  bottom:16px;
+  left:50%;
+  transform:translateX(-50%);
+  color:#6f8293;
+  font-size:10px;
+  text-align:center;
+  letter-spacing:.05em;
+}
+.explore:before{
+  content:"⌄";
+  display:block;
+  margin-bottom:4px;
+  color:#8097aa;
+  font-size:18px;
+}
+@media(prefers-reduced-motion:reduce){
+  .track,.planet-counter,.sun:before{animation:none}
+}
+@media(max-width:1100px){
+  .solar{width:min(1100px,98vw)}
+  .detail{
+    top:auto;
+    bottom:10px;
+    left:50%;
+    right:auto;
+    transform:translateX(-50%) translateY(25px);
+    width:min(92vw,440px);
+  }
+  .detail.show{transform:translateX(-50%) translateY(0)}
+}
+@media(max-width:760px){
+  .app{padding:16px 10px 24px}
+  .presentation{display:none}
+  .stage{min-height:820px}
+  .solar{
+    width:1000px;
+    transform:scale(.68);
+  }
+  .detail{
+    position:absolute;
+    bottom:6px;
+  }
+  .explore{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="logo">AS Handling<span>Digital Operations · 2026</span></div>
+    <div class="presentation">APPS</div>
+  </header>
+
+  <main class="stage">
+    <section class="solar" id="solar" aria-label="Ecosistema digital de AS Handling">
+      <div class="orbit o1"></div>
+      <div class="orbit o2"></div>
+      <div class="orbit o3"></div>
+      <div class="orbit o4"></div>
+      <div class="orbit o5"></div>
+
+      <div class="sun">
+        <div>
+          <div class="as">AS</div>
+          <div class="digital">Digital Ops</div>
+        </div>
+      </div>
+
+      <!-- Inner orbit -->
+      <div class="track" style="--speed:300s">
+        <div class="planet-anchor" style="--angle:20deg;--radius:205px">
+          <div class="planet-counter">
+            <button class="planet-btn" type="button" data-id="ramp" style="--planet:#ba72ff">
+              <span>
+                <span class="planet-icon">✈</span>
+                <span class="planet-name">Ramp APP</span>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="planet-anchor" style="--angle:200deg;--radius:205px">
+          <div class="planet-counter">
+            <button class="planet-btn" type="button" data-id="dashboard" style="--planet:#39c8ff">
+              <span>
+                <span class="planet-icon">▥</span>
+                <span class="planet-name">Admin Dashboard</span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle orbit -->
+      <div class="track reverse" style="--speed:390s">
+        <div class="planet-anchor" style="--angle:60deg;--radius:310px">
+          <div class="planet-counter">
+            <button class="planet-btn" type="button" data-id="sms" style="--planet:#22e6ef">
+              <span>
+                <span class="planet-icon">◈</span>
+                <span class="planet-name">Reportes SMS</span>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="planet-anchor" style="--angle:180deg;--radius:310px">
+          <div class="planet-counter">
+            <button class="planet-btn" type="button" data-id="adminsms" style="--planet:#a75cff">
+              <span>
+                <span class="planet-icon">●</span>
+                <span class="planet-name">Admin SMS</span>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="planet-anchor" style="--angle:300deg;--radius:310px">
+          <div class="planet-counter">
+            <button class="planet-btn" type="button" data-id="equipos" style="--planet:#9be642">
+              <span>
+                <span class="planet-icon">⌁</span>
+                <span class="planet-name">Monitoreo de Equipos</span>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="planet-anchor" style="--angle:132deg;--radius:310px">
+          <div class="planet-counter">
+            <button class="planet-btn" type="button" data-id="inventario" style="--planet:#35e6b5">
+              <span><span class="planet-icon">▦</span><span class="planet-name">Inventario AS</span></span>
+            </button>
+          </div>
+        </div>
+        <div class="planet-anchor" style="--angle:228deg;--radius:310px">
+          <div class="planet-counter">
+            <button class="planet-btn" type="button" data-id="sillas" style="--planet:#ff65bd">
+              <span><span class="planet-icon">♿</span><span class="planet-name">Sillas AS</span></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Outer orbit -->
+      <div class="track" style="--speed:480s">
+        <div class="planet-anchor" style="--angle:25deg;--radius:420px">
+          <div class="planet-counter">
+            <button class="planet-btn" type="button" data-id="delta" style="--planet:#ff4e46">
+              <span>
+                <span class="planet-icon">Δ</span>
+                <span class="planet-name">Delta Admin</span>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="planet-anchor" style="--angle:112deg;--radius:420px">
+          <div class="planet-counter">
+            <button class="planet-btn" type="button" data-id="iberia" style="--planet:#ffc23c">
+              <span>
+                <span class="planet-icon">IB</span>
+                <span class="planet-name">Iberia Admin</span>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="planet-anchor" style="--angle:210deg;--radius:420px">
+          <div class="planet-counter">
+            <button class="planet-btn" type="button" data-id="united" style="--planet:#2e8cff">
+              <span>
+                <span class="planet-icon">UA</span>
+                <span class="planet-name">United Admin</span>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="planet-anchor" style="--angle:305deg;--radius:420px">
+          <div class="planet-counter">
+            <button class="planet-btn" type="button" data-id="ojt" style="--planet:#ff8a3b">
+              <span>
+                <span class="planet-icon">✓</span>
+                <span class="planet-name">OJT</span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="explore">Explora nuestro ecosistema</div>
+    </section>
+
+    <aside class="detail" id="detail" aria-live="polite">
+      <button class="detail-close" id="close" type="button">×</button>
+      <div class="detail-icon" id="detailIcon"></div>
+      <div class="detail-tag" id="detailTag"></div>
+      <h2 id="detailTitle"></h2>
+      <p id="detailText"></p>
+      <a id="detailLink" href="#" target="_blank" rel="noopener">Abrir plataforma ↗</a>
+    </aside>
+  </main>
+</div>
+
+<script>
+const platforms = {
+  ramp:{
+    title:"Ramp APP",
+    tag:"Operaciones de Rampa",
+    icon:"✈",
+    color:"#ba72ff",
+    text:"Control digital de la operación alrededor de cada vuelo.",
+    url:"https://rampasjo.aeroaiops.com/"
+  },
+  dashboard:{
+    title:"Admin Dashboard",
+    tag:"Control Ejecutivo",
+    icon:"▥",
+    color:"#39c8ff",
+    text:"Vista central para supervisar la operación y sus indicadores.",
+    url:"https://rampasjo.aeroaiops.com/"
+  },
+  sms:{
+    title:"Reportes SMS",
+    tag:"Safety Management",
+    icon:"◈",
+    color:"#22e6ef",
+    text:"Registro digital de reportes y eventos de seguridad operacional.",
+    url:"https://rampasjo.aeroaiops.com/SMS-cr.html"
+  },
+  adminsms:{
+    title:"Admin SMS",
+    tag:"Administración Safety",
+    icon:"●",
+    color:"#a75cff",
+    text:"Control y revisión centralizada de reportes SMS.",
+    url:"https://rampasjo.aeroaiops.com/"
+  },
+  delta:{
+    title:"Delta Admin",
+    tag:"Portal de Aerolínea",
+    icon:"Δ",
+    color:"#ff4e46",
+    text:"Visibilidad dedicada para la operación de Delta atendida por AS Handling.",
+    url:"https://delta.aeroaiops.com/"
+  },
+  iberia:{
+    title:"Iberia Admin",
+    tag:"Portal de Aerolínea",
+    icon:"IB",
+    color:"#ffc23c",
+    text:"Acceso dedicado para consultar la operación de Iberia.",
+    url:"https://iberia.aeroaiops.com/"
+  },
+  united:{
+    title:"United Admin",
+    tag:"Portal de Aerolínea",
+    icon:"UA",
+    color:"#2e8cff",
+    text:"Portal dedicado para visibilidad de la operación de United.",
+    url:"http://unitedsjo.aeroaiops.com/"
+  },
+  equipos:{
+    title:"Monitoreo de Equipos",
+    tag:"Asset Operations",
+    icon:"⌁",
+    color:"#9be642",
+    text:"Seguimiento digital de equipos críticos para la operación.",
+    url:"https://equiposjo.aeroaiops.com/"
+  },
+  ojt:{
+    title:"OJT",
+    tag:"On-the-Job Training",
+    icon:"✓",
+    color:"#ff8a3b",
+    text:"Entrenamiento operativo estructurado directamente en campo.",
+    url:"https://rampasjo.aeroaiops.com/OJT3.html"
+  },
+  inventario:{
+    title:"Inventario AS",
+    tag:"Control de Inventario",
+    icon:"▦",
+    color:"#35e6b5",
+    text:"Control digital del inventario y recursos de AS Handling.",
+    url:"https://theaihumansdev.github.io/inventario-AS-Handling/"
+  },
+  sillas:{
+    title:"Sillas AS",
+    tag:"Wheelchair Operations",
+    icon:"♿",
+    color:"#ff65bd",
+    text:"Gestión digital de servicios de sillas y asistencia operacional.",
+    url:"http://sillassjo.aerojethandlinggroup.com/"
+  }
+};
+
+const solar = document.getElementById("solar");
+const detail = document.getElementById("detail");
+const detailIcon = document.getElementById("detailIcon");
+const detailTag = document.getElementById("detailTag");
+const detailTitle = document.getElementById("detailTitle");
+const detailText = document.getElementById("detailText");
+const detailLink = document.getElementById("detailLink");
+
+document.querySelectorAll("[data-id]").forEach(button=>{
+  button.addEventListener("click",()=>{
+    const p = platforms[button.dataset.id];
+    detailIcon.textContent = p.icon;
+    detailIcon.style.background = p.color + "18";
+    detailIcon.style.borderColor = p.color + "55";
+    detailTag.textContent = p.tag;
+    detailTitle.textContent = p.title;
+    detailText.textContent = p.text;
+    detailLink.href = p.url;
+
+    solar.classList.add("paused");
+    detail.classList.add("show");
+  });
+});
+
+document.getElementById("close").addEventListener("click",()=>{
+  detail.classList.remove("show");
+  solar.classList.remove("paused");
+});
+</script>
+</body>
+</html>
