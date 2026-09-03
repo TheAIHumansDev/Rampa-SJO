@@ -512,16 +512,31 @@ body:after{
     position:absolute;
     left:50%;
     right:auto;
-    bottom:8px;
-    width:calc(100% - 20px);
-    max-width:480px;
-    padding:20px 18px 18px;
-    border-radius:22px 22px 16px 16px;
-    transform:translateX(-50%) translateY(20px);
+    top:auto;
+    bottom:auto;
+    width:min(88vw,360px);
+    max-width:360px;
+    padding:16px 16px 15px;
+    border-radius:18px;
+    transform:translateX(-50%) translateY(10px);
+    z-index:80;
   }
 
   .detail.show{
     transform:translateX(-50%) translateY(0);
+  }
+
+  .detail.mobile-near-planet:before{
+    content:"";
+    position:absolute;
+    top:-9px;
+    left:50%;
+    width:16px;
+    height:16px;
+    transform:translateX(-50%) rotate(45deg);
+    background:rgba(4,12,23,.92);
+    border-left:1px solid rgba(255,255,255,.13);
+    border-top:1px solid rgba(255,255,255,.13);
   }
 
   .detail-icon{
@@ -590,8 +605,8 @@ body:after{
   .stage{padding-bottom:320px}
 
   .detail{
-    width:calc(100% - 12px);
-    bottom:4px;
+    width:min(88vw,330px);
+    max-width:330px;
   }
 }
 
@@ -855,6 +870,50 @@ const detailTitle = document.getElementById("detailTitle");
 const detailText = document.getElementById("detailText");
 const detailLink = document.getElementById("detailLink");
 
+function positionDetailNearPlanet(button){
+  if (window.innerWidth > 760) {
+    detail.classList.remove("mobile-near-planet");
+    detail.style.top = "";
+    detail.style.left = "";
+    return;
+  }
+
+  const stage = document.querySelector(".stage");
+  const stageRect = stage.getBoundingClientRect();
+  const btnRect = button.getBoundingClientRect();
+
+  const detailWidth = Math.min(window.innerWidth * 0.88, window.innerWidth <= 430 ? 330 : 360);
+  const half = detailWidth / 2;
+  const edge = 10;
+
+  let centerX = btnRect.left + btnRect.width / 2 - stageRect.left;
+  centerX = Math.max(half + edge, Math.min(stageRect.width - half - edge, centerX));
+
+  let top = btnRect.bottom - stageRect.top + 14;
+
+  detail.classList.add("mobile-near-planet");
+  detail.style.left = centerX + "px";
+  detail.style.top = top + "px";
+
+  requestAnimationFrame(()=>{
+    const dRect = detail.getBoundingClientRect();
+    const maxBottom = stageRect.bottom - 8;
+
+    if (dRect.bottom > maxBottom) {
+      const above = btnRect.top - stageRect.top - dRect.height - 14;
+      if (above > 0) {
+        detail.style.top = above + "px";
+        detail.classList.remove("mobile-near-planet");
+      }
+    }
+
+    detail.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest"
+    });
+  });
+}
+
 document.querySelectorAll("[data-id]").forEach(button=>{
   button.addEventListener("click",()=>{
     const p = platforms[button.dataset.id];
@@ -868,11 +927,15 @@ document.querySelectorAll("[data-id]").forEach(button=>{
 
     solar.classList.add("paused");
     detail.classList.add("show");
+    positionDetailNearPlanet(button);
   });
 });
 
 document.getElementById("close").addEventListener("click",()=>{
   detail.classList.remove("show");
+  detail.classList.remove("mobile-near-planet");
+  detail.style.top = "";
+  detail.style.left = "";
   solar.classList.remove("paused");
 });
 </script>
