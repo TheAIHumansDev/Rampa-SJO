@@ -6,6 +6,7 @@
     <meta property="og:type" content="website">
     <meta property="og:title" content="Admin Dashboard | All-In-One Platform Data">
     <meta property="og:description" content="Dashboard inteligente por aerolínea, vuelo y operador.">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1010,7 +1011,11 @@ html, body {
         </select>
         <button class="rank-toggle-btn active" id="smsSortDirBtn" onclick="toggleSmsSortDir()">↓ Recientes primero</button>
         <button class="refresh-btn" id="smsRefreshBtn" onclick="loadSmsReports(true)"><span class="spin-icon">↻</span> Actualizar</button>
-        <span class="last-updated" id="smsLastUpdated">–</span>
+
+      <button class="refresh-btn" onclick="exportSmsExcel()">📥 Excel</button>
+<button class="refresh-btn" onclick="exportSmsPdf()">📄 PDF</button>
+      
+      <span class="last-updated" id="smsLastUpdated">–</span>
     </div>
 
     <div class="toolbar">
@@ -4425,6 +4430,175 @@ function updateSmsKPIs() {
     document.getElementById('smsKpiSeguimiento').textContent = seguimiento;
 }
 
+
+// ══════════════════════════════════════════════════════
+//  EXPORTAR SMS — EXCEL
+// ══════════════════════════════════════════════════════
+function exportSmsExcel() {
+    if (typeof XLSX === 'undefined') { showToast('⚠ Librería Excel no cargada', true); return; }
+    if (!filteredSmsReports.length) { showToast('⚠ No hay reportes SMS para exportar en el filtro actual', true); return; }
+
+    const display = [...filteredSmsReports].sort((a, b) =>
+        smsSortDir === 'desc' ? parseSmsDate(b) - parseSmsDate(a) : parseSmsDate(a) - parseSmsDate(b)
+    );
+
+    const rows = display.map(r => {
+        const fotos = (r.fotos || []).map(f => f.photoUrl).filter(Boolean);
+        return {
+            'N°': smsConsecutivoMap[r.ticket] ? '#' + String(smsConsecutivoMap[r.ticket]).padStart(4, '0') : '–',
+            'Ticket': r.ticket || '–',
+            'Estación': r.estacion || '–',
+            'Fecha Recepción': r.fechaRecepcion || '–',
+            'Categoría': r.categoria || '–',
+            'Riesgo': r.riesgo || '–',
+            'Reportado Por': r.anonimo === 'Sí' ? 'Anónimo' : (r.reportadoPor || '–'),
+            'Estado': r.estado || '–',
+            'Hora Evento': r.horaEvento || '–',
+            'Personas Involucradas': r.personas || '–',
+            'Vuelo / Área': r.vuelo || '–',
+            '# Unidad': r.unidad || '–',
+            'Descripción': r.descripcion || '–',
+            'Acción Tomada': r.accion || '–',
+            'Seguimiento': r.seguimiento || 'No',
+            'Contacto Seguimiento': r.contacto || '–',
+            'Responsable Asignado': r.responsable || '–',
+            'Fecha Cierre': r.fechaCierre || '–',
+            'Observaciones': r.observaciones || '–',
+            'Cant. Fotos': fotos.length,
+            'Enlaces Fotos': fotos.length ? fotos.join(' | ') : '–'
+        };
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [
+        {wch:8},{wch:14},{wch:14},{wch:18},{wch:16},{wch:10},{wch:18},{wch:16},
+        {wch:10},{wch:20},{wch:14},{wch:10},{wch:35},{wch:30},{wch:12},{wch:18},
+        {wch:18},{wch:14},{wch:30},{wch:10},{wch:50}
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'Reportes SMS');
+
+    const bajo = filteredSmsReports.filter(r => r.riesgo === 'Bajo').length;
+    const medio = filteredSmsReports.filter(r => r.riesgo === 'Medio').length;
+    const altoCritico = filteredSmsReports.filter(r => r.riesgo === 'Alto' || r.riesgo === 'Crítico').length;
+    const periodoLabel = { today:'Hoy', week:'Últimos 7 días', month:'Últimos 30 días', all:'Todo' }[smsDateFilter] || smsDateFilter;
+
+    const resumen = [
+        { 'Métrica':'Período', 'Valor': periodoLabel },
+        { 'Métrica':'Total reportes', 'Valor': filteredSmsReports.length },
+        { 'Métrica':'Riesgo Bajo', 'Valor': bajo },
+        { 'Métrica':'Riesgo Medio', 'Valor': medio },
+        { 'Métrica':'Riesgo Alto/Crítico', 'Valor': altoCritico },
+        { 'Métrica':'Estación', 'Valor': activeSmsStationFilter === 'all' ? 'Todas' : activeSmsStationFilter },
+        { 'Métrica':'Categoría', 'Valor': activeSmsCategoryFilter === 'all' ? 'Toda' : activeSmsCategoryFilter },
+        { 'Métrica':'Estado', 'Valor': activeSmsStatusFilter === 'all' ? 'Todo' : activeSmsStatusFilter },
+        { 'Métrica':'Generado', 'Valor': new Date().toLocaleString('es-CR') },
+    ];
+    const wsResumen = XLSX.utils.json_to_sheet(resumen);
+    wsResumen['!cols'] = [{wch:22},{wch:22}];
+    XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+    wb.SheetNames.unshift(wb.SheetNames.pop());
+
+    const fname = 'Reportes_SMS_' + todayIsoDate() + '.xlsx';
+    XLSX.writeFile(wb, fname);
+    showToast('✓ Excel exportado: ' + fname);
+}
+
+// ══════════════════════════════════════════════════════
+//  EXPORTAR SMS — PDF (con enlaces clicables a las fotos)
+// ══════════════════════════════════════════════════════
+function exportSmsPdf() {
+    if (typeof window.jspdf === 'undefined') { showToast('⚠ Librería PDF no cargada', true); return; }
+    if (!filteredSmsReports.length) { showToast('⚠ No hay reportes SMS para exportar en el filtro actual', true); return; }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const display = [...filteredSmsReports].sort((a, b) =>
+        smsSortDir === 'desc' ? parseSmsDate(b) - parseSmsDate(a) : parseSmsDate(a) - parseSmsDate(b)
+    );
+
+    // ── Portada: tabla resumen dibujada a mano ─────────────────
+    doc.setFontSize(16);
+    doc.text('Reportes SMS — AS Ground Handling', 40, 40);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    const periodoLabel = { today:'Hoy', week:'Últimos 7 días', month:'Últimos 30 días', all:'Todo' }[smsDateFilter] || smsDateFilter;
+    doc.text('Período: ' + periodoLabel + '   ·   Generado: ' + new Date().toLocaleString('es-CR') + '   ·   Total: ' + display.length, 40, 58);
+
+    const cols = [
+        { label:'N°', w:45 }, { label:'Ticket', w:90 }, { label:'Estación', w:80 },
+        { label:'Fecha', w:100 }, { label:'Categoría', w:110 }, { label:'Riesgo', w:60 },
+        { label:'Reportado por', w:110 }, { label:'Estado', w:90 }, { label:'Fotos', w:45 }
+    ];
+    let y = 82, x0 = 40;
+    doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setFillColor(59,130,246); doc.setTextColor(255);
+    let cx = x0;
+    cols.forEach(c => { doc.rect(cx, y, c.w, 18, 'F'); doc.text(c.label, cx+4, y+12); cx += c.w; });
+    y += 18;
+    doc.setFont(undefined,'normal'); doc.setTextColor(20);
+
+    display.forEach((r, i) => {
+        if (y > 550) { doc.addPage(); y = 40; }
+        const row = [
+            smsConsecutivoMap[r.ticket] ? '#'+String(smsConsecutivoMap[r.ticket]).padStart(4,'0') : '–',
+            r.ticket || '–', r.estacion || '–', r.fechaRecepcion || '–', r.categoria || '–',
+            r.riesgo || '–', r.anonimo === 'Sí' ? 'Anónimo' : (r.reportadoPor || '–'),
+            r.estado || '–', String((r.fotos||[]).length)
+        ];
+        cx = x0;
+        if (i % 2 === 0) { doc.setFillColor(245,247,250); doc.rect(x0, y, cols.reduce((s,c)=>s+c.w,0), 16, 'F'); }
+        row.forEach((val, ci) => { doc.text(String(val).slice(0,28), cx+4, y+11); cx += cols[ci].w; });
+        y += 16;
+    });
+
+    // ── Una página de detalle por caso, con enlaces a fotos ────
+    display.forEach(r => {
+        doc.addPage();
+        doc.setFontSize(13); doc.setTextColor(20); doc.setFont(undefined,'bold');
+        doc.text((r.ticket || '–') + ' — ' + (r.categoria || '–'), 40, 40);
+        doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(100);
+        doc.text('Estación: ' + (r.estacion||'–') + '   Riesgo: ' + (r.riesgo||'–') + '   Estado: ' + (r.estado||'–') + '   Fecha: ' + (r.fechaRecepcion||'–'), 40, 56);
+
+        let py = 78;
+        const addField = (label, val) => {
+            if (py > 500) { doc.addPage(); py = 40; }
+            doc.setFont(undefined,'bold'); doc.setFontSize(9); doc.setTextColor(20);
+            doc.text(label + ':', 40, py);
+            doc.setFont(undefined,'normal');
+            const lines = doc.splitTextToSize(String(val || '–'), pageW - 190);
+            doc.text(lines, 150, py);
+            py += 14 * lines.length + 4;
+        };
+        addField('Reportado por', r.anonimo === 'Sí' ? 'Anónimo' : r.reportadoPor);
+        addField('Descripción', r.descripcion);
+        addField('Acción tomada', r.accion);
+        addField('Seguimiento', r.seguimiento);
+        addField('Responsable', r.responsable);
+        addField('Observaciones', r.observaciones);
+
+        const fotos = (r.fotos || []).filter(f => f.photoUrl);
+        if (py > 500) { doc.addPage(); py = 40; }
+        doc.setFont(undefined,'bold'); doc.setTextColor(20); doc.text('Fotos adjuntas:', 40, py); py += 16;
+        doc.setFont(undefined,'normal');
+        if (fotos.length) {
+            doc.setTextColor(37,99,235);
+            fotos.forEach((f, i) => {
+                if (py > 560) { doc.addPage(); py = 40; }
+                doc.textWithLink('📎 Foto ' + (i+1) + ' — Abrir en Drive', 50, py, { url: f.photoUrl });
+                py += 14;
+            });
+        } else {
+            doc.setFont(undefined,'italic'); doc.setTextColor(150);
+            doc.text('Sin fotos adjuntas', 50, py);
+        }
+    });
+
+    const fname = 'Reportes_SMS_' + todayIsoDate() + '.pdf';
+    doc.save(fname);
+    showToast('✓ PDF exportado: ' + fname);
+}
+  
 // Reutiliza el MISMO visor de fotos (lightbox) que ya usa Turnaround Check —
 // solo le damos un arreglo de fotos con la forma que ese visor ya espera.
 function openSmsPhotos(e, ticket) {
