@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta property="og:type" content="website">
     <meta property="og:title" content="Admin Dashboard | All-In-One Platform Data">
-    <meta property="og:description" content="Dashboard inteligente por aerolínea, vuelo y operador.">
+    <meta property="og:description" contentvar smsConsecutivoMap = {};    // ticket -> N° consecutivo, fijo por orden cronológico real="Dashboard inteligente por aerolínea, vuelo y operador.">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1415,10 +1415,13 @@ html, body {
         <div class="fdm-airline-logo">🦺</div>
         <div><div class="fdm-flight-num" id="smsDetailTicket">–</div><div class="fdm-flight-meta" id="smsDetailMeta">–</div></div>
       </div>
-      <div class="fdm-header-right">
+        
+<div class="fdm-header-right">
+        <button class="fdm-ai-btn" onclick="exportSmsCaseOfficialPdf(smsDetailCurrentTicket)">📄 Reporte Oficial PDF</button>
         <div id="smsDetailRiskBadge" class="risk-badge risk-bajo">–</div>
         <button class="fdm-close" onclick="closeSmsDetail()">✕</button>
       </div>
+        
     </div>
     <div class="fdm-body">
       <div class="fdm-kpi-row" id="smsDetailKpiRow"></div>
@@ -4299,6 +4302,7 @@ var smsDateFilter = 'today', smsCustomDateVal = null;
 var activeSmsStationFilter = 'all', activeSmsRiskFilter = 'all', activeSmsCategoryFilter = 'all', activeSmsStatusFilter = 'all';
 var smsSortDir = 'desc';       // 'desc' = recientes primero, 'asc' = antiguos primero
 var smsConsecutivoMap = {};    // ticket -> N° consecutivo, fijo por orden cronológico real
+var smsDetailCurrentTicket = null;
 
 function loadSmsReports(manual) {
     manual = !!manual;
@@ -4636,9 +4640,10 @@ function openSmsPhotos(e, ticket) {
 }
 
 
-    function openSmsDetail(ticket) {
+function openSmsDetail(ticket) {
     const r = allSmsReports.find(x => x.ticket === ticket);
     if (!r) { showToast('Reporte no encontrado', true); return; }
+    smsDetailCurrentTicket = ticket;
 
     document.getElementById('smsDetailOverlay').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
@@ -4681,6 +4686,260 @@ function openSmsPhotos(e, ticket) {
     document.getElementById('smsDetailPhotosBtn').innerHTML =
         `<button class="photo-btn ${pc > 0 ? 'has-photos' : 'no-photos'}" onclick="openSmsPhotos(event,'${safeTicket}')" style="padding:8px 16px;font-size:12px;">📸 ${pc > 0 ? 'Ver ' + pc + ' foto(s)' : 'Sin fotos'}</button>`;
     renderIataSection(ticket);   // ← esta es la única línea nueva
+}
+
+// ══════════════════════════════════════════════════════
+//  REPORTE OFICIAL PDF — CASO SMS INDIVIDUAL
+// ══════════════════════════════════════════════════════
+function exportSmsCaseOfficialPdf(ticket) {
+    if (typeof window.jspdf === 'undefined') { showToast('⚠ Librería PDF no cargada', true); return; }
+    const r = allSmsReports.find(x => x.ticket === ticket);
+    if (!r) { showToast('⚠ Caso no encontrado', true); return; }
+
+    const rec = iataGet(ticket);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const PW = doc.internal.pageSize.getWidth();
+    const PH = doc.internal.pageSize.getHeight();
+    const MX = 44;
+    const CONTENT_W = PW - MX * 2;
+    let y = 0;
+
+    const COLORS = {
+        navy:   [15, 23, 42],
+        red:    [220, 38, 38],
+        orange: [249, 115, 22],
+        blue:   [37, 99, 235],
+        gray:   [100, 116, 139],
+        lgray:  [241, 245, 249],
+        line:   [203, 213, 225]
+    };
+
+    function checkBreak(need) {
+        if (y + need > PH - 70) { doc.addPage(); drawRunningHeader(); y = 96; }
+    }
+    function drawRunningHeader() {
+        doc.setFillColor(...COLORS.navy);
+        doc.rect(0, 0, PW, 46, 'F');
+        doc.setTextColor(255,255,255);
+        doc.setFont(undefined, 'bold'); doc.setFontSize(11);
+        doc.text('AS GROUND HANDLING · AEROJET HANDLING GROUP', MX, 20);
+        doc.setFont(undefined, 'normal'); doc.setFontSize(8);
+        doc.setTextColor(203,213,225);
+        doc.text('Reporte Oficial de Evento SMS — ' + (r.ticket || '–'), MX, 34);
+        doc.setDrawColor(...COLORS.red);
+        doc.setLineWidth(3);
+        doc.line(0, 46, PW, 46);
+    }
+    function sectionTitle(label) {
+        checkBreak(30);
+        doc.setFillColor(...COLORS.lgray);
+        doc.rect(MX, y, CONTENT_W, 20, 'F');
+        doc.setDrawColor(...COLORS.blue);
+        doc.setLineWidth(2);
+        doc.line(MX, y, MX, y + 20);
+        doc.setTextColor(...COLORS.navy);
+        doc.setFont(undefined, 'bold'); doc.setFontSize(10);
+        doc.text(label.toUpperCase(), MX + 10, y + 14);
+        y += 30;
+    }
+    function field(label, val, colW) {
+        colW = colW || CONTENT_W;
+        const lines = doc.splitTextToSize(String(val == null || val === '' ? '–' : val), colW - 130);
+        checkBreak(14 * lines.length + 8);
+        doc.setFont(undefined, 'bold'); doc.setFontSize(8.5); doc.setTextColor(...COLORS.gray);
+        doc.text(label.toUpperCase(), MX, y);
+        doc.setFont(undefined, 'normal'); doc.setFontSize(9.5); doc.setTextColor(20,20,20);
+        doc.text(lines, MX + 130, y);
+        y += 14 * lines.length + 8;
+    }
+    function twoCol(labelA, valA, labelB, valB) {
+        checkBreak(20);
+        const half = CONTENT_W / 2;
+        doc.setFont(undefined, 'bold'); doc.setFontSize(8.5); doc.setTextColor(...COLORS.gray);
+        doc.text(labelA.toUpperCase(), MX, y);
+        doc.text(labelB.toUpperCase(), MX + half, y);
+        doc.setFont(undefined, 'normal'); doc.setFontSize(9.5); doc.setTextColor(20,20,20);
+        doc.text(String(valA || '–'), MX, y + 13);
+        doc.text(String(valB || '–'), MX + half, y + 13);
+        y += 26;
+    }
+
+    doc.setFillColor(...COLORS.navy);
+    doc.rect(0, 0, PW, 108, 'F');
+    doc.setFillColor(...COLORS.red);
+    doc.rect(0, 108, PW, 4, 'F');
+    doc.setFillColor(...COLORS.orange);
+    doc.rect(0, 112, PW, 2, 'F');
+
+    doc.setTextColor(255,255,255);
+    doc.setFont(undefined, 'bold'); doc.setFontSize(15);
+    doc.text('AS GROUND HANDLING', MX, 38);
+    doc.setFontSize(9); doc.setFont(undefined, 'normal');
+    doc.setTextColor(203,213,225);
+    doc.text('AeroJet Handling Group · Sistema de Gestión de Seguridad Operacional (SMS)', MX, 54);
+
+    doc.setFont(undefined, 'bold'); doc.setFontSize(13);
+    doc.setTextColor(255,255,255);
+    doc.text('REPORTE OFICIAL DE INVESTIGACIÓN DE EVENTO', MX, 84);
+    doc.setFont(undefined, 'normal'); doc.setFontSize(9);
+    doc.setTextColor(226,232,240);
+    doc.text('Documento generado por la plataforma SMS · Uso interno / Autoridad / Aerolínea', MX, 98);
+
+    y = 140;
+
+    doc.setDrawColor(...COLORS.line); doc.setLineWidth(1);
+    doc.rect(MX, y, CONTENT_W, 58);
+    const boxCols = [
+        ['N° DE TICKET', r.ticket || '–'],
+        ['ESTACIÓN', r.estacion || '–'],
+        ['FECHA DE RECEPCIÓN', r.fechaRecepcion || '–'],
+        ['FECHA DE EMISIÓN DEL DOCUMENTO', new Date().toLocaleString('es-CR', { dateStyle:'long', timeStyle:'short' })]
+    ];
+    const bw = CONTENT_W / 2;
+    boxCols.forEach((c, i) => {
+        const cx = MX + (i % 2) * bw + 10;
+        const cy = y + 16 + Math.floor(i/2) * 26;
+        doc.setFont(undefined, 'bold'); doc.setFontSize(7.5); doc.setTextColor(...COLORS.gray);
+        doc.text(c[0], cx, cy);
+        doc.setFont(undefined, 'normal'); doc.setFontSize(10); doc.setTextColor(...COLORS.navy);
+        doc.text(String(c[1]), cx, cy + 13);
+    });
+    y += 78;
+
+    sectionTitle('1. Clasificación del Evento');
+    twoCol('Categoría', r.categoria, 'Estado del Caso', rec.estado);
+    twoCol('Nivel de Riesgo Reportado', r.riesgo, 'Requiere Seguimiento', r.seguimiento || 'No');
+
+    if (rec.riesgo.probabilidad !== null) {
+        const score = rec.riesgo.probabilidad * rec.riesgo.severidad;
+        const zone = iataZone(score);
+        const zoneTxt = { intolerable:'INTOLERABLE — Requiere acción inmediata', tolerable:'TOLERABLE — Requiere mitigación', aceptable:'ACEPTABLE' }[zone];
+        const pLabel = (IATA_PROBABILIDAD.find(p=>p.val===rec.riesgo.probabilidad)||{}).label || '–';
+        const sInfo = IATA_SEVERIDAD.find(s=>s.val===rec.riesgo.severidad) || {};
+        checkBreak(50);
+        doc.setFillColor(zone==='intolerable'?254:zone==='tolerable'?255:236, zone==='intolerable'?226:zone==='tolerable'?247:253, zone==='intolerable'?226:zone==='tolerable'?205:245);
+        doc.rect(MX, y, CONTENT_W, 42, 'F');
+        doc.setFont(undefined,'bold'); doc.setFontSize(9); doc.setTextColor(...COLORS.navy);
+        doc.text('Matriz IATA/ICAO 5×5 — Probabilidad: ' + pLabel + '  ×  Severidad: ' + (sInfo.code||'–') + ' (' + (sInfo.label||'–') + ')', MX+10, y+16);
+        doc.setFont(undefined,'bold'); doc.setFontSize(11);
+        doc.text('Índice de Riesgo: ' + score + '  —  ' + zoneTxt, MX+10, y+32);
+        y += 54;
+    } else {
+        field('Clasificación de Riesgo (Matriz IATA)', 'Pendiente de clasificar');
+    }
+
+    sectionTitle('2. Detalle del Reporte');
+    twoCol('Reportado Por', r.anonimo === 'Sí' ? 'Anónimo' : r.reportadoPor, 'Hora del Evento', r.horaEvento);
+    twoCol('Vuelo / Área', r.vuelo, 'N° de Unidad / Equipo', r.unidad);
+    field('Personas Involucradas', r.personas);
+    field('Descripción del Evento', r.descripcion);
+    field('Acción Inmediata Tomada', r.accion);
+
+    sectionTitle('3. Investigación');
+    field('Causas Inmediatas', rec.investigacion.causasInmediatas);
+    field('Causa(s) Raíz', rec.investigacion.causasRaiz);
+    field('Factores Contribuyentes', rec.investigacion.factoresContribuyentes);
+
+    sectionTitle('4. Acciones Correctivas y Preventivas');
+    if (!rec.acciones.length) {
+        doc.setFont(undefined,'italic'); doc.setFontSize(9); doc.setTextColor(...COLORS.gray);
+        doc.text('No se registraron acciones para este caso.', MX, y); y += 18;
+    } else {
+        const cols = [
+            {label:'Tipo', w:70}, {label:'Descripción', w:200}, {label:'Responsable', w:110},
+            {label:'Fecha Límite', w:75}, {label:'Estado', w:60}
+        ];
+        checkBreak(20);
+        let cx = MX;
+        doc.setFillColor(...COLORS.navy); doc.setTextColor(255,255,255);
+        doc.setFont(undefined,'bold'); doc.setFontSize(8);
+        cols.forEach(c => { doc.rect(cx, y, c.w, 18, 'F'); doc.text(c.label, cx+4, y+12); cx += c.w; });
+        y += 18;
+        doc.setFont(undefined,'normal'); doc.setTextColor(20,20,20);
+        rec.acciones.forEach((a, i) => {
+            const descLines = doc.splitTextToSize(a.descripcion || '–', 195);
+            const rowH = Math.max(16, descLines.length * 11 + 6);
+            checkBreak(rowH);
+            cx = MX;
+            if (i % 2 === 0) { doc.setFillColor(...COLORS.lgray); doc.rect(MX, y, cols.reduce((s,c)=>s+c.w,0), rowH, 'F'); }
+            doc.setFontSize(8);
+            doc.text(a.tipo || '–', cx+4, y+11); cx += cols[0].w;
+            doc.text(descLines, cx+4, y+11); cx += cols[1].w;
+            doc.text(a.responsable || '–', cx+4, y+11); cx += cols[2].w;
+            doc.text(a.fechaLimite || '–', cx+4, y+11); cx += cols[3].w;
+            doc.text(a.estado || '–', cx+4, y+11);
+            y += rowH;
+        });
+        y += 8;
+    }
+
+    sectionTitle('5. Cierre y Verificación');
+    if (rec.estado === 'Cerrado') {
+        twoCol('Verificado Por', rec.cierre.verificadoPor, 'Fecha de Verificación',
+            rec.cierre.fechaVerificacion ? new Date(rec.cierre.fechaVerificacion).toLocaleString('es-CR') : '–');
+        field('¿Acción Eficaz?', rec.cierre.eficaz === true ? 'Sí, eficaz' : rec.cierre.eficaz === false ? 'No, requiere reapertura' : 'Sin evaluar');
+        field('Comentarios de Cierre', rec.cierre.comentarios);
+    } else {
+        doc.setFont(undefined,'italic'); doc.setFontSize(9); doc.setTextColor(...COLORS.gray);
+        doc.text('Caso aún ABIERTO — estado actual: ' + rec.estado, MX, y); y += 18;
+    }
+
+    sectionTitle('6. Bitácora de Seguimiento');
+    if (!rec.bitacora.length) {
+        doc.setFont(undefined,'italic'); doc.setFontSize(9); doc.setTextColor(...COLORS.gray);
+        doc.text('Sin movimientos registrados.', MX, y); y += 18;
+    } else {
+        [...rec.bitacora].reverse().forEach(b => {
+            const line = new Date(b.fecha).toLocaleString('es-CR', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) + '  ·  ' + b.usuario + '  —  ' + b.accion;
+            const lines = doc.splitTextToSize(line, CONTENT_W - 10);
+            checkBreak(12 * lines.length + 6);
+            doc.setFont(undefined,'normal'); doc.setFontSize(8.5); doc.setTextColor(40,40,40);
+            doc.text(lines, MX, y);
+            y += 12 * lines.length + 6;
+        });
+    }
+
+    sectionTitle('7. Evidencia Fotográfica');
+    const fotos = (r.fotos || []).filter(f => f.photoUrl);
+    if (!fotos.length) {
+        doc.setFont(undefined,'italic'); doc.setFontSize(9); doc.setTextColor(...COLORS.gray);
+        doc.text('Sin fotografías adjuntas a este caso.', MX, y); y += 18;
+    } else {
+        doc.setFont(undefined,'normal'); doc.setFontSize(9); doc.setTextColor(...COLORS.blue);
+        fotos.forEach((f, i) => {
+            checkBreak(16);
+            doc.textWithLink('📎 Evidencia ' + (i + 1) + ' — Abrir en Google Drive', MX, y, { url: f.photoUrl });
+            y += 16;
+        });
+    }
+
+    checkBreak(90);
+    y += 20;
+    const sigW = (CONTENT_W - 40) / 3;
+    ['Elaborado por', 'Revisado por (SMS)', 'Aprobado por (Gerencia)'].forEach((lbl, i) => {
+        const sx = MX + i * (sigW + 20);
+        doc.setDrawColor(...COLORS.navy); doc.setLineWidth(0.7);
+        doc.line(sx, y + 30, sx + sigW, y + 30);
+        doc.setFont(undefined,'normal'); doc.setFontSize(8); doc.setTextColor(...COLORS.gray);
+        doc.text(lbl, sx, y + 42);
+        doc.text('Fecha: ______________', sx, y + 54);
+    });
+
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+        doc.setPage(p);
+        doc.setDrawColor(...COLORS.line); doc.setLineWidth(0.5);
+        doc.line(MX, PH - 46, PW - MX, PH - 46);
+        doc.setFont(undefined,'normal'); doc.setFontSize(7.5); doc.setTextColor(...COLORS.gray);
+        doc.text('AS Ground Handling · AeroJet Handling Group — Documento confidencial generado por el sistema SMS', MX, PH - 32);
+        doc.text('Ticket: ' + (r.ticket || '–') + '   ·   Emitido: ' + new Date().toLocaleDateString('es-CR'), MX, PH - 20);
+        doc.text('Página ' + p + ' de ' + totalPages, PW - MX - 70, PH - 20);
+    }
+
+    const fname = 'Reporte_Oficial_SMS_' + (r.ticket || 'caso').replace(/[^a-z0-9-]/gi,'_') + '.pdf';
+    doc.save(fname);
+    showToast('✓ Reporte oficial generado: ' + fname);
 }
 
   var iataCurrentTicket=null;
