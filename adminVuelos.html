@@ -1378,7 +1378,10 @@ html, body {
   </div>
   <div class="filter-bar" style="margin-bottom:12px;">
     <input type="date" class="date-input" id="faDateInput" onchange="loadFaArrivals()">
-    <button class="refresh-btn" id="faRefreshBtn" onclick="loadFaArrivals(true)"><span class="spin-icon">↻</span> Consultar FlightAware</button>
+
+<button class="refresh-btn" id="faRefreshBtn" onclick="loadFaArrivals(true)"><span class="spin-icon">↻</span> Ver día acumulado</button>
+<button class="refresh-btn" id="faCaptureBtn" onclick="captureFaNow()" title="Consulta AeroAPI en vivo ahora mismo y agrega lo vigente al acumulado del Sheet"><span class="spin-icon">📡</span> Capturar ahora</button>
+  
   </div>
   <div class="toolbar"><div class="toolbar-title">🛰️ Vuelos UA / DL / WN / AA — SJO <span class="count-tag" id="faFilteredCount">0</span></div></div>
   <div class="report-table-wrap">
