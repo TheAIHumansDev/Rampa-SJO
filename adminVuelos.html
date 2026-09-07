@@ -4863,388 +4863,114 @@ facLoadVerifications();
     iataLoad();               // ← esta es la única línea nueva
 })();
     
-/**
- * ══════════════════════════════════════════════════════════════
- *  PROYECTO NUEVO — Cobertura de Vuelos SJO vía FlightAware AeroAPI
- * ══════════════════════════════════════════════════════════════
- *  Este script es INDEPENDIENTE de tus GAS de producción
- *  (Turnaround Check / SMS / WCH). Vive en su propio Google Sheet
- *  y su propio despliegue de Apps Script. No toca nada existente.
- *
- *  SETUP (una sola vez):
- *   1. Crea un Google Sheet nuevo y vacío.
- *   2. Extensiones → Apps Script.
- *   3. Borra el contenido de Code.gs y pega este archivo completo.
- *   4. En el editor, ejecuta la función `setupProject` UNA VEZ
- *      (te va a pedir autorización — acéptala).
- *      Esto crea las hojas "Config" y "Vuelos_SJO" con encabezados.
- *   5. Ve a Configuración del proyecto (⚙️) → Propiedades del script
- *      → Agrega la propiedad AEROAPI_KEY con tu API key de FlightAware.
- *      (También puedes correr `guardarApiKey('TU_KEY_AQUI')` una vez
- *      desde el editor y borrar la línea después, por seguridad).
- *   6. Implementar → Nueva implementación → Tipo: Aplicación web.
- *      - Ejecutar como: Yo
- *      - Quién tiene acceso: Cualquier usuario (o "Cualquiera con el enlace")
- *   7. Copia la URL /exec que te da — esa es tu SCRIPT_URL_FA para
- *      pegar en el HTML de prueba (test.html) o luego en el dashboard.
- *
- *  ENDPOINTS (todos vía GET + JSONP, mismo patrón que tu dashboard):
- *   ?action=ping
- *   ?action=testAuth
- *   ?action=getArrivals&airport=SJO&date=2026-09-07&save=true
- *   ?action=getStoredFlights&date=2026-09-07
- * ══════════════════════════════════════════════════════════════
- */
+// ══════════════════════════════════════════════════════
+//  COBERTURA FLIGHTAWARE — SJO (UA/DL/WN/AA/IB/E9)
+// ══════════════════════════════════════════════════════
+var allFaFlights = [];
 
-// ── CONFIG ───────────────────────────────────────────────────
-const CONFIG_SHEET_NAME = 'Config';
-const LOG_SHEET_NAME    = 'Vuelos_SJO';
-const DEFAULT_AIRPORT   = 'SJO';
-const CACHE_TTL_SEC     = 600; // 10 min — no quemar cuota de AeroAPI
+// Vista principal: lee el DÍA ACUMULADO desde el Sheet (Vuelos_SJO),
+// que va sumando lo que los triggers cada 2h fueron guardando.
+// Nunca pierde vuelos que ya volaron, a diferencia de la consulta en vivo.
+function loadFaArrivals(manual) {
+    const dateInput = document.getElementById('faDateInput');
+    if (!dateInput.value) dateInput.value = new Date().toISOString().slice(0,10);
+    const dateVal = dateInput.value;
 
-// AeroAPI identifica aeropuertos por su código ICAO (4 letras), no por el
-// IATA de 3 letras que solemos usar a diario. San José, Costa Rica es
-// IATA "SJO" pero ICAO "MROC" — si se manda "SJO" tal cual, AeroAPI
-// responde success:true con una lista vacía (no es un error, simplemente
-// no encuentra ese aeropuerto), lo cual parece "sin vuelos" por error.
-const AIRPORT_IATA_TO_ICAO = {
-  'SJO': 'MROC', // Juan Santamaría, San José, Costa Rica
-  'LIR': 'MRLB', // Guanacaste / Liberia, Costa Rica
-  'SAL': 'MSLP', // El Salvador Intl.
-};
-function resolveAirportIcao_(code) {
-  const c = String(code || '').toUpperCase().trim();
-  if (c.length === 4) return c; // ya parece ICAO
-  return AIRPORT_IATA_TO_ICAO[c] || c; // si no está mapeado, se manda tal cual (y probablemente falle igual)
+    const btn = document.getElementById('faRefreshBtn');
+    if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
+    document.getElementById('faTableBody').innerHTML = '<div class="skeleton-row"><div class="skel" style="width:140px;height:14px"></div></div>';
+
+    const url = SCRIPT_URL_FA + '?action=getStoredFlights&date=' + dateVal;
+    jsonpFetch('jst_fa', url, 12000,
+        data => {
+            if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+            console.log('FlightAware (acumulado del Sheet):', data);
+            if (data && data.success) {
+                allFaFlights = data.flights || [];
+                renderFaTable(dateVal);
+                if (manual) showToast('✓ ' + allFaFlights.length + ' vuelos acumulados para ' + dateVal);
+                if (!allFaFlights.length) console.warn('Sin vuelos guardados todavía para', dateVal, '- revisa si el trigger ya corrió o usa "Capturar ahora"');
+            } else {
+                showToast('⚠ ' + (data && data.error ? data.error : 'Error leyendo el Sheet'), true);
+            }
+        },
+        (reason) => {
+            if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+            showToast('⚠ Error de conexión (' + reason + ')', true);
+        }
+    );
 }
 
-// Cuántas páginas pedir por dirección (arrivals/departures). AeroAPI pagina
-// en bloques de ~15 resultados; con solo 2 páginas (30 resultados) es fácil
-// cortar la respuesta ANTES de llegar a aerolíneas grandes si primero vienen
-// muchos vuelos regionales/carga. Para un día completo en un aeropuerto con
-// tráfico medio-alto como SJO, 8 páginas (~120 por dirección) da margen.
-// Cada página consume cuota de AeroAPI — si tu plan es muy limitado, baja
-// este número y en su lugar acorta el rango de horas consultado.
-const AEROAPI_MAX_PAGES = 8;
+// Botón aparte: fuerza una consulta EN VIVO a AeroAPI ahora mismo y la
+// guarda (upsert) en el Sheet, capturando lo que en este momento sigue
+// programado. Después de guardar, recarga la vista desde el Sheet.
+function captureFaNow() {
+    const dateInput = document.getElementById('faDateInput');
+    const dateVal = dateInput.value || new Date().toISOString().slice(0,10);
+    const btn = document.getElementById('faCaptureBtn');
+    if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
 
-// Mapeo IATA (lo que probablemente usas tú) → ICAO (lo que exige/devuelve AeroAPI)
-// AJUSTA la clave izquierda si en tu Sheet de producción el código es distinto.
-const AIRLINE_MAP = {
-  'UA': { icao: 'UAL', name: 'United Airlines' },
-  'DL': { icao: 'DAL', name: 'Delta' },
-  'WN': { icao: 'SWA', name: 'Southwest' }, // IATA real de Southwest es WN, no "SW"
-  'AA': { icao: 'AAL', name: 'American Airlines' },
-  'IB': { icao: 'IBE', name: 'Iberia' },
-  'E9': { icao: 'EVE', name: 'Iberojet' }, // Iberojet = ex-Evelop Airlines, conserva código ICAO "EVE"
-};
-
-// ── SETUP INICIAL (correr manualmente una vez desde el editor) ─
-function setupProject() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  let cfg = ss.getSheetByName(CONFIG_SHEET_NAME);
-  if (!cfg) cfg = ss.insertSheet(CONFIG_SHEET_NAME);
-  cfg.clear();
-  cfg.getRange(1, 1, 5, 2).setValues([
-    ['Parámetro', 'Valor'],
-    ['Aeropuerto', DEFAULT_AIRPORT],
-    ['Aerolíneas (IATA, separadas por coma)', 'UA,DL,WN,AA'],
-    ['AEROAPI_KEY', '(configúrala en Propiedades del Script, no aquí)'],
-    ['Última consulta exitosa', ''],
-  ]);
-  cfg.setFrozenRows(1);
-  cfg.autoResizeColumns(1, 2);
-
-  let log = ss.getSheetByName(LOG_SHEET_NAME);
-  if (!log) log = ss.insertSheet(LOG_SHEET_NAME);
-  log.clear();
-  log.getRange(1, 1, 1, 12).setValues([[
-    'Fecha Consulta', 'Fecha Vuelo', 'Dirección', 'Ident', 'Vuelo', 'Aerolínea ICAO',
-    'Aerolínea', 'Origen/Destino', 'Programado', 'Estimado/Real',
-    'Estado FA', 'Reportado (local)'
-  ]]);
-  log.setFrozenRows(1);
-  log.autoResizeColumns(1, 12);
-
-  SpreadsheetApp.getUi().alert('✓ Setup completo. Ahora ve a Configuración del proyecto → Propiedades del script y agrega AEROAPI_KEY.');
+    const url = SCRIPT_URL_FA + '?action=getFlights&airport=SJO&date=' + dateVal + '&save=true&nocache=true';
+    jsonpFetch('jst_fa_cap', url, 15000,
+        data => {
+            if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+            if (data && data.success) {
+                showToast('✓ Capturados ' + (data.flights || []).length + ' vuelos vigentes ahora — recargando acumulado…');
+                loadFaArrivals(false);
+            } else {
+                showToast('⚠ ' + (data && data.error ? data.error : 'Error al capturar'), true);
+            }
+        },
+        (reason) => {
+            if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+            showToast('⚠ Error de conexión (' + reason + ')', true);
+        }
+    );
 }
 
-// Alternativa a guardar la key manualmente en Propiedades del Script (UI):
-function guardarApiKey(key) {
-  if (!key) { Logger.log('Debes pasar la key: guardarApiKey("sk-..." )'); return; }
-  PropertiesService.getScriptProperties().setProperty('AEROAPI_KEY', key);
-  Logger.log('✓ AEROAPI_KEY guardada. Puedes borrar esta llamada del código.');
-}
-
-// ── ENTRY POINT ──────────────────────────────────────────────
-function doGet(e) {
-  const action = (e.parameter.action || '').trim();
-  const cb = e.parameter.callback;
-
-  try {
-    let payload;
-    switch (action) {
-      case 'ping':
-        payload = { success: true, message: 'GAS FlightAware activo', time: new Date().toISOString() };
-        break;
-      case 'testAuth':
-        payload = handleTestAuth();
-        break;
-      case 'getArrivals': // se mantiene por compatibilidad, ahora trae ambas direcciones
-      case 'getFlights':
-        payload = handleGetFlights(e);
-        break;
-      case 'getStoredFlights':
-        payload = handleGetStoredFlights(e);
-        break;
-      default:
-        payload = { success: false, error: 'Acción no reconocida: ' + action };
-    }
-    return output(cb, payload);
-  } catch (err) {
-    return output(cb, { success: false, error: err.message });
-  }
-}
-
-function output(cb, obj) {
-  const json = JSON.stringify(obj);
-  if (cb) {
-    return ContentService.createTextOutput(cb + '(' + json + ');')
-      .setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
-  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
-}
-
-function getApiKey_() {
-  const key = PropertiesService.getScriptProperties().getProperty('AEROAPI_KEY');
-  if (!key) throw new Error('AEROAPI_KEY no configurada. Ve a Configuración del proyecto → Propiedades del script.');
-  return key;
-}
-
-// ── TEST DE AUTENTICACIÓN (consumo mínimo de cuota) ─────────
-function handleTestAuth() {
-  const apiKey = getApiKey_();
-  const resp = UrlFetchApp.fetch('https://aeroapi.flightaware.com/aeroapi/airports/' + DEFAULT_AIRPORT, {
-    headers: { 'x-apikey': apiKey, 'Accept': 'application/json' },
-    muteHttpExceptions: true
-  });
-  const code = resp.getResponseCode();
-  if (code === 200) {
-    const data = JSON.parse(resp.getContentText());
-    return { success: true, message: 'Conexión OK', airport: data.name || DEFAULT_AIRPORT };
-  }
-  if (code === 401) return { success: false, error: 'API key inválida (401)' };
-  if (code === 429) return { success: false, error: 'Límite de cuota excedido (429)' };
-  return { success: false, error: 'HTTP ' + code + ': ' + resp.getContentText().slice(0, 300) };
-}
-
-// ── Convierte un día calendario de Costa Rica (sin DST, UTC-6 fijo) ─
-//    a su rango equivalente en UTC, que es lo que exige AeroAPI.
-//    Ej: 2026-09-07 CR (00:00 a 23:59:59) = 2026-09-07T06:00:00Z a 2026-09-08T05:59:59Z
-function crDayToUtcRange_(dateStr) {
-  const parts = dateStr.split('-').map(Number); // [yyyy, mm, dd]
-  const startLocal = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 6, 0, 0));   // 00:00 CR → +6h UTC
-  const endLocal    = new Date(startLocal.getTime() + 24 * 60 * 60 * 1000 - 1000);    // +23:59:59
-  return {
-    start: startLocal.toISOString().slice(0, 19) + 'Z',
-    end:   endLocal.toISOString().slice(0, 19) + 'Z'
-  };
-}
-
-// ── CONSULTA PRINCIPAL: vuelos programados que llegan Y salen del aeropuerto,
-//    para el día completo en hora de Costa Rica ─────────────────────────
-function handleGetFlights(e) {
-  const airportInput = (e.parameter.airport || DEFAULT_AIRPORT).toUpperCase();
-  const airportIcao = resolveAirportIcao_(airportInput);
-  const dateStr = e.parameter.date || Utilities.formatDate(new Date(), 'America/Costa_Rica', 'yyyy-MM-dd');
-  const shouldSave = e.parameter.save === 'true';
-
-  const cacheKey = 'fa_flights_' + airportIcao + '_' + dateStr;
-  const cache = CacheService.getScriptCache();
-  const bypassCache = e.parameter.nocache === 'true' || shouldSave;
-  const cached = bypassCache ? null : cache.get(cacheKey);
-  if (cached) {
-    return JSON.parse(cached);
-  }
-
-  const apiKey = getApiKey_();
-  const range = crDayToUtcRange_(dateStr);
-  const wantedIcaos = Object.values(AIRLINE_MAP).map(a => a.icao);
-
-  const arrivalsRaw   = fetchFaEndpoint_(airportIcao, 'scheduled_arrivals',   range, apiKey, 'scheduled_arrivals');
-  const departuresRaw = fetchFaEndpoint_(airportIcao, 'scheduled_departures', range, apiKey, 'scheduled_departures');
-
-  // Diagnóstico: qué aerolíneas trajo AeroAPI antes de filtrar, útil si
-  // vuelve a dar 0 resultados y hay que averiguar por qué.
-  const seenIcaos = {};
-  arrivalsRaw.concat(departuresRaw).forEach(f => {
-    const ic = (f.operator_icao || '(sin operador)').toUpperCase();
-    seenIcaos[ic] = (seenIcaos[ic] || 0) + 1;
-  });
-
-  const normArr = arrivalsRaw.map(f => normalizeFaFlight_(f, 'arrival'))
-    .filter(f => wantedIcaos.includes(f.airlineIcao));
-  const normDep = departuresRaw.map(f => normalizeFaFlight_(f, 'departure'))
-    .filter(f => wantedIcaos.includes(f.airlineIcao));
-
-  const flights = normArr.concat(normDep).sort((a, b) =>
-    (a.scheduled || '').localeCompare(b.scheduled || '')
-  );
-
-  const result = {
-    success: true, airport: airportInput, airportIcaoUsed: airportIcao, date: dateStr,
-    rangeUtc: range, count: flights.length, flights,
-    debug: {
-      rawArrivals: arrivalsRaw.length, rawDepartures: departuresRaw.length, operatorsSeen: seenIcaos,
-      arrivalsTruncated: !!arrivalsRaw._truncated, departuresTruncated: !!departuresRaw._truncated
-    },
-    fetchedAt: new Date().toISOString()
-  };
-  cache.put(cacheKey, JSON.stringify(result), CACHE_TTL_SEC);
-
-  if (shouldSave) saveFlightsToSheet_(flights, dateStr);
-
-  updateLastQueryTimestamp_();
-  return result;
-}
-
-function fetchFaEndpoint_(airport, endpoint, range, apiKey, resultKey) {
-  const url = 'https://aeroapi.flightaware.com/aeroapi/airports/' + airport +
-              '/flights/' + endpoint + '?start=' + range.start + '&end=' + range.end + '&max_pages=' + AEROAPI_MAX_PAGES;
-  const resp = UrlFetchApp.fetch(url, {
-    headers: { 'x-apikey': apiKey, 'Accept': 'application/json' },
-    muteHttpExceptions: true
-  });
-  if (resp.getResponseCode() !== 200) {
-    throw new Error('AeroAPI ' + endpoint + ' HTTP ' + resp.getResponseCode() + ': ' + resp.getContentText().slice(0, 300));
-  }
-  const data = JSON.parse(resp.getContentText());
-  const rows = data[resultKey] || [];
-  // Si AeroAPI todavía trae un "next" link tras agotar max_pages, significa
-  // que la respuesta se truncó y pueden faltar vuelos más adelante en el día.
-  rows._truncated = !!(data.links && data.links.next);
-  return rows;
-}
-
-// Unifica el formato de un vuelo de AeroAPI sea llegada o salida.
-// Llegadas usan campos "_in"/"_on"; salidas usan "_out"/"_off".
-function normalizeFaFlight_(f, direction) {
-  const isArrival = direction === 'arrival';
-  return {
-    direction:        direction, // 'arrival' | 'departure'
-    ident:            f.ident,
-    flightNumber:     f.flight_number || f.ident_iata || f.ident,
-    airlineIcao:      (f.operator_icao || '').toUpperCase(),
-    airlineIata:      f.operator_iata,
-    airlineName:      iataNameFromIcao_(f.operator_icao) || f.operator || (f.operator_icao || '–'),
-    otherAirport:     isArrival
-      ? (f.origin ? f.origin.code_iata : '–')
-      : (f.destination ? f.destination.code_iata : '–'),
-    scheduled:        isArrival ? (f.scheduled_in || f.scheduled_on || '') : (f.scheduled_out || f.scheduled_off || ''),
-    estimated:        isArrival ? (f.estimated_in || f.estimated_on || '') : (f.estimated_out || f.estimated_off || ''),
-    actual:           isArrival ? (f.actual_in || f.actual_on || '')       : (f.actual_out || f.actual_off || ''),
-    status:           f.status || '–',
-    gate:             isArrival ? (f.gate_destination || '–') : (f.gate_origin || '–')
-  };
-}
-
-function iataNameFromIcao_(icao) {
-  const found = Object.values(AIRLINE_MAP).find(a => a.icao === icao);
-  return found ? found.name : null;
-}
-
-// ── Guarda/actualiza en la hoja Vuelos_SJO (evita duplicados por ident+fecha) ─
-function saveFlightsToSheet_(flights, dateStr) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(LOG_SHEET_NAME);
-  if (!sheet) return;
-
-  const existing = sheet.getDataRange().getValues();
-  const existingKeys = {};
-  for (let i = 1; i < existing.length; i++) {
-    const key = existing[i][1] + '|' + existing[i][2] + '|' + existing[i][3]; // FechaVuelo|Dirección|Ident
-    existingKeys[key] = i + 1; // fila real (1-indexed)
-  }
-
-  const now = new Date().toISOString();
-  const rowsToAppend = [];
-
-  flights.forEach(f => {
-    const key = dateStr + '|' + f.direction + '|' + f.ident;
-    const rowValues = [
-      now, dateStr, f.direction, f.ident, f.flightNumber, f.airlineIcao, f.airlineName,
-      f.otherAirport, f.scheduled, (f.actual || f.estimated || ''),
-      f.status, '' // "Reportado (local)" se llena después manualmente o vía otra función
-    ];
-    if (existingKeys[key]) {
-      // actualizar fila existente (por si cambió el estado/hora estimada)
-      sheet.getRange(existingKeys[key], 1, 1, rowValues.length).setValues([rowValues]);
-    } else {
-      rowsToAppend.push(rowValues);
-    }
-  });
-
-  if (rowsToAppend.length) {
-    sheet.getRange(sheet.getLastRow() + 1, 1, rowsToAppend.length, rowsToAppend[0].length)
-      .setValues(rowsToAppend);
-  }
-}
-
-function updateLastQueryTimestamp_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const cfg = ss.getSheetByName(CONFIG_SHEET_NAME);
-  if (cfg) cfg.getRange(5, 2).setValue(new Date().toISOString());
-}
-
-// ── Leer lo ya guardado en el Sheet (sin gastar cuota de AeroAPI) ─
-function handleGetStoredFlights(e) {
-  const dateStr = e.parameter.date || Utilities.formatDate(new Date(), 'America/Costa_Rica', 'yyyy-MM-dd');
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(LOG_SHEET_NAME);
-  if (!sheet) return { success: true, flights: [] };
-
-  const data = sheet.getDataRange().getValues();
-  const flights = [];
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][1]) !== dateStr) continue;
-    flights.push({
-      direction: data[i][2], ident: data[i][3], flightNumber: data[i][4], airlineIcao: data[i][5],
-      airlineName: data[i][6], otherAirport: data[i][7], scheduled: data[i][8],
-      actual: data[i][9], status: data[i][10], reportadoLocal: data[i][11]
+function faIsReported(faFlight, dateVal) {
+    const faNum = String(faFlight.flightNumber || faFlight.ident).replace(/\D/g, '');
+    return allReports.some(r => {
+        const rNum = String(r.flightNumber || '').replace(/\D/g, '');
+        if (rNum !== faNum || !rNum) return false;
+        const rTs = parseFlightDate(r);
+        if (!rTs) return false;
+        return new Date(rTs).toISOString().slice(0,10) === dateVal;
     });
-  }
-  return { success: true, date: dateStr, count: flights.length, flights };
 }
 
-// ── Triggers automáticos ──────────────────────────────────────
-// IMPORTANTE: scheduled_arrivals/scheduled_departures de AeroAPI son un
-// "tablero en vivo" — cuando un vuelo ya despegó/aterrizó, muchos planes
-// dejan de devolverlo, sin importar el rango de fechas que pidas. Por eso
-// UNA sola consulta al día no captura el día completo: los vuelos de la
-// mañana ya "desaparecieron" para cuando consultas en la tarde.
-// La solución es correr la consulta varias veces al día con save=true —
-// cada corrida va guardando/actualizando filas en Vuelos_SJO (upsert por
-// fecha+dirección+ident, ver saveFlightsToSheet_), así que aunque un vuelo
-// ya no aparezca en una consulta posterior, la fila que ya se guardó antes
-// se queda en el Sheet. El Sheet termina siendo tu registro completo del
-// día; la consulta en vivo por sí sola nunca lo será.
-function crearTriggersDiarios() {
-  // Borra triggers previos de esta función para no duplicar
-  ScriptApp.getProjectTriggers().forEach(t => {
-    if (t.getHandlerFunction() === 'consultaDiariaAutomatica') ScriptApp.deleteTrigger(t);
-  });
-  // Corre cada 2 horas — ajusta según qué tan crítico sea no perderte un vuelo
-  ScriptApp.newTrigger('consultaDiariaAutomatica')
-    .timeBased()
-    .everyHours(2)
-    .create();
+function faDirBadge(direction) {
+    return direction === 'departure'
+        ? '<span style="color:#fcd34d;">🛫 Sale</span>'
+        : '<span style="color:#6ee7b7;">🛬 Llega</span>';
 }
-// Mantener el nombre viejo por compatibilidad con lo que ya hayas corrido
-function crearTriggerDiario() { crearTriggersDiarios(); }
 
-function consultaDiariaAutomatica() {
-  const today = Utilities.formatDate(new Date(), 'America/Costa_Rica', 'yyyy-MM-dd');
-  handleGetFlights({ parameter: { airport: DEFAULT_AIRPORT, date: today, save: 'true', nocache: 'true' } });
+function renderFaTable(dateVal) {
+    const body = document.getElementById('faTableBody');
+    document.getElementById('faFilteredCount').textContent = allFaFlights.length;
+    if (!allFaFlights.length) { body.innerHTML = '<div class="empty-row">📭 Sin vuelos guardados todavía para esta fecha — usa "Capturar ahora" o espera al trigger automático</div>'; document.getElementById('tabBadgeFaCobertura').textContent = '0'; return; }
+
+    let conReporte = 0;
+    body.innerHTML = allFaFlights.map(f => {
+        const reportado = faIsReported(f, dateVal);
+        if (reportado) conReporte++;
+        const horaMostrar = f.scheduled || '';
+        return `<div class="rt-row" style="grid-template-columns:0.7fr 1fr 1fr 1fr 1fr 1fr 0.8fr;">
+            <div class="rt-cell">${faDirBadge(f.direction)}</div>
+            <div class="rt-cell flight">${f.flightNumber || f.ident}</div>
+            <div class="rt-cell">${f.airlineName || f.airlineIcao}</div>
+            <div class="rt-cell">${f.otherAirport || '–'}</div>
+            <div class="rt-cell">${horaMostrar ? new Date(horaMostrar).toLocaleString('es-CR',{hour:'2-digit',minute:'2-digit'}) : '–'}</div>
+            <div class="rt-cell">${f.status || f.reportadoLocal || '–'}</div>
+            <div class="rt-cell"><span class="he-estado-badge ${reportado ? 'he-aprobado' : 'he-rechazado'}">${reportado ? '✓ Sí' : '✕ Falta'}</span></div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('faKpiTotal').textContent = allFaFlights.length;
+    document.getElementById('faKpiConReporte').textContent = conReporte;
+    document.getElementById('faKpiSinReporte').textContent = allFaFlights.length - conReporte;
+    document.getElementById('faKpiPct').textContent = Math.round(conReporte / allFaFlights.length * 100) + '%';
+    document.getElementById('tabBadgeFaCobertura').textContent = allFaFlights.length - conReporte;
 }
   
 </script>
