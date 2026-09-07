@@ -2790,17 +2790,7 @@ var chartInstances={};
 // ══════════════════════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════════════════════
-(function boot(){
-    // const userData=sessionStorage.getItem('user');
-    // if(!userData){alert('Sesión no encontrada.');window.location.href='login-Admin.html';return;}
-    try { loadAllReports(); } catch(e) { console.error('Error cargando TURN/RON:', e); }
-    try { loadSmsReports(); } catch(e) { console.error('Error cargando SMS:', e); }
-    try { loadWchReports(); } catch(e) { console.error('Error cargando WCH:', e); }
-facLoadVerifications();
-    try { loadFacturables(); } catch(e) { console.error('Error cargando Facturables:', e); }
-    persLoadEstados();
-    iataLoad();               // ← esta es la única línea nueva
-})();
+
 
 
 // ══════════════════════════════════════════════════════
@@ -4857,6 +4847,19 @@ function smsDetailClickOutside(e) {
     if (e.target === document.getElementById('smsDetailOverlay')) closeSmsDetail();
 }
 
+
+(function boot(){
+    // const userData=sessionStorage.getItem('user');
+    // if(!userData){alert('Sesión no encontrada.');window.location.href='login-Admin.html';return;}
+    try { loadAllReports(); } catch(e) { console.error('Error cargando TURN/RON:', e); }
+    try { loadSmsReports(); } catch(e) { console.error('Error cargando SMS:', e); }
+    try { loadWchReports(); } catch(e) { console.error('Error cargando WCH:', e); }
+facLoadVerifications();
+    try { loadFacturables(); } catch(e) { console.error('Error cargando Facturables:', e); }
+    persLoadEstados();
+    iataLoad();               // ← esta es la única línea nueva
+})();
+    
   // ══════════════════════════════════════════════════════
 //  COBERTURA FLIGHTAWARE — SJO (UA/DL/WN/AA)
 // ══════════════════════════════════════════════════════
