@@ -1382,9 +1382,9 @@ html, body {
   </div>
   <div class="toolbar"><div class="toolbar-title">🛰️ Vuelos UA / DL / WN / AA — SJO <span class="count-tag" id="faFilteredCount">0</span></div></div>
   <div class="report-table-wrap">
-    <div class="rt-head" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr 0.8fr;">
-      <div class="rt-head-cell">Vuelo</div><div class="rt-head-cell">Aerolínea</div>
-      <div class="rt-head-cell">Origen</div><div class="rt-head-cell">Llegada Prog.</div>
+<div class="rt-head" style="grid-template-columns:0.7fr 1fr 1fr 1fr 1fr 1fr 0.8fr;">
+      <div class="rt-head-cell">Tipo</div><div class="rt-head-cell">Vuelo</div><div class="rt-head-cell">Aerolínea</div>
+      <div class="rt-head-cell">Origen/Destino</div><div class="rt-head-cell">Programado</div>
       <div class="rt-head-cell">Estado FA</div><div class="rt-head-cell">¿Reportado?</div>
     </div>
     <div class="rt-body" id="faTableBody"><div class="empty-row">👆 Selecciona fecha y presiona "Consultar FlightAware"</div></div>
@@ -4863,6 +4863,9 @@ facLoadVerifications();
   // ══════════════════════════════════════════════════════
 //  COBERTURA FLIGHTAWARE — SJO (UA/DL/WN/AA)
 // ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+//  COBERTURA FLIGHTAWARE — SJO (UA/DL/WN/AA/IB/E9)
+// ══════════════════════════════════════════════════════
 var allFaFlights = [];
 
 function loadFaArrivals(manual) {
@@ -4874,28 +4877,29 @@ function loadFaArrivals(manual) {
     if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
     document.getElementById('faTableBody').innerHTML = '<div class="skeleton-row"><div class="skel" style="width:140px;height:14px"></div></div>';
 
-    const url = SCRIPT_URL_FA + '?action=getArrivals&airport=SJO&date=' + dateVal;
-    jsonpFetch('jst_fa', url, 12000,
+    const url = SCRIPT_URL_FA + '?action=getFlights&airport=SJO&date=' + dateVal;
+    jsonpFetch('jst_fa', url, 15000,
         data => {
             if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+            console.log('FlightAware response:', data); // ← déjalo un rato para depurar
             if (data && data.success) {
-                allFaFlights = data.flights;
+                allFaFlights = data.flights || [];
                 renderFaTable(dateVal);
-                if (manual) showToast('✓ ' + data.flights.length + ' vuelos consultados en FlightAware');
+                if (manual) showToast('✓ ' + allFaFlights.length + ' vuelos consultados en FlightAware');
+                if (!allFaFlights.length) console.warn('AeroAPI respondió OK pero 0 vuelos para', dateVal, '- revisa rangeUtc:', data.rangeUtc);
             } else {
+                console.error('FlightAware error:', data && data.error);
                 showToast('⚠ ' + (data && data.error ? data.error : 'Error consultando FlightAware'), true);
             }
         },
-        () => {
+        (reason) => {
             if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
-            showToast('⚠ Error de conexión con FlightAware', true);
+            console.error('jsonpFetch falló:', reason);
+            showToast('⚠ Error de conexión con FlightAware (' + reason + ')', true);
         }
     );
 }
 
-// Un vuelo de FlightAware se considera "reportado" si existe un reporte
-// (allReports, ya cargado por loadAllReports) con el mismo número de vuelo
-// y la misma fecha de calendario.
 function faIsReported(faFlight, dateVal) {
     const faNum = String(faFlight.flightNumber || faFlight.ident).replace(/\D/g, '');
     return allReports.some(r => {
@@ -4907,20 +4911,27 @@ function faIsReported(faFlight, dateVal) {
     });
 }
 
+function faDirBadge(direction) {
+    return direction === 'departure'
+        ? '<span style="color:#fcd34d;">🛫 Sale</span>'
+        : '<span style="color:#6ee7b7;">🛬 Llega</span>';
+}
+
 function renderFaTable(dateVal) {
     const body = document.getElementById('faTableBody');
     document.getElementById('faFilteredCount').textContent = allFaFlights.length;
-    if (!allFaFlights.length) { body.innerHTML = '<div class="empty-row">📭 Sin vuelos UA/DL/WN/AA programados para esta fecha</div>'; document.getElementById('tabBadgeFaCobertura').textContent = '0'; return; }
+    if (!allFaFlights.length) { body.innerHTML = '<div class="empty-row">📭 Sin vuelos UA/DL/WN/AA/IB/E9 programados para esta fecha</div>'; document.getElementById('tabBadgeFaCobertura').textContent = '0'; return; }
 
     let conReporte = 0;
     body.innerHTML = allFaFlights.map(f => {
         const reportado = faIsReported(f, dateVal);
         if (reportado) conReporte++;
-        return `<div class="rt-row" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr 0.8fr;">
+        return `<div class="rt-row" style="grid-template-columns:0.7fr 1fr 1fr 1fr 1fr 1fr 0.8fr;">
+            <div class="rt-cell">${faDirBadge(f.direction)}</div>
             <div class="rt-cell flight">${f.flightNumber || f.ident}</div>
             <div class="rt-cell">${f.airlineName || f.airlineIcao}</div>
-            <div class="rt-cell">${f.origin || '–'}</div>
-            <div class="rt-cell">${f.scheduledArrival ? new Date(f.scheduledArrival).toLocaleString('es-CR',{hour:'2-digit',minute:'2-digit'}) : '–'}</div>
+            <div class="rt-cell">${f.otherAirport || '–'}</div>
+            <div class="rt-cell">${f.scheduled ? new Date(f.scheduled).toLocaleString('es-CR',{hour:'2-digit',minute:'2-digit'}) : '–'}</div>
             <div class="rt-cell">${f.status || '–'}</div>
             <div class="rt-cell"><span class="he-estado-badge ${reportado ? 'he-aprobado' : 'he-rechazado'}">${reportado ? '✓ Sí' : '✕ Falta'}</span></div>
         </div>`;
