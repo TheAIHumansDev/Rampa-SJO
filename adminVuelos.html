@@ -4881,12 +4881,13 @@ function loadFaArrivals(manual) {
     jsonpFetch('jst_fa', url, 15000,
         data => {
             if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
-            console.log('FlightAware response:', data); // ← déjalo un rato para depurar
+            // Imprime TODO como texto plano, sin objetos anidados que haya que expandir
+            console.log('%c=== FLIGHTAWARE DEBUG ===', 'color:#8b5cf6;font-weight:bold');
+            console.log('RESPUESTA COMPLETA (copia este bloque):\n' + JSON.stringify(data, null, 2));
             if (data && data.success) {
                 allFaFlights = data.flights || [];
                 renderFaTable(dateVal);
                 if (manual) showToast('✓ ' + allFaFlights.length + ' vuelos consultados en FlightAware');
-                if (!allFaFlights.length) console.warn('AeroAPI respondió OK pero 0 vuelos para', dateVal, '- revisa rangeUtc:', data.rangeUtc);
             } else {
                 console.error('FlightAware error:', data && data.error);
                 showToast('⚠ ' + (data && data.error ? data.error : 'Error consultando FlightAware'), true);
