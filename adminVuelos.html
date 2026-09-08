@@ -4866,6 +4866,12 @@ facLoadVerifications();
 // ══════════════════════════════════════════════════════
 //  COBERTURA FLIGHTAWARE — SJO (UA/DL/WN/AA/IB/E9)
 // ══════════════════════════════════════════════════════
+// Reusa el mismo LocalCache (localStorage) que ya usan los reportes de
+// rampa — evita re-pedir siempre los mismos vuelos al backend. Se guarda
+// por fecha; cada fecha tiene su propia entrada con lo último leído.
+function faLoadCache(){ const c=LocalCache.get('fa_flights_cache'); return (c&&c.byDate)?c:{byDate:{}}; }
+function faSaveCache(c){ LocalCache.set('fa_flights_cache', c); }
+var faCache = faLoadCache();
 var allFaFlights = [];
 
 // Vista principal: lee el DÍA ACUMULADO desde el Sheet (Vuelos_SJO),
@@ -4875,11 +4881,21 @@ function loadFaArrivals(manual) {
     const dateInput = document.getElementById('faDateInput');
     if (!dateInput.value) dateInput.value = new Date().toISOString().slice(0,10);
     const dateVal = dateInput.value;
-
     const btn = document.getElementById('faRefreshBtn');
-    if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
-    document.getElementById('faTableBody').innerHTML = '<div class="skeleton-row"><div class="skel" style="width:140px;height:14px"></div></div>';
 
+    // 1) Si hay caché local para esta fecha, píntala de inmediato — igual
+    //    que tcCache hace con los reportes de rampa — sin esperar la red.
+    const cached = faCache.byDate[dateVal];
+    if (cached && cached.flights) {
+        allFaFlights = cached.flights;
+        renderFaTable(dateVal);
+    } else {
+        document.getElementById('faTableBody').innerHTML = '<div class="skeleton-row"><div class="skel" style="width:140px;height:14px"></div></div>';
+    }
+
+    // 2) Siempre refresca en segundo plano contra el Sheet (lectura barata,
+    //    no consulta AeroAPI) y actualiza la caché para la próxima vez.
+    if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
     const url = SCRIPT_URL_FA + '?action=getStoredFlights&date=' + dateVal;
     jsonpFetch('jst_fa', url, 12000,
         data => {
@@ -4887,16 +4903,22 @@ function loadFaArrivals(manual) {
             console.log('FlightAware (acumulado del Sheet):', data);
             if (data && data.success) {
                 allFaFlights = data.flights || [];
+                faCache.byDate[dateVal] = { flights: allFaFlights, fetchedAt: Date.now() };
+                faSaveCache(faCache);
                 renderFaTable(dateVal);
                 if (manual) showToast('✓ ' + allFaFlights.length + ' vuelos acumulados para ' + dateVal);
                 if (!allFaFlights.length) console.warn('Sin vuelos guardados todavía para', dateVal, '- revisa si el trigger ya corrió o usa "Capturar ahora"');
-            } else {
+            } else if (!cached) {
                 showToast('⚠ ' + (data && data.error ? data.error : 'Error leyendo el Sheet'), true);
             }
         },
         (reason) => {
             if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
-            showToast('⚠ Error de conexión (' + reason + ')', true);
+            if (cached) {
+                if (manual) showToast('⚠ Sin conexión — mostrando datos guardados localmente', true);
+            } else {
+                showToast('⚠ Error de conexión (' + reason + ')', true);
+            }
         }
     );
 }
