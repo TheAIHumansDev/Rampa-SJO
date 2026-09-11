@@ -1165,9 +1165,15 @@ html, body {
         <div class="an-card ac-purple">
             <div class="an-card-title">📋 Detalle de Horas Extra <span class="an-count" id="heDetailCount">0</span></div>
             
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-                <span class="filter-label">Ordenar por</span>
-                <select class="filter-select" id="heSortField" onchange="applyHeSort()">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+    <span class="filter-label">🏢 Estación</span>
+    <select class="filter-select" id="heStationFilter" onchange="applyHeStationFilter()">
+        <option value="all">Todas las estaciones</option>
+        <option value="SJO">SJO</option>
+        <option value="LIR">LIR</option>
+    </select>
+    <span class="filter-label">Ordenar por</span>
+    <select class="filter-select" id="heSortField" onchange="applyHeSort()">
                     <option value="fecha">Fecha</option>
                     <option value="duracion">Duración</option>
                     <option value="usuario">Usuario</option>
@@ -2112,7 +2118,7 @@ var wchDateFilter = 'today';
 var activeWchAeropuertoFilter = 'all', activeWchAerolineaFilter = 'all', activeWchTipoFilter = 'all', activeWchEstadoFilter = 'all';
 var allHeReports = [], heDailyTotals = [];
 var heSortField = 'fecha', heSortDir = 'desc', heRankMode = 'desc';
-
+var heStationFilter = 'all';
 
 function exportFacturablesExcel() {
     if (typeof XLSX === 'undefined') { showToast('⚠ Librería Excel no cargada', true); return; }
@@ -2417,13 +2423,25 @@ function jornadaBadgeHtml(horaInicio) {
     return `<span class="jornada-badge ${cls}">${icon} ${jornada}</span>`;
 }
 
+function heMatchesStation(r) {
+    if (heStationFilter === 'all') return true;
+    const est = String(r.aeropuerto || r.estacion || r.station || '').toUpperCase();
+    return est === heStationFilter;
+}
+
+function applyHeStationFilter() {
+    heStationFilter = document.getElementById('heStationFilter').value;
+    renderHeDetailTable();
+}
+
 function renderHeDetailTable() {
     const body = document.getElementById('heDetailTableBody');
     const countEl = document.getElementById('heDetailCount');
     if (!body) return;
-    if (countEl) countEl.textContent = allHeReports.length;
-    if (!allHeReports.length) { body.innerHTML = '<div class="empty-row">📭 Sin horas extra registradas</div>'; return; }
-    const display = sortHeReports(allHeReports);
+    const baseList = allHeReports.filter(heMatchesStation);
+    if (countEl) countEl.textContent = baseList.length;
+    if (!baseList.length) { body.innerHTML = '<div class="empty-row">📭 Sin horas extra registradas para esta estación</div>'; return; }
+    const display = sortHeReports(baseList);
     body.innerHTML = display.map((r, i) => {
         const esVuelo = (r.tipo || '').toLowerCase() === 'vuelo';
         const vueloTxt = esVuelo ? ((r.aerolinea || '') + ' ' + (r.vuelo || '')).trim() || '–' : '–';
@@ -2456,7 +2474,8 @@ function renderHeDetailTable() {
 
 function exportHorasExtraExcel(){
     if(typeof XLSX === 'undefined'){ showToast('⚠ Librería Excel no cargada', true); return; }
-    if(!allHeReports.length){ showToast('⚠ No hay horas extra para exportar', true); return; }
+    const heList = allHeReports.filter(heMatchesStation);
+    if(!heList.length){ showToast('⚠ No hay horas extra para exportar en esta estación', true); return; }
 
     const COLS = ['Usuario','# Vuelo','Motivo','Descripción','Hora Inicio','Hora Fin','Jornada','Duración','Fecha','Estado'];
 
