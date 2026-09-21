@@ -1638,10 +1638,17 @@ function facResolveStation(r, stationMap) {
     return '–';
 }
 
+function applyFacEstacion(r, stationMap) {
+    return Object.assign({}, r, { _estacion: facResolveStation(r, stationMap) });
+}
+
+// ── "No aplica" (persistencia LOCAL — este navegador) ────────────
+// Igual que la verificación de cobro: ...
+var facNoAplica = {};
+
 // ── "No aplica" (persistencia LOCAL — este navegador) ────────────
 // Igual que la verificación de cobro: el GAS de FACTURABLE no se toca,
 // así que el estado vive en localStorage y no se sincroniza entre equipos.
-var facNoAplica = {};
 function facLoadNoAplica() {
     try { facNoAplica = JSON.parse(localStorage.getItem('facNoAplica') || '{}'); }
     catch (e) { facNoAplica = {}; }
