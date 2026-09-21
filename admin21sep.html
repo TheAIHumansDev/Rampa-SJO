@@ -1570,10 +1570,9 @@ function facIsValidStation(v) {
     const s = String(v == null ? '' : v).trim();
     return !!s && !/^(–|—|-|n\/a|no encontrado|undefined|null)$/i.test(s);
 }
-function facFlightNumKey(v) {
-    const s = String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9]/g, '');
-    const digits = s.replace(/\D/g, '').replace(/^0+/, '');
-    return digits || s;
+// Todos los números de un texto de vuelo: '243/244' → ['243','244'] · 'DL0567' → ['567']
+function facNumTokens(v) {
+    return (String(v == null ? '' : v).match(/\d+/g) || []).map(x => x.replace(/^0+/, '')).filter(Boolean);
 }
 function facDayKey(ts, offset) {
     if (!ts) return '';
@@ -1582,46 +1581,61 @@ function facDayKey(ts, offset) {
     d.setDate(d.getDate() + (offset || 0));
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
+// 'IB-243/244-2026-09-14' → { airline:'IB', nums:['243','244'], day:'2026-09-14' }
+function facParseFlightKey(k) {
+    const m = String(k == null ? '' : k).trim().match(/^([A-Za-z0-9]+)-(.+?)-(\d{4}-\d{2}-\d{2})/);
+    return m ? { airline: m[1].toUpperCase(), nums: facNumTokens(m[2]), day: m[3] } : null;
+}
 
 function buildFlightStationMap() {
-    const byKey = {}, byFlightDay = {};
+    const byKey = {}, strong = {}, weak = {};
+    const put = (map, k, st) => { if (map[k] === undefined) map[k] = st; else if (map[k] !== st) map[k] = null; }; // null = ambiguo
     (allReports || []).forEach(r => {
         if (!facIsValidStation(r.aeropuerto)) return; // nunca pisar una estación válida con '–'
         const st = String(r.aeropuerto).trim();
         if (r.flightKeyRaw) byKey[facNormKey(r.flightKeyRaw)] = st;
         if (r.flightKey) byKey[facNormKey(r.flightKey)] = st;
-        const num = facFlightNumKey(r.flightNumber), day = facDayKey(parseFlightDate(r), 0);
-        if (num && day) {
-            const k = num + '@' + day;
-            if (byFlightDay[k] === undefined) byFlightDay[k] = st;
-            else if (byFlightDay[k] !== st) byFlightDay[k] = null; // ambiguo: mismo vuelo/día en 2 estaciones
-        }
+        const pk = facParseFlightKey(r.flightKeyRaw);
+        const airline = String(r.airline && r.airline !== '–' ? r.airline : (pk ? pk.airline : '')).toUpperCase();
+        const nums = new Set(facNumTokens(r.flightNumber).concat(pk ? pk.nums : []));
+        const days = new Set([facDayKey(parseFlightDate(r), 0), pk ? pk.day : ''].filter(Boolean));
+        nums.forEach(n => days.forEach(d => {
+            put(weak, n + '@' + d, st);                          // solo # de vuelo + día
+            if (airline) put(strong, airline + '|' + n + '@' + d, st); // aerolínea + # de vuelo + día
+        }));
     });
-    return { byKey: byKey, byFlightDay: byFlightDay };
+    return { byKey: byKey, strong: strong, weak: weak };
 }
 
 function facResolveStation(r, stationMap) {
+    // 1) campo propio de la fila
     const direct = [r.estacion, r['Estación'], r.Estacion, r.aeropuerto, r.Aeropuerto, r.station];
     for (let i = 0; i < direct.length; i++) {
         if (facIsValidStation(direct[i])) return String(direct[i]).trim();
     }
-    const sm = stationMap || { byKey: {}, byFlightDay: {} };
+    const sm = stationMap || { byKey: {}, strong: {}, weak: {} };
+    // 2) misma clave de vuelo que un reporte de rampa
     const fk = r.flightKey || r.flightKeyRaw || r['Flight Key'];
     if (fk && sm.byKey[facNormKey(fk)]) return sm.byKey[facNormKey(fk)];
-    const num = facFlightNumKey(r.vuelo), ts = parseFacDate(r);
-    if (num && ts) {
-        const offs = [0, -1, 1];
-        for (let i = 0; i < offs.length; i++) {
-            const st = sm.byFlightDay[num + '@' + facDayKey(ts, offs[i])];
-            if (st === undefined) continue;
-            if (st) return st;
-            break; // ese día es ambiguo: no adivinar
+    // 3) aerolínea + # de vuelo + día (la clave 'IB-243/244-2026-09-14' trae los dos números del turnaround)
+    const pk = facParseFlightKey(r.flightKey);
+    const nums = Array.from(new Set(facNumTokens(r.vuelo).concat(pk ? pk.nums : [])));
+    const baseDay = pk ? pk.day : facDayKey(parseFacDate(r), 0);
+    if (!nums.length || !baseDay) return '–';
+    const offs = [0, -1, 1];
+    for (let i = 0; i < offs.length; i++) {
+        const day = facDayKey(new Date(baseDay + 'T12:00:00'), offs[i]);
+        const tiers = [];
+        if (pk && pk.airline) tiers.push(nums.map(n => sm.strong[pk.airline + '|' + n + '@' + day]));
+        tiers.push(nums.map(n => sm.weak[n + '@' + day]));
+        for (let t = 0; t < tiers.length; t++) {
+            const found = tiers[t].filter(x => x !== undefined);
+            if (!found.length) continue;
+            const distinct = Array.from(new Set(found.filter(Boolean)));
+            return distinct.length === 1 ? distinct[0] : '–'; // 0 o 2+ estaciones distintas = ambiguo, no adivinar
         }
     }
     return '–';
-}
-function applyFacEstacion(r, stationMap) {
-    return Object.assign({}, r, { _estacion: facResolveStation(r, stationMap) });
 }
 
 // ── "No aplica" (persistencia LOCAL — este navegador) ────────────
@@ -1804,10 +1818,12 @@ function applyFacFilters() {
     // Diagnóstico: filas a las que no se pudo resolver la estación (ver consola F12)
     const sinEst = base.filter(r => r._estacion === '–');
     if (sinEst.length) {
-        console.warn('[Facturables] ' + sinEst.length + ' fila(s) sin estación. Ejemplo → flightKey:', sinEst[0].flightKey,
-            '| vuelo:', sinEst[0].vuelo, '| fecha:', sinEst[0].fechaHora, '| reportes de rampa en memoria:', (allReports || []).length);
+        const ej = sinEst[0], nn = facNumTokens(ej.vuelo);
+        const cand = (allReports || []).filter(x => nn.some(n => facNumTokens(x.flightNumber).indexOf(n) >= 0))
+            .slice(0, 6).map(x => [x.flightKeyRaw, x.airline, x.flightNumber, x.aeropuerto, x.flightTimestamp]);
+        console.warn('[Facturables] ' + sinEst.length + ' fila(s) sin estación. Ejemplo → flightKey:', ej.flightKey, '| vuelo:', ej.vuelo, '| fecha:', ej.fechaHora,
+            '| reportes de rampa en memoria:', (allReports || []).length, '| reportes con ese # de vuelo [key, aerolínea, vuelo, estación, fecha]:', cand);
     }
-
     facNoAplicaRows = base.filter(r => r._noAplica);
     let billable = base.filter(r => !r._noAplica);
     if (activeFacVerificadoFilter === 'verificado') billable = billable.filter(r => r._verificado);
