@@ -1232,6 +1232,7 @@ html, body {
             <option value="all">Todo estado</option>
             <option value="verificado">✓ Verificado</option>
             <option value="pendiente">⏳ Pendiente</option>
+                        <option value="rechazado">✕ Rechazado</option>
         </select>
         <button class="refresh-btn" id="facRefreshBtn" onclick="loadFacturables(true)"><span class="spin-icon">↻</span> Actualizar</button>
       <button class="refresh-btn" onclick="exportFacturablesExcel()">📥 Exportar Excel</button>
@@ -1272,8 +1273,8 @@ html, body {
     </div>
 
 <div class="report-table-wrap">
-        <div class="rt-head" style="grid-template-columns:1fr 0.9fr 1fr 0.9fr 1fr 1.2fr 0.5fr 0.7fr 0.8fr 0.9fr 1fr;">
-            <div class="rt-head-cell">Vuelo</div>
+<div class="rt-head" style="grid-template-columns:1fr 0.9fr 1fr 0.9fr 1fr 1.2fr 0.5fr 0.7fr 0.8fr 0.9fr 1.5fr;">
+    <div class="rt-head-cell">Vuelo</div>
             <div class="rt-head-cell">Aerolínea</div>
             <div class="rt-head-cell">Fecha/Hora</div>
             <div class="rt-head-cell">Inspector</div>
@@ -1441,6 +1442,47 @@ html, body {
   </div>
 </div>
 
+<!-- FACTURABLE: REVISIÓN / RECHAZO / EVIDENCIA -->
+<div id="facRevOverlay" class="fdm-overlay hidden" onclick="if(event.target===this)closeFacRevision()">
+  <div class="fdm-box" style="max-width:640px;">
+    <div class="fdm-header">
+      <div class="fdm-flight-id">
+        <div class="fdm-airline-logo">💰</div>
+        <div><div class="fdm-flight-num" id="facRevTitle">–</div><div class="fdm-flight-meta" id="facRevMeta">–</div></div>
+      </div>
+      <div class="fdm-header-right">
+        <div id="facRevEstadoActual"></div>
+        <button class="fdm-close" onclick="closeFacRevision()">✕</button>
+      </div>
+    </div>
+    <div class="fdm-body">
+      <div class="iata-section">
+        <div class="iata-section-title">👤 Revisión</div>
+        <input class="iata-input" id="facRevPor" placeholder="Revisado por (nombre)" style="width:100%;margin-bottom:8px;">
+        <select class="iata-select" id="facRevMotivo" style="width:100%;margin-bottom:8px;"></select>
+        <textarea class="iata-textarea" id="facRevComentario" placeholder="Comentario / detalle del motivo"></textarea>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px;">El motivo solo es obligatorio para rechazar.</div>
+      </div>
+      <div class="iata-section">
+        <div class="iata-section-title">📎 Evidencia <span class="an-count" id="facRevFotosCount">0</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="refresh-btn" onclick="document.getElementById('facRevCam').click()">📷 Tomar foto</button>
+          <button class="refresh-btn" onclick="document.getElementById('facRevGal').click()">🖼️ Subir foto</button>
+          <input type="file" id="facRevCam" accept="image/*" capture="environment" hidden onchange="facRevOnFiles(this)">
+          <input type="file" id="facRevGal" accept="image/*" multiple hidden onchange="facRevOnFiles(this)">
+        </div>
+        <div id="facRevFotos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px;">Las fotos se guardan automáticamente al subirse.</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="he-action-btn he-btn-reset"   style="padding:8px 14px;font-size:11px;" onclick="facRevAplicar('Pendiente')">↺ Pendiente</button>
+        <button class="he-action-btn he-btn-reject"  style="padding:8px 14px;font-size:11px;" onclick="facRevAplicar('Rechazado')">✕ Rechazar</button>
+        <button class="he-action-btn he-btn-approve" style="padding:8px 14px;font-size:11px;" onclick="facRevAplicar('Verificado')">✓ Verificar cobro</button>
+      </div>
+    </div>
+  </div>
+</div>    
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1554,15 +1596,6 @@ function resolveFacEstacion(r, map) {
 function applyFacEstacion(r, stationMap) {
     return Object.assign({}, r, { _estacion: resolveFacEstacion(r, stationMap) });
 }
-var facVerifications = {};
-function facLoadVerifications() {
-    try { facVerifications = JSON.parse(localStorage.getItem('facVerifications') || '{}'); }
-    catch (e) { facVerifications = {}; }
-}
-function facSaveVerifications() {
-    try { localStorage.setItem('facVerifications', JSON.stringify(facVerifications)); } catch (e) {}
-}
-
 
 // ══ SEGUIMIENTO IATA (SMS) — persistencia LOCAL ══
 var iataSeguimientos = {};
@@ -1593,29 +1626,231 @@ function facRowKey(r) {
     return [r.flightKey, r.servicio, r.detalle, r.cantidad, r.tarifa, r.fechaHora]
         .map(v => String(v == null ? '' : v)).join('|');
 }
+// ══════════════════════════════════════════════════════
+//  REVISIÓN DE FACTURABLES (verificar / rechazar + evidencia)
+// ══════════════════════════════════════════════════════
+const SCRIPT_URL_FAC_REV = 'PEGA_AQUI_LA_URL_DEL_GAS_NUEVO';
+const FAC_MOTIVOS_RECHAZO = ['Servicio no realizado', 'Cantidad / tiempo incorrecto', 'Duplicado',
+    'Tarifa incorrecta', 'Aerolínea no autorizó el servicio', 'Sin evidencia suficiente', 'Otro'];
+const FAC_GRID = '1fr 0.9fr 1fr 0.9fr 1fr 1.2fr 0.5fr 0.7fr 0.8fr 0.9fr 1.5fr';
+var facRevisiones = {};
+var facRevKey = null, facRevTemps = [];
+
+function facJsKey(k) { return String(k || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+function facEstadoClass(e) { return e === 'Verificado' ? 'he-aprobado' : e === 'Rechazado' ? 'he-rechazado' : 'he-pendiente'; }
+function facSaveLocal() { try { localStorage.setItem('facRevisiones', JSON.stringify(facRevisiones)); } catch (e) {} }
+
+// Se mantiene el nombre para no tocar el boot
+function facLoadVerifications() {
+    try { facRevisiones = JSON.parse(localStorage.getItem('facRevisiones') || '{}'); } catch (e) { facRevisiones = {}; }
+    // Migra las verificaciones antiguas (que eran solo locales)
+    try {
+        const old = JSON.parse(localStorage.getItem('facVerifications') || '{}');
+        Object.keys(old).forEach(k => {
+            if (!facRevisiones[k] && old[k] && old[k].verificado)
+                facRevisiones[k] = { estado: 'Verificado', por: old[k].verificadoPor, fecha: old[k].fecha, motivo: '', comentario: '', fotos: [] };
+        });
+    } catch (e) {}
+    facLoadRevisionesRemote();
+}
+
+function facLoadRevisionesRemote() {
+    if (!/^https:\/\//.test(SCRIPT_URL_FAC_REV)) return;
+    jsonpFetch('jst_facrev', SCRIPT_URL_FAC_REV + '?action=getRevisions', 12000,
+        data => {
+            if (!(data && data.success && data.revisions)) return;
+            Object.keys(data.revisions).forEach(k => {
+                const s = data.revisions[k], l = facRevisiones[k];
+                if (!l || String(s.fecha || '') >= String(l.fecha || '')) facRevisiones[k] = s; // gana el más reciente
+            });
+            facSaveLocal();
+            if (allFacturables.length) applyFacFilters();
+        }, () => {});
+}
+
+function facPostRev(payload) {
+    if (!/^https:\/\//.test(SCRIPT_URL_FAC_REV)) return Promise.reject(new Error('Falta configurar SCRIPT_URL_FAC_REV'));
+    return fetch(SCRIPT_URL_FAC_REV, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
+        .then(r => r.text())
+        .then(t => { const d = JSON.parse(t); if (!d.success) throw new Error(d.error || 'Error del servidor'); return d; });
+}
+
+function facGuardarRevision(key, rev) {
+    rev.fecha = new Date().toISOString();
+    facRevisiones[key] = rev;
+    facSaveLocal();
+    applyFacFilters();
+    if (facRevKey === key) facRevRenderFotos();
+    return facPostRev(Object.assign({ action: 'saveRevision', facKey: key }, rev))
+        .catch(err => showToast('⚠ Guardado solo en este navegador: ' + err.message, true));
+}
+
 function applyFacVerificationInfo(r) {
-    const key = facRowKey(r);
-    const v = facVerifications[key];
+    const key = facRowKey(r), v = facRevisiones[key] || {};
+    const estado = v.estado || 'Pendiente';
     return Object.assign({}, r, {
-        _facKey: key,
-        _verificado: !!(v && v.verificado),
-        _verificadoPor: v ? v.verificadoPor : '',
-        _verificadoFecha: v ? v.fecha : ''
+        _facKey: key, _estadoRev: estado,
+        _verificado: estado === 'Verificado', _rechazado: estado === 'Rechazado',
+        _verificadoPor: v.por || '', _verificadoFecha: v.fecha || '',
+        _motivoRechazo: v.motivo || '', _comentario: v.comentario || '',
+        _fotos: Array.isArray(v.fotos) ? v.fotos : []
     });
 }
+
+// Solo lo que se cobra (excluye rechazados) — para totales, rankings y gráficos
+function facCobrables() { return filteredFacturables.filter(r => !r._rechazado); }
+
+// Verificación rápida desde la tabla (botón ✓ / ↺)
 function facToggleVerificado(key) {
-    const wasVerified = !!(facVerifications[key] && facVerifications[key].verificado);
-    if (wasVerified) {
+    const v = facRevisiones[key] || {};
+    if (v.estado === 'Verificado') {
         if (!confirm('¿Revertir esta verificación de cobro?')) return;
-        delete facVerifications[key];
-    } else {
-        const quien = prompt('¿Quién confirma que este servicio ya fue facturado/cobrado a la aerolínea?');
-        if (quien === null) return; // canceló
-        facVerifications[key] = { verificado: true, verificadoPor: (quien.trim() || '–'), fecha: new Date().toISOString() };
+        facGuardarRevision(key, Object.assign({}, v, { estado: 'Pendiente', motivo: '' }));
+        showToast('↺ Verificación revertida');
+        return;
     }
-    facSaveVerifications();
-    applyFacFilters();
-    showToast(wasVerified ? '↺ Verificación revertida' : '✓ Marcado como verificado');
+    const quien = prompt('¿Quién confirma que este servicio ya fue facturado/cobrado a la aerolínea?',
+                         localStorage.getItem('facRevUsuario') || '');
+    if (quien === null) return;
+    localStorage.setItem('facRevUsuario', quien.trim());
+    facGuardarRevision(key, Object.assign({}, v, { estado: 'Verificado', por: quien.trim() || '–', motivo: '' }));
+    showToast('✓ Marcado como verificado');
+}
+
+// ── Modal de revisión ─────────────────────────────────
+function openFacRevision(key) {
+    const r = filteredFacturables.find(x => x._facKey === key);
+    if (!r) return;
+    facRevKey = key;
+    const v = facRevisiones[key] || {}, est = v.estado || 'Pendiente';
+    document.getElementById('facRevTitle').textContent = (r.vuelo || '–') + ' · ' + (r.servicio || '–');
+    document.getElementById('facRevMeta').textContent =
+        (r.aerolinea || '–') + ' · ' + (r._estacion || '–') + ' · ' + fmtMoney(r.monto) + ' · ' + (r.inspector || '–');
+    document.getElementById('facRevEstadoActual').innerHTML =
+        `<span class="he-estado-badge ${facEstadoClass(est)}">${est}</span>`;
+    const sel = document.getElementById('facRevMotivo');
+    sel.innerHTML = '<option value="">Motivo de rechazo…</option>' + FAC_MOTIVOS_RECHAZO.map(m => `<option>${m}</option>`).join('');
+    sel.value = v.motivo || '';
+    document.getElementById('facRevComentario').value = v.comentario || '';
+    document.getElementById('facRevPor').value = v.por || localStorage.getItem('facRevUsuario') || '';
+    facRevRenderFotos();
+    document.getElementById('facRevOverlay').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+function closeFacRevision() {
+    document.getElementById('facRevOverlay').classList.add('hidden');
+    document.body.style.overflow = '';
+    facRevKey = null;
+}
+
+function facRevAplicar(estado) {
+    const key = facRevKey; if (!key) return;
+    const por = document.getElementById('facRevPor').value.trim();
+    const motivo = document.getElementById('facRevMotivo').value;
+    const comentario = document.getElementById('facRevComentario').value.trim();
+    if (!por) { showToast('⚠ Indica quién realiza la revisión', true); return; }
+    if (estado === 'Rechazado') {
+        if (!motivo) { showToast('⚠ Selecciona el motivo del rechazo', true); return; }
+        if (motivo === 'Otro' && !comentario) { showToast('⚠ Describe el motivo en el comentario', true); return; }
+    }
+    if (estado === 'Pendiente' && !confirm('¿Volver este facturable a Pendiente?')) return;
+    localStorage.setItem('facRevUsuario', por);
+    const prev = facRevisiones[key] || {};
+    facGuardarRevision(key, { estado, por, motivo: estado === 'Rechazado' ? motivo : '', comentario, fotos: prev.fotos || [] });
+    closeFacRevision();
+    showToast({ Verificado: '✓ Cobro verificado', Rechazado: '✕ Facturable rechazado', Pendiente: '↺ Devuelto a pendiente' }[estado]);
+}
+
+// ── Evidencia fotográfica ─────────────────────────────
+function facComprimirImagen(file, maxLado = 1600, calidad = 0.8) {
+    return new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                const k = Math.min(1, maxLado / Math.max(img.width, img.height));
+                const c = document.createElement('canvas');
+                c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+                c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                res(c.toDataURL('image/jpeg', calidad));
+            };
+            img.onerror = () => rej(new Error('Formato de imagen no soportado'));
+            img.src = fr.result;
+        };
+        fr.onerror = () => rej(new Error('No se pudo leer el archivo'));
+        fr.readAsDataURL(file);
+    });
+}
+
+async function facRevOnFiles(inp) {
+    const files = Array.from(inp.files || []);
+    inp.value = '';
+    for (const f of files) await facRevSubirFoto(f); // en secuencia, para no pisar la lista de fotos
+}
+
+async function facRevSubirFoto(file) {
+    const key = facRevKey; if (!key) return;
+    const tmpId = 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+    try {
+        const dataUrl = await facComprimirImagen(file);
+        facRevTemps.push({ tmpId, key, preview: dataUrl });
+        facRevRenderFotos();
+        const d = await facPostRev({ action: 'uploadEvidence', facKey: key, mimeType: 'image/jpeg',
+            fileName: 'FAC_EVIDENCIA_' + Date.now() + '.jpg', base64: dataUrl.split(',')[1] });
+        const rev = Object.assign({ estado: 'Pendiente' }, facRevisiones[key]);
+        rev.fotos = (rev.fotos || []).concat([d.foto]);
+        if (!rev.por) rev.por = document.getElementById('facRevPor').value.trim() || '–';
+        await facGuardarRevision(key, rev); // la foto queda ligada al facturable de inmediato
+        showToast('✓ Evidencia adjuntada');
+    } catch (err) {
+        showToast('⚠ No se pudo subir la foto: ' + err.message, true);
+    } finally {
+        facRevTemps = facRevTemps.filter(t => t.tmpId !== tmpId);
+        facRevRenderFotos();
+    }
+}
+
+function facRevQuitarFoto(idx) {
+    const key = facRevKey; if (!key) return;
+    if (!confirm('¿Quitar esta foto de la evidencia? (el archivo sigue en Drive)')) return;
+    const rev = Object.assign({}, facRevisiones[key]);
+    rev.fotos = (rev.fotos || []).filter((_, i) => i !== idx);
+    facGuardarRevision(key, rev);
+}
+
+function facRevRenderFotos() {
+    const el = document.getElementById('facRevFotos'); if (!el || !facRevKey) return;
+    const key = facRevKey, fotos = (facRevisiones[key] || {}).fotos || [];
+    const temps = facRevTemps.filter(t => t.key === key);
+    document.getElementById('facRevFotosCount').textContent = fotos.length;
+    const k = facJsKey(key);
+    el.innerHTML = (fotos.map((f, i) => `
+        <div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid rgba(139,92,246,0.3);aspect-ratio:1;background:rgba(15,23,42,0.6);">
+            <img src="${f.thumbUrl}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="facVerEvidencia('${k}',${i})" onerror="this.style.opacity=.2">
+            <button class="he-action-btn he-btn-reject" style="position:absolute;top:4px;right:4px;padding:1px 6px;" onclick="facRevQuitarFoto(${i})">✕</button>
+        </div>`).join('') +
+      temps.map(t => `
+        <div style="position:relative;border-radius:8px;overflow:hidden;aspect-ratio:1;">
+            <img src="${t.preview}" style="width:100%;height:100%;object-fit:cover;opacity:.35;">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#c4b5fd;font-family:'JetBrains Mono',monospace;">Subiendo…</div>
+        </div>`).join(''))
+      || '<div style="color:var(--muted);font-size:11px;grid-column:1/-1;">Sin evidencia adjunta</div>';
+}
+
+// Reutiliza el mismo visor (lightbox) de Rampa
+function facVerEvidencia(key, idx) {
+    const v = facRevisiones[key] || {}, fotos = v.fotos || [];
+    if (!fotos.length) return;
+    document.getElementById('lbxOverlay').classList.remove('hidden');
+    document.getElementById('lbxBadge').textContent = '💰 Evidencia';
+    document.getElementById('lbxTitle').textContent = 'Evidencia del facturable';
+    document.getElementById('lbxSubtitle').textContent = (v.estado || 'Pendiente') + ' · ' + (v.por || '–');
+    document.getElementById('lbxLoading').style.display = 'none';
+    lbxPhotos = fotos.map((f, i) => ({ label: 'Evidencia ' + (i + 1), emoji: '💰', timestamp: v.fecha,
+        photoUrl: f.url, thumbUrl: f.thumbUrl, fileId: f.fileId, subItem: '' }));
+    lbxCurrentReport = { airline: '', flightNumber: '', flightType: 'FACTURABLE', inspector: v.por };
+    lbxRender();
+    lbxGoTo(idx || 0);
 }
     
     function loadFacturables(manual) {
@@ -1637,7 +1872,7 @@ function facToggleVerificado(key) {
                 allFacturables = data.rows;
                 populateFacFilterDropdowns();
                 applyFacFilters();
-               if (activeFacEstacionFilter !== 'all' && resolveFacEstacion(r, stationMap) !== activeFacEstacionFilter) return false;
+                if (manual) showToast('✓ ' + data.rows.length + ' servicios facturables cargados');
             } else if (manual) {
                 showToast('⚠ No se pudieron cargar los facturables', true);
             }
@@ -1679,19 +1914,15 @@ function applyFacFilters() {
         if (activeFacAerolineaFilter !== 'all' && r.aerolinea !== activeFacAerolineaFilter) return false;
         if (activeFacServicioFilter !== 'all' && r.servicio !== activeFacServicioFilter) return false;
         if (activeFacInspectorFilter !== 'all' && r.inspector !== activeFacInspectorFilter) return false;
-        if (activeFacEstacionFilter !== 'all') {
-            const est = r.estacion || stationMap[r.flightKey] || '–';
-            if (est !== activeFacEstacionFilter) return false;
-        }
+        if (activeFacEstacionFilter !== 'all' && resolveFacEstacion(r, stationMap) !== activeFacEstacionFilter) return false;
         return true;
     }).map(applyFacBillingRule)
       .map(r => applyFacEstacion(r, stationMap))
       .map(applyFacVerificationInfo);
 
     if (activeFacVerificadoFilter !== 'all') {
-        filteredFacturables = filteredFacturables.filter(r =>
-            activeFacVerificadoFilter === 'verificado' ? r._verificado : !r._verificado
-        );
+        const want = { verificado: 'Verificado', pendiente: 'Pendiente', rechazado: 'Rechazado' }[activeFacVerificadoFilter];
+        filteredFacturables = filteredFacturables.filter(r => r._estadoRev === want);
     }
 
     renderFacTable();
@@ -1776,72 +2007,78 @@ function applyFacBillingRule(r) {
 }
 
     
-
 function renderFacTable() {
     const body = document.getElementById('facTableBody');
     document.getElementById('facFilteredCount').textContent = filteredFacturables.length;
     document.getElementById('tabBadgeFacturables').textContent = filteredFacturables.length;
     if (!filteredFacturables.length) { body.innerHTML = '<div class="empty-row">📭 Sin servicios facturables para este filtro</div>'; return; }
+    const fmtFH = v => new Date(v).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
     const display = [...filteredFacturables].sort((a, b) => parseFacDate(b) - parseFacDate(a));
     body.innerHTML = display.map((r, i) => {
-        const safeFacKey = (r._facKey || '').replace(/'/g, "\\'");
-        const verTitle = r._verificado
-            ? ('Verificado por ' + (r._verificadoPor || '–') + (r._verificadoFecha ? (' · ' + new Date(r._verificadoFecha).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })) : ''))
-            : 'Aún no verificado';
-        return `<div class="rt-row" style="grid-template-columns:1fr 0.9fr 1fr 0.9fr 1fr 1.2fr 0.5fr 0.7fr 0.8fr 0.9fr 1fr;animation-delay:${i * .02}s;">
+        const k = facJsKey(r._facKey);
+        const nFotos = (r._fotos || []).length;
+        const revTitle = r._estadoRev === 'Pendiente' ? 'Aún no revisado'
+            : r._estadoRev + ' por ' + (r._verificadoPor || '–') + (r._verificadoFecha ? ' · ' + fmtFH(r._verificadoFecha) : '')
+              + (r._rechazado ? ' — Motivo: ' + (r._motivoRechazo || '–') + (r._comentario ? ' (' + r._comentario + ')' : '') : '');
+        const estadoTxt = { Verificado: '✓ Verificado', Rechazado: '✕ Rechazado', Pendiente: '⏳ Pendiente' }[r._estadoRev];
+        return `<div class="rt-row" style="grid-template-columns:${FAC_GRID};animation-delay:${i * .02}s;${r._rechazado ? 'opacity:.55;' : ''}">
         <div class="rt-cell flight">${r.vuelo || '–'}</div>
         <div class="rt-cell">${r.aerolinea || '–'}</div>
-        <div class="rt-cell">${r.fechaHora ? new Date(r.fechaHora).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '–'}</div>
+        <div class="rt-cell">${r.fechaHora ? fmtFH(r.fechaHora) : '–'}</div>
         <div class="rt-cell">${r.inspector || '–'}</div>
         <div class="rt-cell">${r.servicio || '–'}</div>
         <div class="rt-cell" style="white-space:normal;line-height:1.3;">${r.detalle || '–'}</div>
         <div class="rt-cell">${r.cantidad ?? '–'} ${r.unidad || ''}</div>
         <div class="rt-cell">${r.tarifa != null ? fmtMoney(r.tarifa) : '–'}</div>
-        <div class="rt-cell" style="font-weight:700;color:#34d399;" title="${r._billingAdjusted ? 'Original: $' + fmtMoney(r._montoOriginal) + ' → bloque de ' + r._bloqueMinutos + 'min (' + r._horasFacturadas + 'x)' : ''}">
+        <div class="rt-cell" style="font-weight:700;color:${r._rechazado ? '#f87171' : '#34d399'};${r._rechazado ? 'text-decoration:line-through;' : ''}" title="${r._billingAdjusted ? 'Original: $' + fmtMoney(r._montoOriginal) + ' → bloque de ' + r._bloqueMinutos + 'min (' + r._horasFacturadas + 'x)' : ''}">
             ${fmtMoney(r.monto)}${r._billingAdjusted ? ' <span style="color:#c4b5fd;font-size:9px;">⚡' + r._bloqueMinutos + 'm</span>' : ''}
         </div>
         <div class="rt-cell">${r._estacion || '–'}</div>
-        <div class="rt-cell" title="${verTitle}" style="gap:5px;">
-            <span class="he-estado-badge ${r._verificado ? 'he-aprobado' : 'he-pendiente'}">${r._verificado ? '✓ Verificado' : '⏳ Pendiente'}</span>
-            <button class="he-action-btn ${r._verificado ? 'he-btn-reset' : 'he-btn-approve'}" style="margin-left:4px;" onclick="facToggleVerificado('${safeFacKey}')">${r._verificado ? '↺' : '✓'}</button>
+        <div class="rt-cell" title="${revTitle.replace(/"/g, '&quot;')}" style="gap:4px;">
+            <span class="he-estado-badge ${facEstadoClass(r._estadoRev)}">${estadoTxt}</span>
+            ${r._rechazado ? '' : `<button class="he-action-btn ${r._verificado ? 'he-btn-reset' : 'he-btn-approve'}" onclick="facToggleVerificado('${k}')" title="${r._verificado ? 'Revertir verificación' : 'Verificar cobro'}">${r._verificado ? '↺' : '✓'}</button>`}
+            <button class="he-action-btn he-btn-reject" onclick="openFacRevision('${k}')" title="Rechazar / cambiar estado">✕</button>
+            <button class="he-action-btn" style="background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.35);color:#c4b5fd;" onclick="openFacRevision('${k}')" title="Evidencia fotográfica">📎${nFotos || ''}</button>
         </div>
     </div>`;
     }).join('');
 }
 
 function updateFacKPIs() {
-    const total = filteredFacturables.reduce((s, r) => s + (Number(r.monto) || 0), 0);
+    const cobrables = facCobrables();
+    const total = cobrables.reduce((s, r) => s + (Number(r.monto) || 0), 0);
     const count = filteredFacturables.length;
-    const avg = count > 0 ? total / count : 0;
+    const avg = cobrables.length ? total / cobrables.length : 0;
 
-const byAirline = {}, byEstacion = {};
-filteredFacturables.forEach(r => {
-    const a = r.aerolinea || '–'; byAirline[a] = (byAirline[a] || 0) + (Number(r.monto) || 0);
-    const e = r._estacion || '–'; byEstacion[e] = (byEstacion[e] || 0) + (Number(r.monto) || 0);
-});
-const topAirline = Object.entries(byAirline).sort((a, b) => b[1] - a[1])[0];
-const topEstacion = Object.entries(byEstacion).sort((a, b) => b[1] - a[1])[0];
+    const byAirline = {}, byEstacion = {};
+    cobrables.forEach(r => {
+        const a = r.aerolinea || '–'; byAirline[a] = (byAirline[a] || 0) + (Number(r.monto) || 0);
+        const e = r._estacion || '–'; byEstacion[e] = (byEstacion[e] || 0) + (Number(r.monto) || 0);
+    });
+    const topAirline = Object.entries(byAirline).sort((a, b) => b[1] - a[1])[0];
+    const topEstacion = Object.entries(byEstacion).sort((a, b) => b[1] - a[1])[0];
 
     document.getElementById('facKpiTotal').textContent = fmtMoney(total);
     document.getElementById('facKpiCount').textContent = count;
     document.getElementById('facKpiAvg').textContent = fmtMoney(avg);
     document.getElementById('facKpiTopAirline').textContent = topAirline ? topAirline[0] : '–';
     document.getElementById('facKpiTopAirlineSub').textContent = topAirline ? fmtMoney(topAirline[1]) : '–';
-document.getElementById('facKpiTopEstacion').textContent = topEstacion ? topEstacion[0] : '–';
+    document.getElementById('facKpiTopEstacion').textContent = topEstacion ? topEstacion[0] : '–';
     document.getElementById('facKpiTopEstacionSub').textContent = topEstacion ? fmtMoney(topEstacion[1]) : '–';
 
     const verificados = filteredFacturables.filter(r => r._verificado).length;
-    const pendientesVer = count - verificados;
+    const rechazados = filteredFacturables.filter(r => r._rechazado).length;
+    const pendientes = count - verificados - rechazados;
     const elVer = document.getElementById('facKpiVerificados');
     if (elVer) elVer.textContent = verificados + ' / ' + count;
     const elVerSub = document.getElementById('facKpiVerificadosSub');
-    if (elVerSub) elVerSub.textContent = pendientesVer + ' pendiente(s)';
+    if (elVerSub) elVerSub.textContent = pendientes + ' pendiente(s) · ' + rechazados + ' rechazado(s)';
 }
 
 
 function buildFacRanking(field) {
     const map = {};
-    filteredFacturables.forEach(r => {
+        facCobrables().forEach(r => {
         const key = r[field] || '–';
         map[key] = (map[key] || 0) + (Number(r.monto) || 0);
     });
