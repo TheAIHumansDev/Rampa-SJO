@@ -2408,12 +2408,15 @@ function exportFacturablesExcel() {
         'Monto Original': r._billingAdjusted ? (Number(r._montoOriginal) || 0) : '',
         'Ajuste Facturación': r._billingAdjusted ? ('Bloque ' + r._bloqueMinutos + 'min x' + r._horasFacturadas) : '',
         'Estación': r._estacion || '–',
-        'Cobro Verificado': r._verificado ? 'Sí' : 'No',
-        'Verificado Por': r._verificadoPor || '–',
-        'Fecha Verificación': r._verificadoFecha ? new Date(r._verificadoFecha).toLocaleString('es-CR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '–',
+        'Estado Revisión': r._estadoRev,
+        'Revisado Por': r._verificadoPor || '–',
+        'Fecha Revisión': r._verificadoFecha ? new Date(r._verificadoFecha).toLocaleString('es-CR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '–',
+        'Motivo Rechazo': r._motivoRechazo || '',
+        'Comentario': r._comentario || '',
+        'Evidencia': (r._fotos || []).map(f => f.url).join(' | '),
     }));
 
-    const totalMonto = filteredFacturables.reduce((s, r) => s + (Number(r.monto) || 0), 0);
+            const totalMonto = facCobrables().reduce((s, r) => s + (Number(r.monto) || 0), 0);
     const verificados = filteredFacturables.filter(r => r._verificado).length;
     const periodoLabel = { today: 'Hoy', week: 'Últimos 7 días', month: 'Últimos 30 días', all: 'Todo' }[facDateFilter] || facDateFilter;
 
@@ -2423,6 +2426,7 @@ function exportFacturablesExcel() {
         { 'Métrica': 'Monto total facturado', 'Valor': fmtMoney(totalMonto) },
         { 'Métrica': 'Ticket promedio', 'Valor': fmtMoney(filteredFacturables.length ? totalMonto / filteredFacturables.length : 0) },
         { 'Métrica': 'Servicios verificados', 'Valor': verificados + ' / ' + filteredFacturables.length },
+        { 'Métrica': 'Servicios rechazados (excluidos del total)', 'Valor': filteredFacturables.filter(r => r._rechazado).length },
         { 'Métrica': 'Aerolínea', 'Valor': activeFacAerolineaFilter === 'all' ? 'Todas' : activeFacAerolineaFilter },
         { 'Métrica': 'Servicio', 'Valor': activeFacServicioFilter === 'all' ? 'Todo' : activeFacServicioFilter },
         { 'Métrica': 'Estación', 'Valor': activeFacEstacionFilter === 'all' ? 'Toda' : activeFacEstacionFilter },
