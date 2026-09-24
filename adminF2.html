@@ -1174,6 +1174,10 @@ html, body {
                     <option value="estado">Estado</option>
                 </select>
                 <button class="rank-toggle-btn active" id="heSortDirBtn" onclick="toggleHeSortDir()">↓ Descendente</button>
+                                <span class="filter-label" style="margin-left:6px;">🏢</span>
+                <select class="filter-select" id="heEstacionFilter" onchange="renderHeDetailTable()">
+                    <option value="all">Todas las estaciones</option>
+                </select>
                 <button class="refresh-btn" style="margin-left:auto;" onclick="exportHorasExtraExcel()">📥 Exportar Excel</button>
 
             </div>
@@ -2747,14 +2751,35 @@ function heEstacionHtml(info) {
         : info.est;
 }  
 
+// Lista de horas extra según el filtro de estación seleccionado
+function heListaFiltrada(ctx) {
+    ctx = ctx || buildHeStationCtx();
+    const sel = document.getElementById('heEstacionFilter');
+    const f = sel ? sel.value : 'all';
+    if (f === 'all') return allHeReports.slice();
+    return allHeReports.filter(r => resolveHeEstacion(r, ctx).est === f);
+}
+
+// Llena el selector con las estaciones que realmente aparecen en las horas extra
+function populateHeEstacionFilter(ctx) {
+    const opts = [...new Set(allHeReports.map(r => resolveHeEstacion(r, ctx).est).filter(facEstValida))].sort();
+    populateSelect('heEstacionFilter', 'Todas las estaciones', opts); // conserva la selección actual si sigue existiendo
+}
+    
+
 function renderHeDetailTable() {
     const body = document.getElementById('heDetailTableBody');
     const countEl = document.getElementById('heDetailCount');
     if (!body) return;
-    if (countEl) countEl.textContent = allHeReports.length;
-    if (!allHeReports.length) { body.innerHTML = '<div class="empty-row">📭 Sin horas extra registradas</div>'; return; }
+    if (!allHeReports.length) { if (countEl) countEl.textContent = 0; body.innerHTML = '<div class="empty-row">📭 Sin horas extra registradas</div>'; return; }
     const ctx = buildHeStationCtx();
-    const display = sortHeReports(allHeReports);
+    populateHeEstacionFilter(ctx);
+    const lista = heListaFiltrada(ctx);
+    const selEst = document.getElementById('heEstacionFilter');
+    if (selEst) selEst.classList.toggle('has-value', selEst.value !== 'all');
+    if (countEl) countEl.textContent = lista.length === allHeReports.length ? lista.length : lista.length + ' / ' + allHeReports.length;
+    if (!lista.length) { body.innerHTML = '<div class="empty-row">📭 Sin horas extra para esta estación</div>'; return; }
+    const display = sortHeReports(lista);
     body.innerHTML = display.map((r, i) => {
         const esVuelo = (r.tipo || '').toLowerCase() === 'vuelo';
         const vueloTxt = esVuelo ? ((r.aerolinea || '') + ' ' + (r.vuelo || '')).trim() || '–' : '–';
@@ -2787,6 +2812,9 @@ function renderHeDetailTable() {
 }
 
 function exportHorasExtraExcel(){
+    // Esta variable local "tapa" a la global: todo el export usa la lista ya filtrada por estación
+    const allHeReports = heListaFiltrada();
+    const heEstSel = (document.getElementById('heEstacionFilter') || {}).value || 'all';
     if(typeof XLSX === 'undefined'){ showToast('⚠ Librería Excel no cargada', true); return; }
     if(!allHeReports.length){ showToast('⚠ No hay horas extra para exportar', true); return; }
 
@@ -2886,6 +2914,7 @@ function exportHorasExtraExcel(){
 
     const resumen = [
         { 'Métrica': 'Total solicitudes', 'Valor': allHeReports.length },
+        { 'Métrica': 'Estación', 'Valor': heEstSel === 'all' ? 'Todas' : heEstSel },
         { 'Métrica': 'Aprobadas', 'Valor': aprobadas.length },
         { 'Métrica': 'Rechazadas', 'Valor': rechazadas.length },
         { 'Métrica': 'Pendientes', 'Valor': pendientes.length },
