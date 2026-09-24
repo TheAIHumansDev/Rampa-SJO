@@ -1179,9 +1179,10 @@ html, body {
             </div>
             <div class="report-table-wrap" style="background:transparent;border:none;">
                 
-<div class="rt-head" style="grid-template-columns:0.9fr 0.9fr 0.8fr 1.3fr 0.6fr 0.6fr 0.8fr 0.6fr 0.7fr 0.7fr 1.2fr;">
+<div class="rt-head" style="grid-template-columns:0.9fr 0.9fr 0.7fr 0.8fr 1.3fr 0.6fr 0.6fr 0.8fr 0.6fr 0.7fr 0.7fr 1.2fr;">
     <div class="rt-head-cell">Usuario</div>
     <div class="rt-head-cell"># Vuelo</div>
+    <div class="rt-head-cell">Estación</div>
     <div class="rt-head-cell">Motivo</div>
     <div class="rt-head-cell">Descripción</div>
     <div class="rt-head-cell">Hora Inicio</div>
@@ -2464,6 +2465,7 @@ function loadWchReports(manual) {
                 allWchReports = data.reports;
                 populateWchFilterDropdowns();
                 applyWchFilters();
+                if (allHeReports.length) renderHeDetailTable();
                 if (manual) showToast('✓ ' + data.reports.length + ' reportes WCH cargados');
             } else if (manual) {
                 showToast('⚠ No se pudieron cargar los reportes WCH', true);
@@ -2695,12 +2697,63 @@ function jornadaBadgeHtml(horaInicio) {
     return `<span class="jornada-badge ${cls}">${icon} ${jornada}</span>`;
 }
 
+
+  // ══ ESTACIÓN PARA HORAS EXTRA (misma lógica que Facturables) ══
+const HE_GRID = '0.9fr 0.9fr 0.7fr 0.8fr 1.3fr 0.6fr 0.6fr 0.8fr 0.6fr 0.7fr 0.7fr 1.2fr';
+
+function buildHeStationCtx() {
+    const rampa = buildFlightStationMap();
+    const wchByVueloDia = {}, userCount = {};
+    (allWchReports || []).forEach(w => {
+        if (!facEstValida(w.aeropuerto)) return;
+        const est = String(w.aeropuerto).trim();
+        const num = facNormVuelo(w.vuelo), dia = facDayKey(parseWchDateClient(w));
+        if (num && dia) (wchByVueloDia[num + '|' + dia] = wchByVueloDia[num + '|' + dia] || new Set()).add(est);
+        const u = String(w.usuario || '').trim().toLowerCase();
+        if (u) { userCount[u] = userCount[u] || {}; userCount[u][est] = (userCount[u][est] || 0) + 1; }
+    });
+    const wchByUser = {};
+    Object.keys(userCount).forEach(u => {
+        wchByUser[u] = Object.entries(userCount[u]).sort((a, b) => b[1] - a[1])[0][0];
+    });
+    return { rampa, wchByVueloDia, wchByUser };
+}
+
+function resolveHeEstacion(r, ctx) {
+    // 1) Valor directo del registro
+    const directa = [r.estacion, r.aeropuerto, r['Estación'], r['Aeropuerto']].find(facEstValida);
+    if (directa) return { est: String(directa).trim(), inferida: false };
+    // 2) Por vuelo + día (Rampa primero, luego WCH)
+    const num = facNormVuelo(r.vuelo), ts = parseHeDateClient(r);
+    if ((r.tipo || '').toLowerCase() === 'vuelo' && num && ts) {
+        for (const off of [0, -1, 1]) {
+            const d = new Date(ts); d.setDate(d.getDate() + off);
+            const k = num + '|' + facDayKey(d);
+            for (const set of [ctx.rampa.byVueloDia[k], ctx.wchByVueloDia[k]]) {
+                if (set && set.size === 1) return { est: [...set][0], inferida: false };
+            }
+        }
+    }
+    // 3) Estación habitual del usuario (inferida)
+    const u = String(r.usuario || '').trim().toLowerCase();
+    if (u && ctx.wchByUser[u]) return { est: ctx.wchByUser[u], inferida: true };
+    return { est: '–', inferida: false };
+}
+
+function heEstacionHtml(info) {
+    if (info.est === '–') return '–';
+    return info.inferida
+        ? `<span title="Inferida: estación habitual del usuario (el registro no es de un vuelo)" style="color:var(--muted);">~${info.est}</span>`
+        : info.est;
+}  
+
 function renderHeDetailTable() {
     const body = document.getElementById('heDetailTableBody');
     const countEl = document.getElementById('heDetailCount');
     if (!body) return;
     if (countEl) countEl.textContent = allHeReports.length;
     if (!allHeReports.length) { body.innerHTML = '<div class="empty-row">📭 Sin horas extra registradas</div>'; return; }
+    const ctx = buildHeStationCtx();
     const display = sortHeReports(allHeReports);
     body.innerHTML = display.map((r, i) => {
         const esVuelo = (r.tipo || '').toLowerCase() === 'vuelo';
@@ -2716,9 +2769,10 @@ function renderHeDetailTable() {
                <button class="he-action-btn he-btn-reject" onclick="heSetEstado('${safeTicket}','Rechazado')">✕ Rechazar</button>`
             : `<span style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-right:6px;">${r.revisadoPor || '–'}</span>
                <button class="he-action-btn he-btn-reset" onclick="heSetEstado('${safeTicket}','Pendiente')">↺ Revertir</button>`;
-        return `<div class="rt-row" style="grid-template-columns:0.9fr 0.9fr 0.8fr 1.3fr 0.6fr 0.6fr 0.8fr 0.6fr 0.7fr 0.7fr 1.2fr;animation-delay:${i * .02}s;">
+        return `<div class="rt-row" style="grid-template-columns:${HE_GRID};animation-delay:${i * .02}s;">
             <div class="rt-cell">${r.usuario || '–'}</div>
             <div class="rt-cell">${vueloTxt}</div>
+            <div class="rt-cell">${heEstacionHtml(resolveHeEstacion(r, ctx))}</div>
             <div class="rt-cell">${motivoTxt}</div>
             <div class="rt-cell" style="white-space:normal;line-height:1.3;">${descTxt}</div>
             <div class="rt-cell">${r.horaInicio || '–'}</div>
@@ -2736,8 +2790,9 @@ function exportHorasExtraExcel(){
     if(typeof XLSX === 'undefined'){ showToast('⚠ Librería Excel no cargada', true); return; }
     if(!allHeReports.length){ showToast('⚠ No hay horas extra para exportar', true); return; }
 
-    const COLS = ['Usuario','# Vuelo','Motivo','Descripción','Hora Inicio','Hora Fin','Jornada','Duración','Fecha','Estado'];
-
+    const COLS = ['Usuario','# Vuelo','Estación','Motivo','Descripción','Hora Inicio','Hora Fin','Jornada','Duración','Fecha','Estado'];
+    const heCtx = buildHeStationCtx();
+    
     function buildRow(r){
         const esVuelo = (r.tipo || '').toLowerCase() === 'vuelo';
         const vueloTxt = esVuelo ? ((r.aerolinea || '') + ' ' + (r.vuelo || '')).trim() || '–' : '–';
@@ -2745,6 +2800,7 @@ function exportHorasExtraExcel(){
         return {
             'Usuario': r.usuario || '–',
             '# Vuelo': vueloTxt,
+            'Estación': (i => i.inferida ? i.est + ' (inferida)' : i.est)(resolveHeEstacion(r, heCtx)),
             'Motivo': motivoTxt,
             'Descripción': (r.descripcion && r.descripcion.trim()) ? r.descripcion : '–',
             'Hora Inicio': r.horaInicio || '–',
@@ -2775,6 +2831,7 @@ function exportHorasExtraExcel(){
             out.push({
                 'Usuario': '👤 ' + name,
                 '# Vuelo': '',
+                'Estación': r['Estación'],
                 'Motivo': '',
                 'Descripción': '',
                 'Hora Inicio': '',
@@ -2809,8 +2866,8 @@ function exportHorasExtraExcel(){
     const pendientes = allHeReports.filter(r => (r.estado || 'Pendiente') === 'Pendiente');
 
     const wb = XLSX.utils.book_new();
-    const colWidths = [{wch:22},{wch:16},{wch:14},{wch:35},{wch:10},{wch:10},{wch:10},{wch:10},{wch:12},{wch:20}];
-
+    const colWidths = [{wch:22},{wch:16},{wch:14},{wch:14},{wch:35},{wch:10},{wch:10},{wch:10},{wch:10},{wch:12},{wch:20}];
+    
     function addSheet(name, list){
         const grouped = buildGroupedRows(list);
         const ws = XLSX.utils.json_to_sheet(grouped.length ? grouped : [{ 'Usuario': 'Sin datos' }], { header: COLS });
@@ -3086,6 +3143,7 @@ facLoadVerifications();
 // ══════════════════════════════════════════════════════
 function refreshFacEstaciones(){
     if (allFacturables.length) { populateFacFilterDropdowns(); applyFacFilters(); }
+    if (allHeReports.length) renderHeDetailTable();
 }
 
 function loadAllReports(manual, forceFull){
