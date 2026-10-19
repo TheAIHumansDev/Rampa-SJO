@@ -2859,7 +2859,7 @@ function exportHorasExtraExcel(){
             out.push({
                 'Usuario': '👤 ' + name,
                 '# Vuelo': '',
-                'Estación': r['Estación'],
+                'Estación': '',
                 'Motivo': '',
                 'Descripción': '',
                 'Hora Inicio': '',
@@ -2873,6 +2873,7 @@ function exportHorasExtraExcel(){
                 out.push({
                     'Usuario': '',
                     '# Vuelo': r['# Vuelo'],
+                    'Estación': r['Estación'],
                     'Motivo': r['Motivo'],
                     'Descripción': r['Descripción'],
                     'Hora Inicio': r['Hora Inicio'],
@@ -2884,7 +2885,7 @@ function exportHorasExtraExcel(){
                 });
             });
             // Fila en blanco como separador visual entre usuarios
-            out.push({ 'Usuario':'','# Vuelo':'','Motivo':'','Descripción':'','Hora Inicio':'','Hora Fin':'','Jornada':'','Duración':'','Fecha':'','Estado':'' });
+            out.push({ 'Usuario':'','# Vuelo':'','Estación':'','Motivo':'','Descripción':'','Hora Inicio':'','Hora Fin':'','Jornada':'','Duración':'','Fecha':'','Estado':'' });
         });
         return out;
     }
