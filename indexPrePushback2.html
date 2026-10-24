@@ -2095,7 +2095,8 @@ function startInsp(){
   if(!pos){alert('Seleccione la posición de la aeronave');return}
 sOrigen=origen;sDestino=destino;sPosicion=pos;sF=`${origen}/${destino}`;fTS=new Date().toISOString();
   CPS=QS[sT]||[];photos={};beaconOff=null;incData=null;segData=null;
-  personalVuelo=[];faltantesVuelo=[];  // limpia personal y faltantes de un vuelo anterior  clearAlerts();showSC('sI');
+  personalVuelo=[];faltantesVuelo=[];  // limpia personal y faltantes de un vuelo anterior  
+  clearAlerts();showSC('sI');
   document.getElementById('stepLabel').textContent=`${ANAMES[sA]||sA} · ${sT} · ${sF}`;
 renderFlightBar();renderPersonalTable();renderMissions();loadPersonalForFlight();
 }
