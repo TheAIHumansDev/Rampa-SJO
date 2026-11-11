@@ -3235,16 +3235,17 @@ function loadAllReports(manual, forceFull){
 
 function loadSheetWithFallback(sheetName,flightType,done,scope){
     scope = scope || 'today';
+    const tmo = scope==='all' ? 45000 : 9000;
     const tag='jst_'+sheetName.replace(/[^a-z0-9]/gi,'_');
     const url1=SCRIPT_URL+'?action=getHistory&sheet='+encodeURIComponent(sheetName)+'&scope='+scope;
-    jsonpFetch(tag+'_1',url1,9000,
+    jsonpFetch(tag+'_1',url1,tmo,
         data=>{
             if(data&&data.success&&Array.isArray(data.reports))done(data.reports,flightType,sheetName,'new-GAS');
             else attempt2();
         },()=>attempt2());
     function attempt2(){
         const url2=SCRIPT_URL+'?action=getAllHistory&scope='+scope;
-        jsonpFetch(tag+'_2',url2,9000,
+        jsonpFetch(tag+'_2',url2,tmo,
             data=>{
                 if(data&&data.success&&Array.isArray(data.reports)&&data.reports.length>0){
                     let reps=data.reports;
@@ -3264,8 +3265,12 @@ function jsonpFetch(id,url,timeoutMs,onData,onFail){
     const cbName='cb_'+id.replace(/[^a-z0-9]/gi,'_')+'_'+Date.now();
     const script=document.createElement('script');script.id=id;
     let fired=false;
+    function cleanup(){
+        // No borrar el callback: dejar un stub para respuestas tardías (evita ReferenceError)
+        window[cbName]=function(){ try{delete window[cbName];}catch(e){} };
+        if(script.parentNode)script.parentNode.removeChild(script);
+    }
     const timer=setTimeout(()=>{if(!fired){fired=true;cleanup();onFail('timeout');}},timeoutMs);
-    function cleanup(){if(window[cbName])delete window[cbName];if(script.parentNode)script.parentNode.removeChild(script);}
     window[cbName]=data=>{if(fired)return;fired=true;clearTimeout(timer);cleanup();onData(data);};
     script.onerror=()=>{if(fired)return;fired=true;clearTimeout(timer);cleanup();onFail('script-error');};
     document.body.appendChild(script);
