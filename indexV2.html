@@ -2802,7 +2802,6 @@ function resetCredUI(){
 async function credConfirmAdd(){
   const rolSel=document.getElementById('credPosicionRol').value;
   if(!rolSel){alert('Seleccione la posición/rol del colaborador (Supervisor, Agente Rampa, etc.) antes de agregarlo');return}
-  if(!credScanId){alert('⛔ La credencial debe escanearse con la cámara. No se permite el registro manual.');return}
   const persona={
     nombre:document.getElementById('credNombre').value.trim(),
     cedula:document.getElementById('credCedula').value.trim(),
@@ -2821,13 +2820,13 @@ async function credConfirmAdd(){
   const fotoParaGuardar=credPhotoData;
   const r=await postSync({
     action:'savePersonal',airline:sA,flightType:sT,flightNumber:sF,flightTimestamp:fTS,
-    inspector:U.username,posicion:sPosicion,persona,scanId:credScanId,photoBase64:fotoParaGuardar
+    inspector:U.username,posicion:sPosicion,persona,scanId:credScanId||'',photoBase64:fotoParaGuardar
   });
   btn.disabled=false;btn.textContent='➕ Agregar al Vuelo';
 
   if(!r||!r.success){
     alert('⛔ '+((r&&r.message)||'No se pudo registrar. Revise la conexión e intente de nuevo.'));
-    if(r&&(r.code==='NO_SCAN'||r.code==='VENCIDA'||r.code==='DUPLICADO')){resetCredUI();}
+    if(r&&(r.code==='VENCIDA'||r.code==='DUPLICADO')){resetCredUI();}
     return;
   }
   personalVuelo.push(Object.assign({},persona,r.persona||{},{fotoLocal:fotoParaGuardar}));
