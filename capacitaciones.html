@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Training Copilot · Delta & American</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/*
+VOICE: copiloto operativo de IA; preciso, calmado, siempre propone el siguiente paso.
+IDEA: consola de operaciones de aeropuerto (torre de control) donde un agente analiza los reportes y ejecuta tareas.
+PICTURE: el núcleo del agente (anillo orbital) + barra de comandos en lenguaje natural + feed de hallazgos con acciones.
+COLOUR and TYPE: fondo grafito profundo con retícula, cian eléctrico como acento del agente, rojo Delta y azul American como etiquetas; Sora + JetBrains Mono para cifras.
+LAYOUT: barra de comandos arriba; riel de vistas, contenido central y panel del agente a la derecha; en móvil todo se apila.
+*/
+:root{color-scheme:dark;--bg:#06080c;--bg2:#0b0f16;--glass:rgba(255,255,255,.035);--glass2:rgba(255,255,255,.06);--line:rgba(255,255,255,.09);--line2:rgba(62,230,255,.35);
+--ink:#e8eef6;--mute:#8693a3;--ai:#3ee6ff;--ai2:#7cf5c8;--bad:#ff5d6c;--warn:#ffb547;--info:#8fb3ff;--ok:#7cf5c8;--dl:#e03a52;--aa:#2f8cff;--mono:'JetBrains Mono',ui-monospace,monospace}
+*{box-sizing:border-box;min-width:0}
+html{scroll-padding-top:90px}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Sora,system-ui,sans-serif;overflow-x:clip;min-height:100vh;
+ background-image:radial-gradient(1200px 500px at 70% -10%,rgba(62,230,255,.10),transparent 60%),radial-gradient(800px 400px at -10% 110%,rgba(124,245,200,.06),transparent 60%),
+ linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:auto,auto,44px 44px,44px 44px;background-attachment:fixed}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--ai);outline-offset:2px}
+.mono{font-family:var(--mono)}
+/* top */
+.top{position:sticky;top:0;z-index:15;display:flex;gap:16px;align-items:center;padding:12px max(2vw,14px);background:rgba(6,8,12,.78);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;flex:none}
+.brand b{font-size:15px;letter-spacing:.2px}.brand small{display:block;color:var(--mute);font-size:12px;font-weight:400}
+.cmd{flex:1;display:flex;align-items:center;gap:10px;max-width:760px;margin:0 auto;height:50px;padding:0 8px 0 16px;border-radius:14px;background:var(--glass2);border:1px solid var(--line);transition:border-color .2s,box-shadow .2s}
+.cmd:focus-within{border-color:var(--line2);box-shadow:0 0 0 4px rgba(62,230,255,.08),0 0 40px rgba(62,230,255,.12)}
+.cmd input{flex:1;background:none;border:0;outline:0;font-size:16px;height:100%}
+.cmd input::placeholder{color:#6d7887}
+.kbd{font:12px var(--mono);color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+.go{height:36px;padding:0 14px;border-radius:10px;border:0;background:var(--ai);color:#031016;font-weight:700}
+.mes{flex:none;display:flex;align-items:center;gap:8px;color:var(--mute);font-size:13px}
+.mes input{background:var(--glass2);border:1px solid var(--line);border-radius:10px;height:40px;padding:0 10px;font-size:14px;color-scheme:dark}
+/* layout */
+.app{display:grid;grid-template-columns:210px minmax(0,1fr) 380px;gap:18px;padding:18px max(2vw,14px) 40px;max-width:1680px;margin:0 auto}
+.rail{position:sticky;top:92px;align-self:start;display:flex;flex-direction:column;gap:4px}
+.rail button{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;background:none;border:1px solid transparent;border-radius:11px;padding:11px 12px;color:var(--mute);font-weight:500;min-height:44px}
+.rail button:hover{background:var(--glass)}
+.rail button[aria-selected=true]{color:var(--ink);background:var(--glass2);border-color:var(--line)}
+.rail button[aria-selected=true]::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--ai);box-shadow:0 0 10px var(--ai);order:2}
+.rail .n{font:12px var(--mono);color:var(--mute)}
+.rail hr{border:0;border-top:1px solid var(--line);margin:10px 0}
+.filebox{display:flex;flex-direction:column;gap:6px;font-size:12px}
+.fchip{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--glass);display:grid;gap:6px}
+.fchip .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.fchip .rw{display:flex;gap:6px;align-items:center}
+.fchip select{flex:1;background:var(--bg2);border:1px solid var(--line);border-radius:7px;height:30px;font-size:12px}
+.fchip button{height:30px;border-radius:7px;border:1px solid var(--line);background:none;color:var(--mute);font-size:12px;padding:0 8px}
+.addf{border:1px dashed var(--line2);color:var(--ai);background:rgba(62,230,255,.04);border-radius:10px;min-height:40px;font-weight:600;font-size:13px}
+main{min-height:60vh}
+.panel{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:18px}
+h1{font-size:clamp(26px,2.8vw,38px);line-height:1.08;margin:0 0 6px;font-weight:700;text-wrap:balance;letter-spacing:-.5px}
+h2{font-size:18px;margin:0 0 12px;font-weight:600}
+.lead{color:var(--mute);margin:0 0 18px;max-width:70ch}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:12px;margin:0 0 18px}
+.kpi{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:14px 16px;position:relative;overflow:hidden}
+.kpi .v{font:700 clamp(26px,2.6vw,36px)/1.1 var(--mono)}
+.kpi .l{color:var(--mute);font-size:13px}
+.kpi.hot{border-color:rgba(255,93,108,.4);background:linear-gradient(160deg,rgba(255,93,108,.14),rgba(255,93,108,.02))}
+.kpi.hot .v{color:#ff8a95}
+.kpi.ai{border-color:var(--line2);background:linear-gradient(160deg,rgba(62,230,255,.12),rgba(62,230,255,.02))}
+.kpi.ai .v{color:var(--ai)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;letter-spacing:.2px}
+.tag.DL{background:rgba(224,58,82,.18);color:#ff8597;border:1px solid rgba(224,58,82,.45)}
+.tag.AA{background:rgba(47,140,255,.16);color:#8cc0ff;border:1px solid rgba(47,140,255,.45)}
+.st{font-weight:600;font-size:12px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.st::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
+.st.v{color:var(--bad)}.st.p{color:var(--warn)}.st.n{color:var(--info)}.st.q{color:#b9c3cf}.st.o{color:var(--ok)}
+.bars{display:grid;gap:10px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:10px;align-items:end;font-size:13px;background:none;border:0;padding:0;text-align:left;width:100%}
+.bar .t span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:5px;color:#c9d2dc}
+.bar .track{height:8px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden;display:flex}
+.bar .track i{display:block;height:100%}
+.bar .v{text-align:right;font:700 13px var(--mono)}
+button.bar:hover .t span{color:var(--ai)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin:0 0 12px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+/* tables */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.sel{background:var(--bg2);border:1px solid var(--line);border-radius:10px;height:40px;padding:0 10px;font-size:14px;max-width:240px}
+.btn{height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--glass2);font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--line2)}
+.btn.ai{background:var(--ai);color:#031016;border-color:var(--ai)}
+.btn.sm{height:32px;font-size:12px;padding:0 10px}
+.count{margin-left:auto;color:var(--mute);font:12px var(--mono)}
+.understood{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 14px;border-radius:14px;border:1px solid var(--line2);background:rgba(62,230,255,.05);margin-bottom:12px;font-size:13px}
+.understood>b{color:var(--ai);font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--glass2);border-radius:99px;padding:4px 6px 4px 11px;font-size:12px}
+.chip button{border:0;background:rgba(255,255,255,.08);border-radius:50%;width:20px;height:20px;line-height:1;color:var(--mute)}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-weight:600;color:var(--mute);font-size:12px;white-space:nowrap;background:rgba(11,15,22,.9);position:sticky;top:0;cursor:pointer;user-select:none}
+td.num,th.num{text-align:right;font-family:var(--mono)}
+td.nw{white-space:nowrap}
+td.id{font:11px var(--mono);color:var(--mute)}
+tbody tr{transition:background .15s}
+tr.click{cursor:pointer}tr.click:hover td{background:rgba(62,230,255,.05)}
+.risk{display:inline-flex;align-items:center;gap:8px;font:700 12px var(--mono)}
+.risk b{display:block;width:46px;height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.risk b i{display:block;height:100%}
+.prog{display:inline-flex;align-items:center;gap:6px;font:12px var(--mono);white-space:nowrap}
+.prog b{display:block;width:44px;height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.prog b i{display:block;height:100%;background:var(--ok)}
+.empty{padding:28px;text-align:center;color:var(--mute);border:1px dashed var(--line);border-radius:14px}
+/* hero / drop */
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:24px;align-items:center;min-height:420px}
+.drop{border:1.5px dashed var(--line2);border-radius:22px;padding:28px;background:radial-gradient(circle at 50% 0%,rgba(62,230,255,.08),transparent 70%);text-align:center;transition:background .2s,border-color .2s}
+.drop.over{border-color:var(--ai);background:rgba(62,230,255,.10)}
+.drop p{color:var(--mute);font-size:14px;margin:10px 0 16px}
+.orb{width:100%;max-width:340px;aspect-ratio:1;margin:0 auto;display:block}
+.orb .ring{transform-origin:50% 50%;animation:spin 18s linear infinite}
+.orb .ring2{transform-origin:50% 50%;animation:spin 30s linear infinite reverse}
+.orb .core{animation:pulse 3.2s ease-in-out infinite;transform-origin:50% 50%}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{transform:scale(1.06);opacity:.85}}
+.steps{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px;text-align:left}
+.steps li{display:flex;gap:10px;font-size:13px;color:var(--mute)}
+.steps li span{font:12px var(--mono);color:var(--ai)}
+/* agent */
+.agent{position:sticky;top:92px;align-self:start;max-height:calc(100vh - 110px);overflow:auto;display:flex;flex-direction:column;gap:14px;scrollbar-width:thin}
+.agent .head{display:flex;gap:12px;align-items:center}
+.agent .head svg{width:44px;height:44px;flex:none}
+.agent .head b{display:block;font-size:15px}.agent .head small{color:var(--mute);font-size:12px}
+.log{list-style:none;margin:0;padding:0;display:grid;gap:6px;font:12px/1.45 var(--mono);color:var(--mute)}
+.log li{display:flex;gap:8px;opacity:0;transform:translateY(4px);animation:in .35s forwards}
+.log li i{color:var(--ai);font-style:normal}
+@keyframes in{to{opacity:1;transform:none}}
+.ins{display:grid;gap:10px}
+.insight{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--glass);opacity:0;animation:in .4s forwards}
+.insight .k{font:11px var(--mono);letter-spacing:.3px}
+.insight.r .k{color:var(--bad)}.insight.w .k{color:var(--warn)}.insight.i .k{color:var(--info)}.insight.g .k{color:var(--ok)}
+.insight p{margin:4px 0 10px;font-size:13px;color:#cfd8e2}
+.insight p b{color:var(--ink)}
+.acts{display:flex;flex-wrap:wrap;gap:6px}
+.plan{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.plan li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--glass);font-size:13px}
+.plan input{width:18px;height:18px;margin-top:2px;accent-color:var(--ai);flex:none}
+.plan li.done span{color:var(--mute);text-decoration:line-through}
+.plan li span{flex:1}
+.plan li button{flex:none}
+.sugg{display:flex;flex-wrap:wrap;gap:6px}
+.sugg button{border:1px solid var(--line);background:var(--glass);border-radius:99px;padding:6px 12px;font-size:12px;color:#c9d2dc;min-height:32px}
+.sugg button:hover{border-color:var(--line2);color:var(--ai)}
+.sec{font-size:12px;color:var(--mute);font-weight:600;margin:0 0 8px;display:flex;justify-content:space-between}
+/* drawer */
+.shade{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);z-index:30;display:none}.shade.open{display:block}
+.drawer{position:fixed;inset:0 0 0 auto;width:min(580px,100%);background:#0a0e14;border-left:1px solid var(--line2);box-shadow:-30px 0 80px rgba(0,0,0,.5);transform:translateX(105%);transition:transform .25s cubic-bezier(.2,.8,.2,1);z-index:31;display:flex;flex-direction:column}
+.drawer.open{transform:none}
+.drawer .hd{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:center}
+.drawer .hd h2{margin:0;flex:1;font-size:20px}
+.drawer .bd{padding:18px 20px 30px;overflow:auto;flex:1}
+.drawer h3{font-size:14px;margin:20px 0 10px;display:flex;gap:8px;align-items:center}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px;margin:0}
+.meta dt{color:var(--mute)}.meta dd{margin:0}
+textarea{width:100%;min-height:170px;font:13px/1.55 Sora,sans-serif;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg2)}
+.gauge{width:64px;height:64px;flex:none}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(10px);background:#0d1a20;border:1px solid var(--line2);color:var(--ai);padding:10px 18px;border-radius:12px;font-weight:600;font-size:13px;z-index:40;opacity:0;transition:.2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.sup{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;background:var(--glass)}
+.sup .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sup .row h3{margin:0;flex:1;font-size:15px}
+.sup ul{margin:10px 0 0;padding-left:18px;font-size:13px;columns:2 260px;color:#c9d2dc}
+.sup a{color:inherit}
+.note{font-size:12px;color:var(--mute);margin:10px 0 0}
+@media(max-width:1180px){.app{grid-template-columns:190px minmax(0,1fr)}.agent{grid-column:1/-1;position:static;max-height:none}}
+@media(max-width:820px){.app{grid-template-columns:minmax(0,1fr)}.rail{position:static;flex-direction:row;overflow-x:auto;gap:6px}.rail button{flex:none}.rail hr,.rail .filebox .sec,#files,#clear{display:none}.rail .filebox{flex:none}.addf{min-height:44px;padding:0 14px}.hero{grid-template-columns:1fr}.top{flex-wrap:wrap}.brand small{display:none}.cmd{order:3;flex-basis:100%}.kbd{display:none}}
+@media(max-width:600px){table{font-size:12px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 12px;padding-inline-start:8.5em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-7.5em;color:var(--mute);white-space:normal}.stack td:empty{display:none}}
+@media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}.log li,.insight{opacity:1;transform:none}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent.replace(/[▲▼]/g,'')||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke="#3ee6ff" stroke-opacity=".5" stroke-width="1.5"/><circle cx="20" cy="20" r="11" fill="none" stroke="#7cf5c8" stroke-opacity=".5" stroke-width="1.5" stroke-dasharray="4 4"/><circle cx="20" cy="20" r="5" fill="#3ee6ff"/></svg>
+    <div><b>Training Copilot</b><small>Delta · American · SJO</small></div></div>
+  <form class="cmd" id="cmdForm" autocomplete="off">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3ee6ff" stroke-width="2" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
+    <input id="cmd" type="text" placeholder="Pregúntale al copiloto: «SafeTrac vencido en Delta», «equipo de Norberto con 5 o más»…" aria-label="Comando en lenguaje natural">
+    <span class="kbd">Ctrl K</span><button class="go" type="submit">Ejecutar</button>
+  </form>
+  <label class="mes">Mes <input type="month" id="mes"></label>
+</header>
+
+<div class="app">
+  <nav class="rail" id="rail" role="tablist">
+    <button role="tab" data-t="centro">Centro de mando <span class="n" id="n-centro"></span></button>
+    <button role="tab" data-t="personal">Personal <span class="n" id="n-personal"></span></button>
+    <button role="tab" data-t="cursos">Cursos <span class="n" id="n-cursos"></span></button>
+    <button role="tab" data-t="supervisores">Supervisores <span class="n" id="n-sup"></span></button>
+    <button role="tab" data-t="historial">Evolución mensual</button>
+    <hr>
+    <div class="filebox"><div class="sec">Fuentes de datos</div><div id="files"></div>
+      <button class="addf" type="button" id="addf">+ Cargar reportes</button>
+      <button class="fchip" type="button" id="clear" style="color:var(--mute);text-align:center;cursor:pointer">Limpiar todo</button></div>
+  </nav>
+  <main id="main" aria-live="polite"></main>
+  <aside class="agent panel" id="agent" aria-label="Copiloto"></aside>
+</div>
+<input id="fi" type="file" accept=".xlsx,.xls,.csv" multiple hidden>
+
+<div class="shade" id="shade"></div>
+<aside class="drawer" id="drawer" aria-hidden="true"><div class="hd"><div id="dGauge"></div><h2 id="dTitle"></h2><button class="btn" id="dClose" type="button">Cerrar</button></div><div class="bd" id="dBody"></div></aside>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+{
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=s=>String(s??'').normalize('NFKD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+const AIR={DL:'Delta',AA:'American'};
+const ST={v:'Vencido',p:'Vence ≤ 7 días',n:'Asignado sin fecha',q:'Pendiente',o:'Al día'};
+const LS='ctrlCursosAerolineas.v1',LSH='ctrlCursosAerolineas.hist.v1',LSP='ctrlCursosAerolineas.plan.v1';
+let FILES=[],P=[],tab='centro',openCourse=null,lastQuery=null,animate=false;
+let pf={q:'',air:'',st:'',mgr:'',job:'',course:'',minV:0,prog0:false};
+let sortP={k:'risk',d:-1};
+
+/* ---------- utilidades ---------- */
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400)};
+const fmtD=d=>{if(!d)return'';const x=new Date(d);return isNaN(x)?'':x.toLocaleDateString('es-CR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'})};
+const toDate=v=>{if(v==null||v==='')return null;if(v instanceof Date)return isNaN(v)?null:v.toISOString();if(typeof v==='number'){const d=XLSX.SSF.parse_date_code(v);return d?new Date(Date.UTC(d.y,d.m-1,d.d)).toISOString():null}
+  const s=String(v).trim();let m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);if(m){let y=+m[3];if(y<100)y+=2000;const a=+m[1],b=+m[2];const d=a>12?new Date(Date.UTC(y,b-1,a)):new Date(Date.UTC(y,a-1,b));return d.toISOString()}
+  const d=new Date(s);return isNaN(d)?null:d.toISOString()};
+const num=v=>{if(v==null||v==='')return null;const n=parseFloat(String(v).replace('%','').replace(',','.'));return isNaN(n)?null:n};
+async function copy(txt,msg){try{await navigator.clipboard.writeText(txt);toast(msg||'Copiado al portapapeles')}catch(e){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast(msg||'Copiado')}catch(_){toast('No se pudo copiar')}ta.remove()}}
+const cap=s=>s?s[0]+s.slice(1).toLowerCase():'';
+
+/* ---------- lectura y detección de formato ---------- */
+const H={
+  name:/^(resource name|name|nombre|employee name|full name|colaborador)$/,
+  id:/^(ppr|user number|employee id|emp id|id|user id|numero|n[uú]mero de empleado|badge)$/,
+  curr:/assigned curriculum|^curriculum/,sub:/sub.?curriculum/,cid:/^course id|^item id|codigo curso/,
+  course:/^course title|^course name|^curso|^item title|^title$/,days:/^days rem|days remaining|d[ií]as/,
+  assigned:/assignment date|assigned date|fecha asign/,req:/required by|due date|fecha l[ií]mite|vence/,
+  mgr:/manager|supervisor|jefe/,job:/primary job|job|puesto|position/,org:/organization|organizaci[oó]n|department/,
+  overdue:/total overdue|overdue|vencidos/,prog:/overall progress|progress|progreso|% complete/
+};
+function mapHeaders(row){const m={};row.forEach((h,i)=>{const s=String(h??'').trim().toLowerCase();if(!s)return;for(const k in H){if(m[k]==null&&H[k].test(s)){if(k==='curr'&&H.sub.test(s))continue;if(k==='mgr'&&/organization/.test(s))continue;if(k==='job'&&/manager/.test(s))continue;m[k]=i;break}}});return m}
+function findHeader(rows){for(let i=0;i<Math.min(rows.length,25);i++){const m=mapHeaders(rows[i]||[]);if(m.name!=null&&(m.course!=null||m.overdue!=null))return{i,m}}return null}
+function guessAirline(fname,rows,kind){const f=fname.toLowerCase();
+  if(/delta|\bdl\b|_dl|dl_/.test(f))return'DL';if(/american|\baa\b|_aa|aa_|personal_aa/.test(f))return'AA';
+  const sample=rows.slice(0,400).map(r=>r.join(' ')).join(' ');
+  if(/american/i.test(sample))return'AA';if(/delta|\bDL-|CU-ACS|CU-DL|SafeTrac/i.test(sample))return'DL';
+  return kind==='detail'?'DL':'AA'}
+function parseFile(name,wb){const out=[];
+  wb.SheetNames.forEach(sn=>{const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:null,blankrows:false});
+    const h=findHeader(rows);if(!h)return;const m=h.m;const kind=m.course!=null?'detail':'summary';
+    const recs=[];let ign=0,curN=null,curId=null;const g=(r,k)=>m[k]!=null?r[m[k]]:null;
+    for(let i=h.i+1;i<rows.length;i++){const r=rows[i];if(!r||r.every(v=>v==null||v===''))continue;
+      if(kind==='detail'){const nm=g(r,'name');if(nm!=null&&String(nm).trim()){curN=String(nm).trim();curId=g(r,'id')!=null?String(g(r,'id')).trim():null}
+        const course=g(r,'course');if(!curN||course==null||String(course).trim()===''){ign++;continue}
+        recs.push({name:curN,id:curId,courseId:String(g(r,'cid')??'').trim(),course:String(course).replace(/\s+/g,' ').trim(),curr:String(g(r,'curr')??'').trim(),
+          days:num(g(r,'days')),assigned:toDate(g(r,'assigned')),req:toDate(g(r,'req')),mgr:g(r,'mgr')?String(g(r,'mgr')).trim():'',job:g(r,'job')?String(g(r,'job')).trim():''});
+      }else{const nm=g(r,'name');const others=['id','mgr','job','org','overdue','prog'].some(k=>g(r,k)!=null&&g(r,k)!=='');
+        if(!nm||!others){ign++;continue}
+        recs.push({name:String(nm).trim(),id:g(r,'id')!=null?String(g(r,'id')).trim():'',mgr:String(g(r,'mgr')??'').trim(),job:String(g(r,'job')??'').trim(),org:String(g(r,'org')??'').trim(),
+          overdue:num(g(r,'overdue'))||0,prog:num(g(r,'prog'))})}}
+    if(recs.length)out.push({id:Math.random().toString(36).slice(2),name:name+(wb.SheetNames.length>1?' · '+sn:''),kind,airline:guessAirline(name,rows,kind),recs,ign,header:h.i+1});
+  });return out}
+async function handleFiles(fl){const list=[...fl];let added=0,bad=[];
+  for(const f of list){try{const buf=await f.arrayBuffer();const wb=XLSX.read(buf,{type:'array',cellDates:true});const p=parseFile(f.name,wb);if(!p.length)bad.push(f.name);
+    p.forEach(x=>{FILES=FILES.filter(o=>o.name!==x.name);FILES.push(x);added++})}catch(e){bad.push(f.name)}}
+  if(!$('#mes').value)$('#mes').value=guessMonth(list.map(f=>f.name).join(' '));
+  animate=true;save();rebuild();if(tab!=='centro'){tab='centro';render()}
+  if(bad.length)toast('Formato no reconocido: '+bad.join(', '))}
+function guessMonth(s){const ms=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'],en=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];const l=' '+s.toLowerCase(),now=new Date();
+  for(let i=0;i<12;i++){if(new RegExp('[^a-z]('+ms[i]+'|'+en[i]+')[a-z]*').test(l))return now.getFullYear()+'-'+String(i+1).padStart(2,'0')}
+  return now.toISOString().slice(0,7)}
+
+/* ---------- modelo consolidado ---------- */
+function status(c){if(c.req==null&&c.days!=null&&c.days>=0)return'n';
+  let d=c.days;if(d==null&&c.req)d=Math.round((new Date(c.req)-Date.now())/864e5);
+  if(d!=null&&d<0)return'v';if(d!=null&&d<=7)return'p';return c.req?'q':'n'}
+function rebuild(){const map=new Map(),alias=new Map();const toks=s=>norm(s).split(' ').filter(Boolean);
+  /* une el mismo nombre (o un nombre contenido en otro) entre aerolíneas, nunca dos empleados distintos de la misma aerolínea */
+  const clash=(p,air,id)=>p.idA[air]&&(!id||!p.idA[air].has(id));
+  const keyFor=(nm,air,id)=>{const k=norm(nm);if(map.has(k)){const p=map.get(k);if(!clash(p,air,id))return k;return k+' #'+(id||Math.random())}
+    const t=toks(nm);if(t.length<2)return k;
+    const c=[...map.values()].filter(p=>{if(p.idA[air])return false;const ot=p.key.split(' ');const [a,b]=t.length<=ot.length?[t,ot]:[ot,t];return a.length>=2&&a.every(x=>b.includes(x))});
+    return c.length===1?c[0].key:k};
+  const get=(nm,air,id)=>{const ak=air+'|'+norm(nm)+'|'+(id||'');let k=alias.get(ak);if(!k){k=keyFor(nm,air,id);alias.set(ak,k)}
+    if(!map.has(k))map.set(k,{key:k,name:nm,ids:new Set(),idA:{},mgr:'',job:'',org:'',air:{}});const p=map.get(k);if(nm.length>p.name.length)p.name=nm;
+    (p.idA[air]??=new Set());if(id)p.idA[air].add(id);return p};
+  const ord=[...FILES].sort((a,b)=>(a.kind==='summary'?0:1)-(b.kind==='summary'?0:1));
+  ord.forEach(f=>f.recs.forEach(r=>{const p=get(r.name,f.airline,r.id);if(r.id)p.ids.add(AIR[f.airline]+': '+r.id);
+    if(r.mgr&&!p.mgr)p.mgr=r.mgr;if(r.job&&!p.job)p.job=r.job;if(r.org&&!p.org)p.org=r.org;
+    const a=p.air[f.airline]||(p.air[f.airline]={courses:[],summary:null});if(f.kind==='detail')a.courses.push({...r,airline:f.airline,st:status(r)});else a.summary=r}));
+  P=[...map.values()].map(p=>{let venc=0,pend=0,prox=0,oldest=0;
+    for(const a in p.air){const x=p.air[a];x.venc=x.courses.filter(c=>c.st==='v').length||(x.courses.length?0:(x.summary?.overdue||0));
+      if(x.courses.length&&x.summary&&x.summary.overdue>x.venc)x.venc=x.summary.overdue;
+      x.pend=x.courses.length;x.prox=x.courses.filter(c=>c.st==='p').length;venc+=x.venc;pend+=x.pend;prox+=x.prox;
+      x.courses.forEach(c=>{if(c.st==='v'&&c.days!=null)oldest=Math.max(oldest,-c.days)})}
+    p.venc=venc;p.pend=pend;p.prox=prox;p.oldest=oldest;p.prog=p.air.AA?.summary?.prog??null;
+    p.st=venc?'v':prox?'p':pend?'n':'o';p.jobS=(p.job||'').replace(/^Vendor,\s*/,'');
+    /* índice de riesgo 0–100: vencidos, por vencer, antigüedad del vencido más viejo y bajo progreso */
+    p.risk=venc?Math.min(100,Math.round(25+venc*7+prox*6+Math.min(oldest,120)/4+(p.prog!=null&&p.prog<50?(50-p.prog)/3:0))):prox?Math.min(60,20+prox*10):pend?10:0;
+    p.idTxt=[...p.ids].join(' · ');return p});
+  render()}
+
+/* ---------- persistencia ---------- */
+const lsGet=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||'null')??d}catch(e){return d}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}};
+function save(){lsSet(LS,{files:FILES,mes:$('#mes').value})}
+function load(){const d=lsGet(LS,null);if(d){FILES=d.files||[];$('#mes').value=d.mes||''}}
+const hist=()=>lsGet(LSH,[]);
+function snapshot(){const mes=$('#mes').value||new Date().toISOString().slice(0,7);
+  const s={mes,at:new Date().toISOString(),people:P.filter(p=>p.venc||p.pend).map(p=>({k:p.key,n:p.name,v:p.venc,c:Object.entries(p.air).flatMap(([a,x])=>x.courses.map(c=>a+'|'+(c.courseId||c.course)))}))};
+  const h=hist().filter(x=>x.mes!==mes);h.push(s);h.sort((a,b)=>a.mes.localeCompare(b.mes));toast(lsSet(LSH,h.slice(-18))?'Mes '+mes+' guardado en la memoria del copiloto':'El navegador no permite guardar');markPlan('snap');render()}
+const planKey=()=>LSP+'.'+($('#mes').value||'x');
+const planDone=()=>lsGet(planKey(),{});
+function markPlan(id,v=true){const d=planDone();d[id]=v;lsSet(planKey(),d)}
+
+/* ---------- datos derivados ---------- */
+const allCourses=()=>P.flatMap(p=>Object.values(p.air).flatMap(a=>a.courses.map(c=>({...c,pk:p.key,pn:p.name}))));
+const ckey=c=>c.airline+'|'+(c.courseId||c.course);
+const cMatch=(c,k)=>k.startsWith('txt:')?norm(c.course+' '+c.courseId).split(' ').some(w=>w.startsWith(k.slice(4))):ckey(c)===k;
+function courseLabel(k){if(k.startsWith('txt:')){const n=courseGroups().filter(g=>g.list.some(c=>cMatch(c,k))).length;return`Curso contiene «${k.slice(4).toLowerCase()}» (${n} cursos)`}const g=courseGroups().find(x=>x.k===k);return'Curso: '+(g?g.l:k)}
+function courseGroups(){const g={};allCourses().forEach(c=>{const k=ckey(c);g[k]??={k,a:c.airline,id:c.courseId,l:c.course,list:[],v:0,p:0,n:0,q:0};g[k].list.push(c);g[k][c.st]++});return Object.values(g).sort((a,b)=>b.v-a.v||b.list.length-a.list.length)}
+function supGroups(){const g={};P.filter(p=>p.venc||p.prox).forEach(p=>{const m=p.mgr||(p.air.AA?'Sin supervisor en el reporte':'Sin supervisor (solo en Delta)');(g[m]??=[]).push(p)});return Object.entries(g).sort((a,b)=>b[1].length-a[1].length)}
+const riskCol=r=>r>=70?'var(--bad)':r>=40?'var(--warn)':r>0?'var(--info)':'var(--ok)';
+
+/* ---------- motor de lenguaje natural (local, sin enviar datos) ---------- */
+const STOP=new Set('DE LA EL LOS LAS QUE CON POR EN Y A O QUIEN QUIENES TIENE TIENEN CURSO CURSOS PERSONA PERSONAS PERSONAL MOSTRAR MUESTRA MUESTRAME VER DAME LISTA LISTADO DEL AL MI SUS SU CUALES CUANTOS CUANTAS HAY TODOS TODO TODAS PENDIENTE PENDIENTES ESTADO EQUIPO SUPERVISOR SUPERVISORES JEFE A CARGO MAS MENOS QUE SIN UN UNA LOS PARA ME BUSCA BUSCAR FILTRA ESTAN ESTA SOLO AEROLINEA AEROLINEAS EMPLEADOS COLABORADORES VENCIDO VENCIDOS VENCIDAS VENCIDA BW TRAINING TRAINING'.split(' '));
+const JOBLEX={SECURITY:'Security',SEGURIDAD:'Security',RAMPA:'Ramp',RAMP:'Ramp',CATERING:'Catering',CABINA:'Cabin',CABIN:'Cabin',LIMPIEZA:'Cabin',EQUIPAJE:'Baggage',BAGGAGE:'Baggage',MALETAS:'Baggage',CARGO:'Cargo',CARGA:'Cargo',PREMIUM:'Premium',COMBUSTIBLE:'Fuel',FUELING:'Fuel',LIDER:'Lead',LEAD:'Lead',CREW:'Crew',CHIEF:'Chief'};
+function interpret(text){const raw=norm(text);const T=raw.split(' ').filter(Boolean);const used=new Set();const f={q:'',air:'',st:'',mgr:'',job:'',course:'',minV:0,prog0:false};const chips=[];let action=null;
+  const has=re=>re.test(raw);const use=w=>used.add(w);
+  if(has(/\b(EXPORT|EXCEL|DESCARG)/)){action='export'}
+  if(has(/\b(MENSAJE|MENSAJES|WHATSAPP|NOTIFIC|AVISA|AVISAR|ENVIA|CORREO)/)&&has(/\bSUPERVISOR/)){action='supmsg'}
+  if(has(/\b(RESUMEN EJECUTIVO|BRIEFING|INFORME|REPORTE GERENCIA|RESUMEN PARA)/))action='brief';
+  if(has(/\b(COMPAR|EVOLUCION|MES ANTERIOR)/))action='hist';
+  if(has(/\bDELTA\b|\bDL\b/)){f.air='DL';use('DELTA');use('DL')}
+  if(has(/\bAMERICAN\b|\bAA\b/)){f.air=f.air?'':'AA';use('AMERICAN');use('AA')}
+  if(has(/\bAMBAS\b|\bLAS DOS\b|\bDOBLE/)){f.air='both';use('AMBAS');use('DOS')}
+  if(has(/VENCID|ATRASAD|OVERDUE/)){f.st='v'}
+  if(has(/POR VENCER|PRONTO|7 DIAS|ESTA SEMANA|PROXIM/)){f.st='p';['POR','VENCER','PRONTO','7','DIAS','ESTA','SEMANA'].forEach(use)}
+  if(has(/SIN FECHA|NUEVO|NUEVOS|RECIEN|ASIGNAD/)){f.st='n';['FECHA','LIMITE','NUEVO','NUEVOS','RECIEN','ASIGNADO','ASIGNADOS'].forEach(use)}
+  if(has(/AL DIA|COMPLETO|SIN PENDIENTES/)){f.st='o';['DIA','COMPLETO'].forEach(use)}
+  let m=raw.match(/(?:MAS DE|MAYOR A|SOBRE|ARRIBA DE)\s*(\d+)/);if(m){f.minV=+m[1]+1;use(m[1])}
+  m=raw.match(/(\d+)\s*(?:O MAS|O MAYOR|\+)/)||raw.match(/(?:AL MENOS|MINIMO)\s*(\d+)/);if(m){f.minV=+m[1];use(m[1])}
+  if(/(^|\s)0\s*%/.test(text)||has(/SIN PROGRESO|\bCERO\b|SIN AVANCE|\b0 DE PROGRESO|PROGRESO (DE |EN )?0\b|NO HAN INGRESADO/)){f.prog0=true;['0','PROGRESO','CERO','AVANCE','INGRESADO','HAN','NO'].forEach(use)}
+  if(has(/CRITIC|RIESGO ALTO|URGENT/)){f.minV=Math.max(f.minV,5);['CRITICO','CRITICOS','URGENTE','URGENTES','RIESGO','ALTO'].forEach(use)}
+  T.forEach(w=>{if(JOBLEX[w]&&!f.job){f.job=JOBLEX[w];use(w)}});
+  const mgrs=[...new Set(P.map(p=>p.mgr).filter(Boolean))];const supCtx=has(/SUPERVISOR|EQUIPO|JEFE|A CARGO|DE \w+$/);
+  for(const g of mgrs){const gt=norm(g).split(' ');const first=gt[0];const hit=T.filter(w=>w.length>=4&&!used.has(w)&&gt.includes(w));
+    if(hit.length&&(hit.includes(first)||supCtx||hit.length>=2)){f.mgr=g;hit.forEach(use);break}}
+  const rest=T.filter(w=>!used.has(w)&&!STOP.has(w)&&w.length>=3&&!/^\d+$/.test(w));
+  if(rest.length){const groups=courseGroups();let best=null,bs=0;
+    const sc=gr=>{const ct=new Set(norm(gr.l+' '+gr.id).split(' '));return rest.filter(w=>ct.has(w)||[...ct].some(c=>c.length>=5&&c.startsWith(w)&&w.length>=4)).length};
+    groups.forEach(gr=>{const s=sc(gr);if(s>bs){bs=s;best=gr}});
+    const ties=bs?groups.filter(gr=>sc(gr)===bs):[];if(ties.length>1&&rest.length===1)best={k:'txt:'+rest[0]};
+    const nameHits=P.filter(p=>rest.every(w=>norm(p.name).split(' ').includes(w)));
+    if(nameHits.length&&(nameHits.length<=25)&&(!best||bs<rest.length)){f.q=rest.join(' ');rest.length=0;if(nameHits.length===1&&!f.st&&!f.mgr)action=action||{open:nameHits[0].key}}
+    else if(best&&bs){f.course=best.k;rest.splice(0)}}
+  if(rest.length&&!f.q)f.q=rest.join(' ');
+  if(!f.st&&(f.course||f.mgr||f.job||f.air)&&has(/VENC/))f.st='v';
+  if(f.air)chips.push(['air',f.air==='both'?'En ambas aerolíneas':'Aerolínea: '+AIR[f.air]]);
+  if(f.st)chips.push(['st','Estado: '+ST[f.st]]);
+  if(f.course)chips.push(['course',courseLabel(f.course)]);
+  if(f.mgr)chips.push(['mgr','Supervisor: '+f.mgr]);
+  if(f.job)chips.push(['job','Puesto contiene: '+f.job]);
+  if(f.minV)chips.push(['minV','Vencidos ≥ '+f.minV]);
+  if(f.prog0)chips.push(['prog0','Progreso AA = 0%']);
+  if(f.q)chips.push(['q','Nombre/texto: '+f.q.toLowerCase()]);
+  return{f,chips,action,text}}
+function runCommand(text){if(!text.trim())return;if(!FILES.length){toast('Primero carga los reportes del mes');return}
+  const r=interpret(text);lastQuery=r;
+  if(r.action==='export'){exportXlsx();}
+  if(r.action==='supmsg'){tab='supervisores';render();toast('Mensajes por supervisor listos para copiar');return}
+  if(r.action==='brief'){copy(briefing(),'Resumen ejecutivo copiado');tab='centro';render();return}
+  if(r.action==='hist'){tab='historial';render();return}
+  pf=r.f;tab='personal';render();
+  if(r.action&&r.action.open)openP(r.action.open)}
+
+/* ---------- agente: análisis, hallazgos y plan ---------- */
+function analysis(){const cs=allCourses();const lines=[];
+  FILES.forEach(f=>lines.push(`Leí ${f.name.replace(/^[0-9a-f]{8}-/,'')} → ${f.kind==='detail'?'detalle curso por curso':'roster con totales'} de ${AIR[f.airline]} · ${f.recs.length} filas${f.ign?` · ${f.ign} fila(s) vacía(s) omitida(s)`:''}`));
+  const both=P.filter(p=>Object.keys(p.air).length>1).length;
+  lines.push(`Consolidé ${P.length} personas únicas · ${both} aparecen en ambas aerolíneas`);
+  if(cs.length)lines.push(`Clasifiqué ${cs.length} asignaciones: ${cs.filter(c=>c.st==='v').length} vencidas, ${cs.filter(c=>c.st==='p').length} por vencer, ${cs.filter(c=>c.st==='n').length} sin fecha límite`);
+  lines.push(`Calculé el índice de riesgo de cada persona y agrupé por supervisor`);
+  return lines}
+function insights(){const out=[];const cs=allCourses();const groups=courseGroups();
+  const crit=P.filter(p=>p.venc>=5);
+  if(crit.length)out.push({c:'r',k:'RIESGO ALTO',t:`<b>${crit.length} personas</b> acumulan 5 o más cursos vencidos. Son la prioridad para escalar.`,a:[['Ver lista',{minV:5}],['Copiar a gerencia','brief']]});
+  const old=[...P].sort((a,b)=>b.oldest-a.oldest)[0];
+  if(old&&old.oldest)out.push({c:'r',k:'VENCIDO MÁS ANTIGUO',t:`<b>${esc(old.name)}</b> tiene un curso vencido hace <b>${old.oldest} días</b>.`,a:[['Abrir ficha',{open:old.key}]]});
+  const topC=groups.find(g=>g.v);
+  if(topC)out.push({c:'w',k:'CURSO CON MÁS VENCIDOS',t:`<b>${esc(topC.l)}</b> (${AIR[topC.a]}): ${topC.v} vencidos de ${topC.list.length} asignados. Conviene programar una sesión grupal.`,a:[['Ver personas',{course:topC.k,st:''}],['Copiar lista','c:'+topC.k]]});
+  const sg=supGroups()[0];
+  if(sg)out.push({c:'w',k:'SUPERVISOR CON MÁS CASOS',t:`El equipo de <b>${esc(sg[0])}</b> tiene <b>${sg[1].length}</b> personas con vencidos o por vencer.`,a:[['Copiar mensaje','s:0'],['Ver equipo',{mgr:P.some(p=>p.mgr===sg[0])?sg[0]:'',st:'v'}]]});
+  const z=P.filter(p=>p.prog===0&&p.venc);
+  if(z.length)out.push({c:'w',k:'SIN AVANCE',t:`<b>${z.length} personas</b> de American tienen vencidos y <b>0% de progreso</b>: probablemente no han ingresado a la plataforma.`,a:[['Ver lista',{prog0:true,st:'v'}]]});
+  const nw=groups.filter(g=>g.n).sort((a,b)=>b.n-a.n)[0];
+  if(nw)out.push({c:'i',k:'ASIGNACIONES NUEVAS',t:`<b>${nw.n} personas</b> recibieron «${esc(nw.l)}» sin fecha límite todavía. Avísales antes de que venza.`,a:[['Ver personas',{course:nw.k,st:'n'}],['Copiar lista','c:'+nw.k]]});
+  const dOnly=P.filter(p=>p.air.DL&&!p.air.AA);
+  if(dOnly.length&&P.some(p=>p.air.AA))out.push({c:'i',k:'CALIDAD DE DATOS',t:`<b>${dOnly.length} personas</b> del reporte de Delta no aparecen en el roster de American, así que no tienen supervisor asignado.`,a:[['Ver quiénes',{air:'DL',q:'',mgr:'—'}]]});
+  const dual=P.filter(p=>Object.keys(p.air).length>1&&p.venc);
+  if(dual.length)out.push({c:'i',k:'DOBLE AEROLÍNEA',t:`<b>${dual.length} personas</b> trabajan para ambas aerolíneas y tienen vencidos: un solo mensaje les cubre los dos reportes.`,a:[['Ver lista',{air:'both',st:'v'}]]});
+  if(P.length&&!P.some(p=>p.venc||p.prox))out.push({c:'g',k:'TODO AL DÍA',t:'No hay cursos vencidos ni por vencer en los reportes cargados.',a:[]});
+  return out}
+function plan(){const items=[];const sg=supGroups();const done=planDone();
+  if(sg.length)items.push({id:'sup',t:`Enviar el resumen a ${sg.length} supervisores`,b:['Abrir','tab:supervisores']});
+  const crit=P.filter(p=>p.venc>=5).length;if(crit)items.push({id:'esc',t:`Escalar ${crit} casos críticos a gerencia`,b:['Copiar resumen','brief']});
+  const nw=allCourses().filter(c=>c.st==='n').length;if(nw)items.push({id:'new',t:`Avisar sobre ${nw} cursos recién asignados`,b:['Ver','f:n']});
+  if(P.some(p=>p.air.DL&&!p.air.AA)&&P.some(p=>p.air.AA))items.push({id:'dq',t:'Asignar supervisor a quienes solo aparecen en Delta',b:['Ver','f:dq']});
+  if(FILES.some(f=>f.airline==='AA'&&f.kind==='summary')&&!FILES.some(f=>f.airline==='AA'&&f.kind==='detail'))items.push({id:'aa',t:'Pedir a American el reporte detallado curso por curso',b:null});
+  items.push({id:'snap',t:'Guardar este mes para compararlo con el siguiente',b:['Guardar','snap']});
+  items.push({id:'xls',t:'Exportar respaldo en Excel',b:['Exportar','export']});
+  return items.map(i=>({...i,done:!!done[i.id]}))}
+function briefing(){const mes=$('#mes').value;const v=P.filter(p=>p.venc).length;const cs=allCourses();const sg=supGroups();const g=courseGroups().find(x=>x.v);
+  const per=a=>{const ps=P.filter(p=>p.air[a]);return ps.length?`${AIR[a]}: ${ps.filter(p=>p.air[a].venc).length} de ${ps.length} personas con vencidos (${ps.reduce((s,p)=>s+p.air[a].venc,0)} cursos).`:''};
+  return `Resumen de entrenamiento${mes?' – '+mes:''} (SJO)\n\n• ${v} personas tienen al menos un curso vencido.\n• ${per('DL')}\n• ${per('AA')}\n`+(g?`• Curso con más vencidos: ${g.l} (${AIR[g.a]}) – ${g.v} personas.\n`:'')+
+  `• Casos críticos (5 o más vencidos): ${P.filter(p=>p.venc>=5).length}.\n`+(sg[0]?`• Equipo con más casos: ${sg[0][0]} (${sg[0][1].length} personas).\n`:'')+(cs.some(c=>c.st==='n')?`• ${cs.filter(c=>c.st==='n').length} cursos recién asignados aún sin fecha límite.\n`:'')+
+  `\nCasos críticos:\n`+P.filter(p=>p.venc>=5).sort((a,b)=>b.risk-a.risk).map(p=>`  – ${p.name}: ${p.venc} vencidos${p.mgr?' (sup. '+p.mgr+')':''}`).join('\n')+`\n\nPróximo paso: se envió la lista a cada supervisor para que coordinen la finalización.`.replace(/\n• \n/g,'\n')}
+
+/* ---------- vistas ---------- */
+const stTag=s=>`<span class="st ${s}">${ST[s]}</span>`;
+const airTags=p=>Object.keys(p.air).sort().map(a=>`<span class="tag ${a}">${AIR[a]}</span>`).join(' ');
+const prog=v=>v==null?'':`<span class="prog"><b><i style="width:${Math.max(0,Math.min(100,v))}%"></i></b>${Math.round(v)}%</span>`;
+const risk=r=>`<span class="risk" style="color:${riskCol(r)}"><b><i style="width:${r}%;background:${riskCol(r)}"></i></b>${r}</span>`;
+const bars=(items,max)=>`<div class="bars">${items.map(it=>`<button type="button" class="bar" ${it.act?`data-act='${esc(JSON.stringify(it.act))}'`:''}><div class="t"><span title="${esc(it.l)}">${esc(it.l)}</span><div class="track">${it.parts.map(([v,c])=>`<i style="width:${max?v/max*100:0}%;background:${c}"></i>`).join('')}</div></div><div class="v">${it.v}</div></button>`).join('')}</div>`;
+const orb=(big)=>`<svg class="orb" viewBox="0 0 200 200" aria-hidden="true"><defs><radialGradient id="cg${big}"><stop offset="0" stop-color="#bff8ff"/><stop offset=".45" stop-color="#3ee6ff"/><stop offset="1" stop-color="#3ee6ff" stop-opacity="0"/></radialGradient></defs>
+  <circle cx="100" cy="100" r="92" fill="none" stroke="rgba(255,255,255,.06)"/><g class="ring"><circle cx="100" cy="100" r="78" fill="none" stroke="#3ee6ff" stroke-opacity=".45" stroke-dasharray="3 9"/><circle cx="178" cy="100" r="4" fill="#3ee6ff"/></g>
+  <g class="ring2"><circle cx="100" cy="100" r="58" fill="none" stroke="#7cf5c8" stroke-opacity=".35" stroke-dasharray="60 30"/><circle cx="100" cy="42" r="3" fill="#7cf5c8"/></g>
+  <circle class="core" cx="100" cy="100" r="34" fill="url(#cg${big})"/><circle cx="100" cy="100" r="14" fill="#dffcff"/></svg>`;
+
+function vEmpty(){return`<div class="hero"><div><h1>Tu copiloto de entrenamiento para Delta y American</h1>
+  <p class="lead">Suelta los reportes mensuales de las aerolíneas. El copiloto detecta el formato, cruza al personal entre aerolíneas, calcula el riesgo de cada persona y te propone el plan de acción: a quién escribir, qué escalar y qué falta.</p>
+  <div class="drop" id="drop">${orb(1)}<p><b style="color:var(--ink)">Arrastra aquí los Excel o CSV del mes</b><br>Detalle de cursos (Resource Name / Course Title / Days Rem) o roster con vencidos (Name / Total Overdue / Overall Progress).</p>
+  <button class="btn ai" type="button" id="pick">Seleccionar archivos</button></div></div>
+  <div class="panel"><div class="sec">Lo que hará el agente</div><ol class="steps">
+  <li><span>01</span>Leer cada hoja y encontrar los encabezados aunque no estén en la fila 1</li>
+  <li><span>02</span>Identificar Delta o American por el nombre del archivo y los códigos de curso</li>
+  <li><span>03</span>Unir a la misma persona entre ambos reportes</li>
+  <li><span>04</span>Clasificar cada curso: vencido, por vencer, pendiente o sin fecha</li>
+  <li><span>05</span>Detectar hallazgos y armar el plan de acción con mensajes listos</li></ol>
+  <p class="note">Todo se procesa en este navegador; los datos no se envían a ningún servidor.</p></div></div>`}
+
+function vCentro(){const cs=allCourses();const by=k=>cs.filter(c=>c.st===k).length;
+  const conV=P.filter(p=>p.venc).length,crit=P.filter(p=>p.venc>=5).length,both=P.filter(p=>Object.keys(p.air).length>1).length;
+  const avgRisk=P.filter(p=>p.venc).length?Math.round(P.filter(p=>p.venc).reduce((s,p)=>s+p.risk,0)/conV):0;
+  const per=a=>{const ps=P.filter(p=>p.air[a]);if(!ps.length)return'';const x=ps.map(p=>p.air[a]);const pr=x.map(y=>y.summary?.prog).filter(z=>z!=null);const v=x.filter(y=>y.venc).length;
+    return`<div class="panel"><div class="sec"><span><span class="tag ${a}">${AIR[a]}</span></span><span class="mono">${ps.length} personas</span></div>
+    <div style="display:flex;align-items:center;gap:18px">${ring(Math.round(v/ps.length*100),'var(--bad)')}<dl class="meta"><dt>Con vencidos</dt><dd><b>${v}</b></dd><dt>Cursos vencidos</dt><dd class="mono">${x.reduce((s,y)=>s+y.venc,0)}</dd>${x.some(y=>y.pend)?`<dt>Asignaciones en detalle</dt><dd class="mono">${x.reduce((s,y)=>s+y.pend,0)}</dd>`:''}${pr.length?`<dt>Progreso promedio</dt><dd class="mono">${Math.round(pr.reduce((s,z)=>s+z,0)/pr.length)}%</dd>`:''}</dl></div></div>`};
+  const topC=courseGroups().slice(0,8).map(x=>({l:AIR[x.a]+' · '+x.l,v:x.list.length,act:{course:x.k,st:''},parts:[[x.v,'var(--bad)'],[x.p,'var(--warn)'],[x.q,'#b9c3cf'],[x.n,'var(--info)']]}));
+  const gj={};P.filter(p=>p.venc).forEach(p=>{const j=p.jobS||'Sin puesto registrado';gj[j]=(gj[j]||0)+1});
+  const topJ=Object.entries(gj).map(([l,v])=>({l,v,act:{job:l==='Sin puesto registrado'?'':l,st:'v'},parts:[[v,'var(--bad)']]})).sort((a,b)=>b.v-a.v).slice(0,8);
+  return`<h1>${conV} personas con cursos vencidos</h1><p class="lead">Reporte ${esc($('#mes').value||'')} · ${P.length} personas analizadas en ${FILES.length} fuente(s). Toca cualquier barra para ver quiénes son.</p>
+  <div class="kpis"><div class="kpi hot"><div class="v">${crit}</div><div class="l">críticos (5+ vencidos)</div></div><div class="kpi"><div class="v">${by('v')}</div><div class="l">cursos vencidos en detalle</div></div>
+  <div class="kpi"><div class="v">${by('n')+by('p')}</div><div class="l">por vencer o recién asignados</div></div><div class="kpi"><div class="v">${both}</div><div class="l">en ambas aerolíneas</div></div><div class="kpi ai"><div class="v">${avgRisk}</div><div class="l">riesgo promedio (0–100)</div></div></div>
+  <div class="grid2" style="margin-bottom:16px">${per('DL')}${per('AA')}</div>
+  <div class="grid2">${topC.length?`<div class="panel"><h2>Cursos con más pendientes</h2><p class="legend"><span><i style="background:var(--bad)"></i>Vencido</span><span><i style="background:var(--warn)"></i>≤ 7 días</span><span><i style="background:#b9c3cf"></i>Pendiente</span><span><i style="background:var(--info)"></i>Sin fecha</span></p>${bars(topC,topC[0].v)}</div>`:''}
+  ${topJ.length?`<div class="panel"><h2>Personas con vencidos por puesto</h2>${bars(topJ,topJ[0].v)}</div>`:''}</div>`}
+const ring=(pct,col)=>`<svg class="gauge" viewBox="0 0 64 64" aria-label="${pct}%"><circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="6"/><circle cx="32" cy="32" r="26" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${pct*1.634} 999" transform="rotate(-90 32 32)"/><text x="32" y="37" text-anchor="middle" font-family="JetBrains Mono" font-size="14" font-weight="700" fill="#e8eef6">${pct}%</text></svg>`;
+
+function filteredP(){const q=norm(pf.q);return P.filter(p=>{
+  if(q&&!q.split(' ').every(w=>norm(p.name+' '+p.idTxt+' '+p.mgr).includes(w)))return false;
+  if(pf.air==='both'&&Object.keys(p.air).length<2)return false;if(pf.air&&pf.air!=='both'&&!p.air[pf.air])return false;
+  if(pf.course){const cc=Object.values(p.air).flatMap(a=>a.courses).filter(c=>cMatch(c,pf.course));if(!cc.length)return false;if(pf.st&&!cc.some(c=>c.st===pf.st))return false}
+  else if(pf.st){const any=k=>Object.values(p.air).some(x=>x.courses.some(c=>c.st===k));if(pf.st==='v'?!p.venc:pf.st==='o'?p.st!=='o':!any(pf.st))return false}
+  if(pf.mgr&&(p.mgr||'—')!==pf.mgr)return false;if(pf.job&&!p.job.toLowerCase().includes(pf.job.toLowerCase()))return false;
+  if(pf.minV&&p.venc<pf.minV)return false;if(pf.prog0&&p.prog!==0)return false;return true})
+  .sort((a,b)=>{const k=sortP.k;const x=a[k]??-1,y=b[k]??-1;return(typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y)))*sortP.d})}
+const opts=(arr,sel,all,lab=v=>v)=>`<option value="">${all}</option>`+arr.map(v=>`<option${v===sel?' selected':''} value="${esc(v)}">${esc(lab(v))}</option>`).join('');
+function chipsOf(){const out=[];
+  if(pf.course)out.push(['course',courseLabel(pf.course)]);if(pf.minV)out.push(['minV','Vencidos ≥ '+pf.minV]);if(pf.prog0)out.push(['prog0','Progreso AA = 0%']);if(pf.job&&!P.some(p=>p.job===pf.job))out.push(['job','Puesto contiene: '+pf.job]);return out}
+function vPersonal(){const rows=filteredP();const mgrs=[...new Set(P.map(p=>p.mgr||'—'))].sort(),jobs=[...new Set(P.map(p=>p.job).filter(Boolean))].sort();
+  const th=(k,l,c='')=>`<th class="${c}" data-sort="${k}">${l}${sortP.k===k?(sortP.d>0?' ▲':' ▼'):''}</th>`;
+  const cg=!!pf.course;
+  const extra=chipsOf();
+  const und=lastQuery&&tab==='personal'?`<div class="understood"><b>Entendí:</b>${lastQuery.chips.length?lastQuery.chips.map(([k,l])=>`<span class="chip">${esc(l)}<button type="button" data-rmf="${k}" aria-label="Quitar">×</button></span>`).join(''):'<span>búsqueda por texto</span>'}<span class="count">«${esc(lastQuery.text)}»</span></div>`:
+    (extra.length?`<div class="understood"><b>Filtros activos:</b>${extra.map(([k,l])=>`<span class="chip">${esc(l)}<button type="button" data-rmf="${k}" aria-label="Quitar">×</button></span>`).join('')}</div>`:'');
+  return`<h1>${rows.length} ${rows.length===1?'persona':'personas'}</h1><p class="lead">Ordenadas por índice de riesgo. Toca una fila para ver la ficha y el recordatorio listo para enviar.</p>${und}
+  <div class="toolbar"><input class="sel" style="max-width:none;flex:1 1 200px;font-size:16px" type="search" id="fq" placeholder="Filtrar por nombre, ID o supervisor" value="${esc(pf.q)}">
+   <select class="sel" id="fair">${opts(['DL','AA','both'],pf.air,'Todas las aerolíneas',v=>v==='both'?'En ambas':AIR[v])}</select>
+   <select class="sel" id="fst">${opts(Object.keys(ST),pf.st,'Todos los estados',v=>ST[v])}</select>
+   <select class="sel" id="fmgr">${opts(mgrs,pf.mgr,'Todos los supervisores',v=>v==='—'?'Sin supervisor':v)}</select>
+   <select class="sel" id="fjob">${opts(jobs,jobs.includes(pf.job)?pf.job:'','Todos los puestos',v=>v.replace(/^Vendor,\s*/,''))}</select></div>
+  <div class="toolbar"><button class="btn" id="reset" type="button">Quitar filtros</button><button class="btn" id="cpMsgs" type="button">Copiar recordatorios de estas ${rows.length}</button><button class="btn" id="cpP" type="button">Copiar tabla</button><button class="btn ai" id="xlsP" type="button">Exportar Excel</button></div>
+  ${rows.length?`<div class="scroll"><table class="stack"><thead><tr>${th('risk','Riesgo')}${th('name','Nombre')}<th>Aerolínea</th>${cg?'<th>Este curso</th>':th('score','Estado')}${th('venc','Vencidos','num')}${th('oldest','Días vencido','num')}${th('prog','Progreso AA')}${th('mgr','Supervisor')}${th('jobS','Puesto')}<th>ID</th></tr></thead><tbody>
+  ${rows.slice(0,900).map(p=>{let cst='';if(cg){const c=Object.values(p.air).flatMap(a=>a.courses).filter(c=>cMatch(c,pf.course)).sort((a,b)=>'vpqn'.indexOf(a.st)-'vpqn'.indexOf(b.st))[0];cst=c?(pf.course.startsWith('txt:')?'<span style="font-size:12px">'+esc(c.course)+'</span><br>':'')+stTag(c.st)+(c.req?` <span class="mono" style="color:var(--mute);font-size:11px">${fmtD(c.req)}</span>`:''):''}
+   return`<tr class="click" data-p="${esc(p.key)}"><td>${risk(p.risk)}</td><td><b>${esc(p.name)}</b></td><td>${airTags(p)}</td><td>${cg?cst:stTag(p.st)}</td><td class="num">${p.venc||''}</td><td class="num">${p.oldest||''}</td><td>${prog(p.prog)}</td><td>${esc(p.mgr)}</td><td>${esc(p.jobS)}</td><td class="id">${esc(p.idTxt)}</td></tr>`}).join('')}</tbody></table></div>`:'<div class="empty">Nadie coincide. Prueba quitar un filtro o pregúntale al copiloto de otra forma.</div>'}
+  <p class="note">«Días vencido» solo existe donde hay detalle curso por curso. El roster de American trae la cantidad de vencidos, no el nombre de cada curso.</p>`}
+
+function vCursos(){const groups=courseGroups();if(!groups.length)return`<div class="empty">Los reportes cargados no traen detalle curso por curso. Carga un reporte con columnas de curso para ver esta vista.</div>`;
+  const cs=allCourses();
+  return`<h1>${groups.length} cursos con pendientes</h1><p class="lead">${cs.length} asignaciones. Toca un curso para desplegar quién lo debe y copiar la lista.</p>
+  <div class="toolbar"><button class="btn ai" id="xlsC" type="button" style="margin-left:auto">Exportar Excel</button></div>
+  <div class="scroll"><table class="stack"><thead><tr><th>Aerolínea</th><th>Curso</th><th>Código</th><th class="num">Vencidos</th><th class="num">≤ 7 días</th><th class="num">Pendiente</th><th class="num">Sin fecha</th><th class="num">Total</th></tr></thead><tbody>
+  ${groups.map(r=>`<tr class="click" data-c="${esc(r.k)}"><td><span class="tag ${r.a}">${AIR[r.a]}</span></td><td><b>${esc(r.l)}</b></td><td class="id">${esc(r.id)}</td><td class="num" style="color:var(--bad)">${r.v||''}</td><td class="num" style="color:var(--warn)">${r.p||''}</td><td class="num">${r.q||''}</td><td class="num" style="color:var(--info)">${r.n||''}</td><td class="num"><b>${r.list.length}</b></td></tr>
+  ${openCourse===r.k?`<tr><td colspan="8" style="background:rgba(62,230,255,.03)"><div class="toolbar"><b style="flex:1">Personas con este curso pendiente</b><button class="btn sm" type="button" data-cc="${esc(r.k)}">Copiar lista</button><button class="btn sm" type="button" data-act='${esc(JSON.stringify({course:r.k,st:""}))}'>Ver en Personal</button></div>
+  <table><tbody>${r.list.slice().sort((a,b)=>(a.days??999)-(b.days??999)).map(c=>`<tr class="click" data-p="${esc(c.pk)}"><td>${esc(c.pn)}</td><td>${stTag(c.st)}</td><td class="num nw">${c.days!=null?c.days+' d':''}</td><td class="nw mono" style="font-size:12px">${c.req?'Límite '+fmtD(c.req):'Asignado '+fmtD(c.assigned)}</td></tr>`).join('')}</tbody></table></td></tr>`:''}`).join('')}</tbody></table></div>`}
+
+function supText(m,ps){return`*Cursos pendientes – equipo de ${m}*\n${$('#mes').value?'Reporte '+$('#mes').value+'\n':''}\n`+ps.slice().sort((a,b)=>b.risk-a.risk).map(p=>`• ${p.name}: `+Object.entries(p.air).filter(([a,x])=>x.venc||x.prox).map(([a,x])=>`${AIR[a]} ${x.venc?x.venc+' vencido(s)':''}${x.venc&&x.prox?', ':''}${x.prox?x.prox+' vence(n) ≤7 días':''}`).join(' | ')).join('\n')+`\n\nFavor coordinar que completen los cursos a la brevedad.`}
+function vSup(){const gs=supGroups();if(!gs.length)return'<div class="empty">No hay personas con cursos vencidos o por vencer.</div>';
+  return`<h1>${gs.length} supervisores por notificar</h1><p class="lead">Cada bloque trae el mensaje listo para WhatsApp o correo, ordenado por riesgo.</p>
+  <div class="toolbar"><button class="btn ai" type="button" id="cpAllSup">Copiar los ${gs.length} mensajes</button></div>
+  ${gs.map(([m,ps],i)=>`<div class="sup"><div class="row"><h3>${esc(m)}</h3><span class="st v">${ps.length} personas</span><button class="btn sm" type="button" data-sup="${i}">Copiar mensaje</button></div>
+  <ul>${ps.slice().sort((a,b)=>b.risk-a.risk).map(p=>`<li><a href="#" data-p="${esc(p.key)}">${esc(p.name)}</a> — ${p.venc?p.venc+' vencido(s)':''}${p.prox?(p.venc?', ':'')+p.prox+' ≤7d':''} ${airTags(p)}</li>`).join('')}</ul></div>`).join('')}`}
+
+function vHist(){const h=hist();const mes=$('#mes').value;const prev=[...h].reverse().find(x=>x.mes<mes)||null;let cmp='';
+  if(prev){const before=new Map(prev.people.map(x=>[x.k,x]));const now=new Map(P.filter(p=>p.venc||p.pend).map(p=>[p.key,p]));
+    const nuevos=[...now.values()].filter(p=>p.venc&&!(before.get(p.key)?.v));const resueltos=prev.people.filter(x=>x.v&&!(now.get(x.k)?.venc));
+    const curNow=new Set(allCourses().map(c=>c.pk+'|'+ckey(c)));const curPrev=new Set(prev.people.flatMap(x=>x.c.map(c=>x.k+'|'+c)));
+    const cerr=[...curPrev].filter(x=>!curNow.has(x)).length,nue=[...curNow].filter(x=>!curPrev.has(x)).length;
+    const li=a=>a.length?`<ul style="font-size:13px;columns:2 220px">${a.map(x=>`<li>${esc(x.name||x.n)}</li>`).join('')}</ul>`:'<p class="note">Ninguna.</p>';
+    cmp=`<div class="kpis"><div class="kpi ai"><div class="v">${resueltos.length}</div><div class="l">se pusieron al día vs ${esc(prev.mes)}</div></div><div class="kpi hot"><div class="v">${nuevos.length}</div><div class="l">nuevas con vencidos</div></div>
+     <div class="kpi"><div class="v">${cerr}</div><div class="l">cursos completados (ya no aparecen)</div></div><div class="kpi"><div class="v">${nue}</div><div class="l">cursos nuevos asignados</div></div></div>
+     <div class="grid2"><div class="panel"><h2>Se pusieron al día</h2>${li(resueltos)}</div><div class="panel"><h2>Nuevos con vencidos</h2>${li(nuevos)}</div></div>`}
+  else cmp='<div class="empty">Todavía no hay un mes anterior en la memoria del copiloto. Guarda este mes; al cargar el próximo reporte verás quién se puso al día y quién quedó con vencidos nuevos.</div>';
+  return`<h1>Evolución mensual</h1><p class="lead">Meses en memoria: ${h.map(x=>esc(x.mes)).join(', ')||'ninguno'}. Se guardan en este navegador; exporta el Excel cada mes como respaldo permanente.</p>
+  <div class="toolbar"><button id="snap" class="btn ai" type="button">Guardar ${esc(mes||'este mes')} en memoria</button></div>${cmp}`}
+
+function vAgent(){if(!FILES.length)return`<div class="head">${orbMini()}<div><b>Copiloto</b><small>Esperando reportes</small></div></div>
+  <p style="margin:0;font-size:13px;color:#c9d2dc">Cuando cargues los archivos analizaré todo y te diré qué hacer primero. Después puedes pedirme cosas como:</p>
+  <div class="sugg">${['SafeTrac vencido en Delta','críticos','equipo de Norberto','0% de progreso','resumen para gerencia'].map(s=>`<button type="button" data-q="${esc(s)}">${esc(s)}</button>`).join('')}</div>`;
+  const an=analysis(),ins=insights(),pl=plan();const d=animate?1:0;
+  const sugg=['vencidos en ambas','críticos',...(courseGroups().slice(0,2).map(g=>g.l.split(' ').filter(w=>w.length>=4&&!/^(the|and|for)$/i.test(w)).slice(0,2).join(' ')+' vencido')),...supGroups().slice(0,1).filter(([m])=>P.some(p=>p.mgr===m)).map(([m])=>'equipo de '+m.split(' ')[0]),'sin fecha límite','mensajes a supervisores','resumen para gerencia'];
+  return`<div class="head">${orbMini()}<div><b>Copiloto</b><small>Análisis completo · ${pl.filter(x=>!x.done).length} acciones pendientes</small></div></div>
+  <div><div class="sec">Razonamiento</div><ul class="log">${an.map((l,i)=>`<li style="animation-delay:${d*i*.25}s"><i>✓</i><span>${esc(l)}</span></li>`).join('')}</ul></div>
+  <div><div class="sec">Hallazgos <span class="mono">${ins.length}</span></div><div class="ins">${ins.map((x,i)=>`<div class="insight ${x.c}" style="animation-delay:${d*(an.length*.25+i*.15)}s"><div class="k">${x.k}</div><p>${x.t}</p><div class="acts">${x.a.map(([l,a])=>`<button class="btn sm" type="button" data-act='${esc(JSON.stringify(a))}'>${esc(l)}</button>`).join('')}</div></div>`).join('')}</div></div>
+  <div><div class="sec">Plan de acción <span class="mono">${pl.filter(x=>x.done).length}/${pl.length}</span></div><ul class="plan">${pl.map(x=>`<li class="${x.done?'done':''}"><input type="checkbox" data-plan="${x.id}" ${x.done?'checked':''} aria-label="Marcar como hecho"><span>${esc(x.t)}</span>${x.b?`<button class="btn sm" type="button" data-act='${esc(JSON.stringify(x.b[1]))}' data-pid="${x.id}">${esc(x.b[0])}</button>`:''}</li>`).join('')}</ul></div>
+  <div><div class="sec">Pregúntame</div><div class="sugg">${[...new Set(sugg)].map(s=>`<button type="button" data-q="${esc(s)}">${esc(s)}</button>`).join('')}</div></div>`}
+const orbMini=()=>`<svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="19" fill="none" stroke="#3ee6ff" stroke-opacity=".4" stroke-dasharray="2 4"/><circle cx="22" cy="22" r="12" fill="none" stroke="#7cf5c8" stroke-opacity=".4"/><circle cx="22" cy="22" r="6" fill="#3ee6ff"><animate attributeName="r" values="5;7;5" dur="3s" repeatCount="indefinite"/></circle></svg>`;
+
+function render(){
+  $('#files').innerHTML=FILES.map(f=>`<div class="fchip"><span class="nm" title="${esc(f.name)}">${esc(f.name.replace(/^[0-9a-f]{8}-/,''))}</span><span style="color:var(--mute)">${f.kind==='detail'?'detalle':'roster'} · ${f.recs.length} filas</span>
+    <div class="rw"><select data-air="${f.id}" aria-label="Aerolínea"><option value="DL"${f.airline==='DL'?' selected':''}>Delta</option><option value="AA"${f.airline==='AA'?' selected':''}>American</option></select><button type="button" data-rm="${f.id}">Quitar</button></div></div>`).join('');
+  document.querySelectorAll('#rail [data-t]').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===tab));
+  $('#n-personal').textContent=P.length||'';$('#n-cursos').textContent=courseGroups().length||'';$('#n-sup').textContent=supGroups().length||'';$('#n-centro').textContent=P.filter(p=>p.venc).length||'';
+  $('#main').innerHTML=!FILES.length?vEmpty():({centro:vCentro,personal:vPersonal,cursos:vCursos,supervisores:vSup,historial:vHist}[tab])();
+  $('#agent').innerHTML=vAgent();animate=false}
+
+/* ---------- ficha de persona ---------- */
+function personText(p){const fn=cap(p.name.split(' ')[0]);let t=`Hola ${fn}, según el reporte de entrenamiento tienes estos cursos pendientes:\n`;
+  for(const [a,x] of Object.entries(p.air)){if(!x.courses.length&&!x.venc)continue;t+=`\n*${AIR[a]}*\n`;
+    if(x.courses.length)x.courses.slice().sort((m,n)=>(m.days??999)-(n.days??999)).forEach(c=>{t+=`• ${c.course} — ${c.st==='v'?`vencido hace ${Math.abs(c.days)} días (${fmtD(c.req)})`:c.st==='p'?`vence en ${c.days} días (${fmtD(c.req)})`:c.req?`límite ${fmtD(c.req)}`:'recién asignado'}\n`});
+    else t+=`• ${x.venc} curso(s) vencido(s)${x.summary?.prog!=null?` · progreso ${Math.round(x.summary.prog)}%`:''}\n`}
+  return t+`\nPor favor completarlos a la brevedad. ¡Gracias!`}
+function openP(key){const p=P.find(x=>x.key===key);if(!p)return;$('#dTitle').textContent=p.name;$('#dGauge').innerHTML=ring(p.risk,riskCol(p.risk));
+  let h=`<dl class="meta"><dt>Índice de riesgo</dt><dd>${risk(p.risk)}</dd><dt>Estado</dt><dd>${stTag(p.st)}</dd><dt>Aerolíneas</dt><dd>${airTags(p)}</dd>${p.idTxt?`<dt>ID</dt><dd class="mono" style="font-size:12px">${esc(p.idTxt)}</dd>`:''}${p.mgr?`<dt>Supervisor</dt><dd>${esc(p.mgr)}</dd>`:''}${p.job?`<dt>Puesto</dt><dd>${esc(p.jobS)}</dd>`:''}${p.org?`<dt>Organización</dt><dd>${esc(p.org)}</dd>`:''}</dl>`;
+  for(const [a,x] of Object.entries(p.air)){h+=`<h3><span class="tag ${a}">${AIR[a]}</span></h3>`;
+    if(x.summary)h+=`<dl class="meta"><dt>Cursos vencidos</dt><dd class="mono"><b>${x.summary.overdue}</b></dd><dt>Progreso general</dt><dd>${prog(x.summary.prog)||'—'}</dd></dl>`;
+    if(x.courses.length)h+=`<div class="scroll" style="margin-top:10px"><table><thead><tr><th>Curso</th><th>Estado</th><th class="num">Días</th><th>Límite</th></tr></thead><tbody>${x.courses.slice().sort((m,n)=>(m.days??999)-(n.days??999)).map(c=>`<tr><td>${esc(c.course)}<div class="id">${esc(c.courseId)}</div></td><td>${stTag(c.st)}</td><td class="num">${c.days??''}</td><td class="nw mono" style="font-size:12px">${fmtD(c.req)||'—'}</td></tr>`).join('')}</tbody></table></div>`}
+  h+=`<h3>Recordatorio redactado por el copiloto</h3><textarea id="msg">${esc(personText(p))}</textarea><div class="toolbar" style="margin-top:10px"><button class="btn ai" type="button" id="cpMsg">Copiar mensaje</button></div>`;
+  $('#dBody').innerHTML=h;$('#drawer').classList.add('open');$('#drawer').setAttribute('aria-hidden','false');$('#shade').classList.add('open');$('#dClose').focus()}
+const closeD=()=>{$('#drawer').classList.remove('open');$('#drawer').setAttribute('aria-hidden','true');$('#shade').classList.remove('open')};
+
+/* ---------- exportar ---------- */
+function exportXlsx(){if(!FILES.length)return;const wb=XLSX.utils.book_new();const mes=$('#mes').value||'';
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(filteredP().map(p=>({Nombre:p.name,'Riesgo (0-100)':p.risk,Estado:ST[p.st],'Aerolíneas':Object.keys(p.air).map(a=>AIR[a]).join(' + '),'Vencidos total':p.venc,'Vencen ≤7 días':p.prox,'Días vencido (más antiguo)':p.oldest||'',
+    'Delta vencidos':p.air.DL?.venc??'','Delta cursos pendientes':p.air.DL?.pend??'','American vencidos':p.air.AA?.venc??'','American progreso %':p.prog??'',Supervisor:p.mgr,Puesto:p.job,IDs:p.idTxt}))),'Personal');
+  const det=allCourses().map(c=>({Nombre:c.pn,'Aerolínea':AIR[c.airline],ID:c.id,'Código curso':c.courseId,Curso:c.course,Estado:ST[c.st],'Días restantes':c.days,'Fecha asignación':fmtD(c.assigned),'Fecha límite':fmtD(c.req),Curriculum:c.curr}));
+  if(det.length){XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(det),'Detalle cursos');
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(courseGroups().map(g=>({'Aerolínea':AIR[g.a],Curso:g.l,Código:g.id,Vencidos:g.v,'≤7 días':g.p,Pendiente:g.q,'Sin fecha':g.n,Total:g.list.length}))),'Resumen por curso')}
+  const sup=supGroups().flatMap(([m,ps])=>ps.map(p=>({Supervisor:m,Nombre:p.name,Riesgo:p.risk,Vencidos:p.venc,'≤7 días':p.prox,'Aerolíneas':Object.keys(p.air).map(a=>AIR[a]).join(' + ')})));
+  if(sup.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(sup),'Por supervisor');
+  try{XLSX.writeFile(wb,`Training_Copilot_${mes||'reporte'}.xlsx`);markPlan('xls');render()}catch(e){toast('Este visor no permite descargas: usa «Copiar tabla»')}}
+const tableTSV=()=>['Nombre\tRiesgo\tAerolíneas\tEstado\tVencidos\tDías vencido\tProgreso AA\tSupervisor\tPuesto\tID',...filteredP().map(p=>[p.name,p.risk,Object.keys(p.air).map(a=>AIR[a]).join('+'),ST[p.st],p.venc,p.oldest||'',p.prog??'',p.mgr,p.job,p.idTxt].join('\t'))].join('\n');
+
+/* ---------- acciones ---------- */
+function doAct(a,pid){if(pid)markPlan(pid);
+  if(typeof a==='string'){
+    if(a==='brief'){copy(briefing(),'Resumen ejecutivo copiado');render();return}
+    if(a==='export'){exportXlsx();return}
+    if(a==='snap'){snapshot();return}
+    if(a.startsWith('tab:')){tab=a.slice(4);render();return}
+    if(a==='f:n'){a={st:'n'}}
+    else if(a==='f:dq'){a={air:'DL',mgr:'—'}}
+    else if(a.startsWith('c:')){const l=allCourses().filter(c=>ckey(c)===a.slice(2));copy(`*${l[0].course}* (${AIR[l[0].airline]})\n`+l.map(c=>`• ${c.pn} — ${ST[c.st]}${c.req?' · límite '+fmtD(c.req):''}`).join('\n'),'Lista del curso copiada');return}
+    else if(a.startsWith('s:')){const [m,ps]=supGroups()[+a.slice(2)];copy(supText(m,ps),'Mensaje para '+m+' copiado');return}
+    else return}
+  if(a.open){openP(a.open);return}
+  pf={q:'',air:'',st:'',mgr:'',job:'',course:'',minV:0,prog0:false,...a};lastQuery=null;tab='personal';render();window.scrollTo({top:0,behavior:'smooth'})}
+
+const dropOn=el=>{['dragenter','dragover'].forEach(e=>el.addEventListener(e,ev=>{ev.preventDefault();$('#drop')?.classList.add('over')}));['dragleave','drop'].forEach(e=>el.addEventListener(e,ev=>{ev.preventDefault();$('#drop')?.classList.remove('over')}));el.addEventListener('drop',ev=>{if(ev.dataTransfer.files.length)handleFiles(ev.dataTransfer.files)})};
+dropOn(document.body);
+$('#fi').addEventListener('change',ev=>{handleFiles(ev.target.files);ev.target.value=''});
+$('#addf').addEventListener('click',()=>$('#fi').click());
+$('#mes').addEventListener('change',()=>{save();render()});
+let clr=0;$('#clear').addEventListener('click',ev=>{if(!clr){clr=1;ev.target.textContent='¿Seguro? Toca otra vez';setTimeout(()=>{clr=0;ev.target.textContent='Limpiar todo'},3000);return}clr=0;ev.target.textContent='Limpiar todo';FILES=[];lastQuery=null;save();rebuild()});
+$('#cmdForm').addEventListener('submit',e=>{e.preventDefault();runCommand($('#cmd').value)});
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#cmd').focus();$('#cmd').select()}if(e.key==='Escape')closeD()});
+$('#rail').addEventListener('click',ev=>{const b=ev.target.closest('[data-t]');if(b){tab=b.dataset.t;lastQuery=null;render()}
+  const r=ev.target.closest('[data-rm]');if(r){FILES=FILES.filter(x=>x.id!==r.dataset.rm);save();rebuild()}});
+$('#rail').addEventListener('change',ev=>{const s=ev.target.closest('[data-air]');if(!s)return;FILES.find(x=>x.id===s.dataset.air).airline=s.value;save();rebuild()});
+const clickAll=ev=>{const t=ev.target;
+  if(t.closest('#pick')){$('#fi').click();return}
+  const q=t.closest('[data-q]');if(q){$('#cmd').value=q.dataset.q;runCommand(q.dataset.q);return}
+  const ac=t.closest('[data-act]');if(ac){doAct(JSON.parse(ac.dataset.act),ac.dataset.pid);return}
+  const th=t.closest('th[data-sort]');if(th){const k=th.dataset.sort;sortP=sortP.k===k?{k,d:-sortP.d}:{k,d:['name','mgr','jobS'].includes(k)?1:-1};render();return}
+  const rf=t.closest('[data-rmf]');if(rf){const k=rf.dataset.rmf;pf[k]=k==='minV'?0:k==='prog0'?false:'';if(lastQuery)lastQuery.chips=lastQuery.chips.filter(c=>c[0]!==k);render();return}
+  const cc=t.closest('[data-cc]');if(cc){doAct('c:'+cc.dataset.cc);return}
+  const pr=t.closest('[data-p]');if(pr){ev.preventDefault();openP(pr.dataset.p);return}
+  const cr=t.closest('[data-c]');if(cr){openCourse=openCourse===cr.dataset.c?null:cr.dataset.c;render();return}
+  const sp=t.closest('[data-sup]');if(sp){doAct('s:'+sp.dataset.sup);markPlan('sup');return}
+  if(t.id==='cpAllSup'){copy(supGroups().map(([m,ps])=>supText(m,ps)).join('\n\n———\n\n'),'Mensajes de todos los supervisores copiados');markPlan('sup');render()}
+  if(t.id==='xlsP'||t.id==='xlsC')exportXlsx();if(t.id==='cpP')copy(tableTSV(),'Tabla copiada: pégala en Excel o Sheets');if(t.id==='snap')snapshot();
+  if(t.id==='cpMsgs'){const r=filteredP().filter(p=>p.venc||p.pend);copy(r.map(personText).join('\n\n———\n\n'),r.length+' recordatorios copiados')}
+  if(t.id==='reset'){pf={q:'',air:'',st:'',mgr:'',job:'',course:'',minV:0,prog0:false};lastQuery=null;render()}};
+$('#main').addEventListener('click',clickAll);$('#agent').addEventListener('click',clickAll);
+$('#agent').addEventListener('change',ev=>{const c=ev.target.closest('[data-plan]');if(c){markPlan(c.dataset.plan,c.checked);render()}});
+$('#main').addEventListener('input',ev=>{if(ev.target.id==='fq'){pf.q=ev.target.value;lastQuery=null;const pos=ev.target.selectionStart;render();const i=$('#fq');i.focus();i.setSelectionRange(pos,pos)}});
+$('#main').addEventListener('change',ev=>{const m={fair:'air',fst:'st',fmgr:'mgr',fjob:'job'}[ev.target.id];if(m){pf[m]=ev.target.value;lastQuery=null;render()}});
+$('#dClose').addEventListener('click',closeD);$('#shade').addEventListener('click',closeD);
+$('#dBody').addEventListener('click',e=>{if(e.target.id==='cpMsg')copy($('#msg').value,'Recordatorio copiado')});
+
+load();
+if(typeof XLSX==='undefined'){$('#main').innerHTML='<div class="empty">No se pudo cargar la librería para leer Excel. Se necesita conexión a internet al abrir la herramienta.</div>'}else{animate=true;rebuild()}
+}
+</script>
+</body>
+</html>
