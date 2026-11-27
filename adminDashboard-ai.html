@@ -3,6 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+(function(){
+    var LOGIN_URL = 'login-Admin.html';
+    var ROLES_PERMITIDOS = []; // ej. ['Admin'] — vacío = cualquier usuario logueado
+    var ok = false;
+    try {
+        var u = JSON.parse(sessionStorage.getItem('user') || 'null');
+        ok = !!(u && u.username);
+        if (ok && ROLES_PERMITIDOS.length) {
+            var rol = String(u.role || '').trim().toLowerCase();
+            ok = ROLES_PERMITIDOS.some(function(r){ return String(r).toLowerCase() === rol; });
+        }
+    } catch (e) { ok = false; }
+    window.__TC_AUTH_OK = ok;
+    if (!ok) {
+        document.documentElement.style.display = 'none';
+        window.location.replace(LOGIN_URL);
+    }
+})();
+</script>
+    
     <meta property="og:type" content="website">
     <meta property="og:title" content="Admin Dashboard | All-In-One Platform Data">
     <meta property="og:description" content="Dashboard inteligente por aerolínea, vuelo y operador.">
